@@ -1,0 +1,544 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r setup}
+
+
+library(tidyverse)
+library(here)
+library(lubridate)
+library(patchwork)
+library(scales)
+
+`%out%` <- Negate(`%in%`)
+options(scipen = 100)
+theme_set(theme_light())
+
+```
+
+
+# Data
+
+
+```{r alt data, message=FALSE}
+
+ged241 <- readRDS(here("data", "ged241.rds"))
+
+acled_filtered <- readRDS(here("data", "acled_filtered.rds"))
+
+acled_country_list <- acled_filtered |> 
+  count(region, country, iso)
+
+ged <- ged241 |> 
+  filter(date_start < "2024-01-01" & date_start >= "2013-01-01") |> 
+  mutate(country = case_when(country == "Cambodia (Kampuchea)" ~ "Cambodia", 
+                             country == "Myanmar (Burma)" ~ "Myanmar", 
+                             TRUE ~ country)) |> 
+  filter(country %in% acled_country_list$country)
+
+population <- read_csv(here("data", "wdi_population_data.csv")) |> 
+  slice(1:22) |> 
+  janitor::clean_names() %>%
+  mutate(across(matches("_yr"), ~ as.numeric(.))) %>%
+  pivot_longer(cols = x2015_yr2015:x2023_yr2023, 
+               names_to = "year", 
+               values_to = "population") |> 
+  mutate(year = str_sub(year, start = -4, end = -1), 
+         year = as.integer(year)) 
+
+population_estimates <- crossing(country = population$country_name, year = 2013:2023) |> 
+  left_join(population |> 
+              select(year, country = country_name, population), 
+            by = c("year", "country")) |> 
+  group_by(country) %>% 
+  fill(population, .direction = "updown") |> 
+  mutate(country = case_when(str_detect(country, "Korea, Rep.") ~ "South Korea",
+                             str_detect(country, "Korea, Dem. People's Rep.") ~ "North Korea", 
+                             country == "Viet Nam" ~ "Vietnam", 
+                             TRUE ~ country))
+
+```
+
+
+The chunk below loads in the original data. I'm thinking that for reproducibility, I can load the filtered datasets in compressed RDS files up to github. And maybe keep the originals in the gitignore folder 
+
+```{r data, message=FALSE}
+
+
+ged241 <- readRDS(here("data", "ged241.rds"))
+
+acled <- rbind(
+  read_csv(here("raw_data", "2015-05-25-2024-05-25-East_Asia.csv")), 
+  read_csv(here("raw_data", "2015-05-25-2024-05-25-Oceania.csv")),
+  read_csv(here("raw_data", "2015-05-25-2024-05-25-South_Asia.csv")),
+  read_csv(here("raw_data", "2015-05-25-2024-05-25-Southeast_Asia.csv")), 
+  # for the dates that you missed
+  read_csv(here("raw_data", "2013-01-01-2015-05-24-East_Asia-Oceania-South_Asia-Southeast_Asia.csv")) 
+  ) |> 
+  filter(year >= 2013 & year < 2024) 
+
+acled_country_list <- acled |>
+  count(country, region, iso)
+
+# Less Afghanistan, Kyrgyzstan and Tajikistan 
+ged <- ged241 |> 
+  filter(date_start < "2024-01-01" & date_start >= "2013-01-01") |> 
+  mutate(country = case_when(country == "Cambodia (Kampuchea)" ~ "Cambodia", 
+                             country == "Myanmar (Burma)" ~ "Myanmar", 
+                             TRUE ~ country)) |> 
+  filter(country %in% acled_country_list$country)
+
+
+acled <- acled |> 
+  mutate(is_ged = ifelse(country %in% ged$country, "yes", "no")) |> 
+  mutate(is_protest = ifelse(event_type == "Protests", "yes", "no"))
+
+population <- read_csv(here("data", "wdi_population_data.csv")) |> 
+  slice(1:22) |> 
+  janitor::clean_names() %>%
+  mutate(across(matches("_yr"), ~ as.numeric(.))) %>%
+  pivot_longer(cols = x2015_yr2015:x2023_yr2023, 
+               names_to = "year", 
+               values_to = "population") |> 
+  mutate(year = str_sub(year, start = -4, end = -1), 
+         year = as.integer(year)) 
+
+population_estimates <- crossing(country = population$country_name, year = 2013:2023) |> 
+  left_join(population |> 
+              select(year, country = country_name, population), 
+            by = c("year", "country")) |> 
+  group_by(country) %>% 
+  fill(population, .direction = "updown") |> 
+  mutate(country = case_when(str_detect(country, "Korea, Rep.") ~ "South Korea",
+                             str_detect(country, "Korea, Dem. People's Rep.") ~ "North Korea", 
+                             country == "Viet Nam" ~ "Vietnam", 
+                             TRUE ~ country)) 
+```
+
+# ACLED
+
+### Filtered dataset
+
+
+```{r}
+acled_filtered_list <- acled |> 
+  count(country) |> 
+  # filter(country != "Taiwan") |> 
+  filter(n > 400) |>
+  pull(country)
+
+acled_filtered <- acled |> 
+  filter(country %in% acled_filtered_list) 
+```
+
+```{r eval=FALSE}
+acled_filtered |> write_rds(here("data", "acled_filtered.rds"), 
+                            compress = c("gz"))
+```
+
+
+
+```{r}
+acled |> 
+  group_by(country, is_protest) |> 
+  summarise(count = n(), .groups = "drop") |>
+  pivot_wider(names_from = is_protest, 
+              values_from = count) |> 
+  mutate(events = no + yes) |> 
+  filter(events > 400) 
+```
+
+
+
+
+```{r}
+acled_filtered |> 
+  filter(event_type != "Protest") |> 
+  group_by(country) |> 
+  summarise(events = n()) |>
+  arrange(desc(events))
+```
+
+```{r}
+most_events_list <- acled_filtered |> 
+  filter(event_type != "Protest") |> 
+  group_by(country) |> 
+  summarise(events = n()) |> 
+  arrange(desc(events)) |> 
+  pull(country)
+
+most_fatalities_list <- acled_filtered |> 
+  group_by(country) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE)) |> 
+  arrange(desc(fatalities)) |> 
+  filter(fatalities > 10) |> 
+  pull(country)
+
+```
+
+### Plots by frequency
+
+```{r}
+acled_filtered |> 
+  filter(country %out% c("Australia", "Japan", "Mongolia", "New Zealand", "South Korea")) |> 
+  group_by(country, year) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE), 
+            .groups = "drop") |> 
+  left_join(population_estimates, 
+            by = c("country", "year")) |>
+  mutate(date = as.Date(paste(year, 1, 1, sep="-")), 
+         fatalities_100k = fatalities / population * 100000, 
+         country = fct_relevel(country, most_fatalities_list)) |>
+  ggplot(aes(x = date, y = fatalities)) + 
+  geom_smooth(alpha = .1, colour = "red") + 
+  geom_line(aes(group = country)) + 
+  scale_x_date(date_labels = "%Y", 
+               date_breaks = "2 years") + 
+  facet_wrap(~ country, 
+             scales = "free_y") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  labs(title = "Conflict fatalities in the Asia-Pacific, 2013-2023", 
+       y = "Fatalities", 
+       x = "")
+```
+
+
+```{r}
+acled_filtered |> 
+  filter(country %out% c("Australia", "Japan", "Mongolia", "New Zealand", "South Korea")) |> 
+  group_by(country, year) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE), 
+            .groups = "drop") |> 
+  left_join(population_estimates, 
+            by = c("country", "year")) |>
+  mutate(date = as.Date(paste(year, 1, 1, sep="-")), 
+         fatalities_100k = fatalities / population * 100000, 
+         country = fct_relevel(country, most_fatalities_list)) |>
+  arrange(country) |> 
+  ggplot(aes(x = date, y = fatalities_100k)) + 
+  geom_smooth(alpha = .1, colour = "red") + 
+  geom_line(aes(group = country)) + 
+  scale_x_date(date_labels = "%Y", 
+               date_breaks = "2 years") + 
+  facet_wrap(~ country, 
+             scales = "free_y") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  labs(title = "Conflict fatalities per 100k in the Asia-Pacific, 2013-2023", 
+       y = "Fatalities", 
+       x = "")
+```
+
+
+```{r}
+acled_filtered |> 
+  filter(is_protest == "no") |> 
+  group_by(country, year) |> 
+  summarise(count = n(), .groups = "drop") |>
+  left_join(population_estimates, 
+            by = c("country", "year")) |>
+  mutate(country = fct_relevel(country, most_events_list), 
+         year = round(year)) |> 
+  mutate(date = as.Date(paste(year, 1, 1, sep="-"))) |> 
+  mutate(events_100k = count / population * 100000) |> 
+  ggplot(aes(x = date, y = count)) + 
+  geom_smooth(alpha = .2) + 
+  geom_line(aes(group = country)) + 
+  scale_x_date(date_labels = "%Y") + 
+  facet_wrap(~ country, 
+             scales = "free_y") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  labs(title = "Conflict events in the Asia Pacific, 2013-2023")
+```
+
+```{r}
+acled_filtered |> 
+  filter(is_protest == "yes") |> 
+  group_by(country, year) |> 
+  summarise(count = n(), .groups = "drop") |>
+  left_join(population_estimates, 
+            by = c("country", "year")) |> 
+  mutate(country = fct_relevel(country, most_events_list)) |> 
+  mutate(date = as.Date(paste(year, 1, 1, sep="-"))) |> 
+  mutate(events_100k = count / population * 100000) |> 
+  ggplot(aes(x = date, y = count)) + 
+  geom_smooth(alpha = .2, colour = "salmon") + 
+  geom_line(aes(group = country)) + 
+  scale_x_date(date_labels = "%Y") + 
+  facet_wrap(~ country, 
+             scales = "free_y") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
+  labs(title = "Protest events in the Asia Pacific, 2013-2023")
+
+```
+
+
+
+```{r}
+acled_filtered |> 
+   filter(country == "India") |> 
+  count(event_type)
+```
+
+
+```{r}
+acled_filtered |> 
+  group_by(country, year) |> 
+  summarise(count = n(), .groups = "drop") |>
+  left_join(population_estimates, 
+            by = c("country", "year")) |> 
+  mutate(country = fct_relevel(country, most_events_list)) |> 
+  mutate(events_100k = count / population * 100000) |> 
+  ggplot(aes(x = year, y = events_100k)) + 
+  geom_smooth(alpha = .2, colour = "seagreen") + 
+  geom_line(aes(group = country)) + 
+  facet_wrap(~ country, 
+             scales = "free_y")  
+
+```
+
+### Protest and non-protest events 
+
+Maybe have two, one for protest events and one for non-protest events
+And then have the axes be fatalities per capita and events per capita, with the sizes indicating fatalities 
+
+```{r}
+acled_filtered |> 
+  group_by(event_type) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE))
+```
+
+
+```{r}
+acled_filtered |> 
+  filter(is_protest == "no") |> 
+  group_by(country, is_protest, year) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE),
+            events = n(), 
+            .groups = "drop") |> 
+  left_join(population_estimates |> 
+              mutate(year = as.double(year)), 
+            by = c("country", "year")) |>
+  mutate(fatalities_100k = fatalities / population * 100000, 
+         events_100k = events / population * 100000) |> 
+  ggplot(aes(x = events_100k, y = fatalities_100k)) + 
+  geom_text(aes(label = country), 
+            size = 1.5, 
+            colour = "grey", 
+            alpha = .7) + 
+  geom_point(aes(colour = is_protest, size = fatalities), 
+             alpha = .8, 
+             colour = "#f89540") + 
+  # scale_colour_viridis_d(option = "plasma", 
+  #                        begin = .2, end = .8, 
+  #                        direction = -1) +
+  scale_x_log10(breaks = c(0.001, 0.01, 0.1, 1, 10)) + 
+  scale_y_log10(breaks = c(0.001, 0.01, 0.1, 1, 10)) + 
+  scale_size_continuous(breaks = c(10, 5000, 10000, 15000)) +
+  facet_wrap(~year) + 
+  theme(axis.text.x = element_text(angle = 60, hjust = .8, vjust = 1, size = 8), 
+        axis.text.y = element_text(size = 8))
+```
+
+
+
+```{r}
+acled_filtered |> 
+  filter(is_protest == "yes") |> 
+  group_by(country, is_protest, year) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE),
+            events = n(), 
+            .groups = "drop") |> 
+  left_join(population_estimates |> 
+              mutate(year = as.double(year)), 
+            by = c("country", "year")) |>
+  mutate(fatalities_100k = fatalities / population * 100000, 
+         events_100k = events / population * 100000) |> 
+  ggplot(aes(x = events_100k, y = fatalities_100k)) + 
+  geom_text(aes(label = country), 
+            size = 1.5, 
+            colour = "darkgrey", 
+            alpha = .8) + 
+  geom_point(aes(colour = is_protest, size = fatalities), 
+             alpha = .8, 
+             colour = "#9c179e") + 
+  # scale_colour_viridis_d(option = "plasma", 
+  #                        begin = .2, end = .8, 
+  #                        direction = -1) +
+  scale_x_log10(breaks = c(0.001, 0.01, 0.1, 1, 10)) + 
+  scale_y_log10(breaks = c(0.001, 0.01, 0.1, 1, 10)) + 
+  scale_size_continuous(breaks = c(0, 10, 100, 1000)) +
+  facet_wrap(~year) + 
+  theme(axis.text.x = element_text(angle = 60, hjust = .8, vjust = 1, size = 8), 
+        axis.text.y = element_text(size = 8))
+```
+
+
+
+```{r}
+ged |>
+  count(country)
+
+ged241 |> 
+  mutate(country = case_when(country == "Cambodia (Kampuchea)" ~ "Cambodia", 
+                             country == "Myanmar (Burma)" ~ "Myanmar", 
+                             TRUE ~ country)) |> 
+  filter(date_start < "2024-05-25" & date_start > "2014-05-23") |> 
+  filter(region == "Asia") |> 
+  count(country)
+```
+
+
+```{r}
+acled |> 
+  mutate(fatalities = parse_number(fatalities)) |> 
+  group_by(country, year) |> 
+  summarise(fatalities = sum(fatalities))
+
+acled |> count(year)
+
+acled |> filter(year != "2024")
+```
+
+```{r}
+ged241 |> 
+  mutate(country = case_when(country == "Cambodia (Kampuchea)" ~ "Cambodia", 
+                             country == "Myanmar (Burma)" ~ "Myanmar", 
+                             TRUE ~ country)) |> 
+  count(country, country_id) |> 
+  filter(country %in% acled_country_list$country)
+```
+
+
+
+```{r}
+acled_country_list <- acled |> count(country, iso)
+```
+
+
+# GED
+
+```{r}
+ged |> count(source_office, sort = TRUE)
+
+acled_source <- acled %>% 
+  filter(year >= 2021) %>% 
+  separate(source, sep = "; ", into = paste("v", 1:4, sep = "_")) %>% 
+  pivot_longer(cols = c(v_1:v_4), names_to = "ignore", values_to = "source_long") %>% 
+  filter(!is.na(source_long))
+```
+
+
+
+```{r}
+ged_sources <-  ged |> 
+  select(id, source_office) |> 
+  # A lot of strange repeats
+  separate(source_office, sep = ";", into = paste0("source_", 1:6), remove = FALSE) |> 
+  pivot_longer(cols = c(source_1:source_6), 
+               names_to = "remove", 
+               values_to = "source") |> 
+  select(-remove) |> 
+  filter(!is.na(source)) |> 
+  mutate(count = 1) |> 
+  group_by(source, id) |> 
+  summarise(count = sum(count)) |> 
+  select(-count) |> 
+  mutate(count = 1) |> 
+  group_by(id) |> 
+  mutate(num_sources = sum(count)) |> 
+  ungroup()
+
+ged_sources |> 
+  count(source) |> 
+  mutate(source = case_when(source == "AFP" ~ "Agence Frace Presse",
+                            source == "Aljazeera" ~ "Al Jazeera", 
+                            source == "Al Jazeera English" ~ "Al Jazeera", 
+                            source == "Amnesty" ~ "Amnesty International", 
+                            source == "Antara" ~ "Antara News", 
+                            source == "Associated Press Newswires" ~ "Associated Press", 
+                            source == "The Associated Press" ~ "Associated Press", 
+                            str_detect(source, "BBC Monitoring") ~ "BBC Monitoring", 
+                            source %in% c("BBC News", "BBC News Asia", "BBC News World") ~ "BBC", 
+                            source %in% c("BNI", "BNI online", "Burma News International") ~ 
+                              "BNI Multimedia Group", 
+                            source == "BenarNews" ~ "Benar News", 
+                            source == "Burmalink" ~ "Burma Link", 
+                            source == "CNN Indonesia" ~ "CNN", 
+                            str_detect(source, "Crisis Watch|Crsis Watch") ~ "Crisis Watch", 
+                            source == "Daily Exelsior" ~ "Daily Excelsior", 
+                            source == "DhakaTribune" ~ "Dhaka Tribune", 
+                            source == "Dwan" ~ "Dawn", 
+                            str_detect(source, "Eleven") ~ "Eleven Myanmar", 
+                            source == "Forify Rights" ~ "Fortify Rights", 
+                            str_detect(source, "Free Burma Ran") ~ "Free Burma Rangers", 
+                            source %in% c("Global New Lights of Myanmar", 
+                                          "Global light of Myanmar") ~ 
+                              "Global New Light of Myanmar", 
+                            str_detect(source, "ICG|International Crisis Group") ~ 
+                              "International Crisis Group", 
+                            source %in% c("India Express", "The Indian Epxress") ~ 
+                              "Indian Express", 
+                            str_detect(source, "International Security") ~ 
+                              "International Security",
+                            str_detect(source, "Kachin News") ~ 
+                              "Kachin News Group",
+                            str_detect(source, "Kachin Women's Association") ~ 
+                              "Kachin Women's Association Thailand",
+                            str_detect(source, "Kantarawaddy") ~ 
+                              "Kantarawaddy Times",
+                            str_detect(source, "Kachin News") ~ 
+                              "Kachin News Group",
+                            str_detect(source, "Mizzima") ~ 
+                              "Mizzima",
+                            source == "Myanmar NowShan Human Rights Foundation" ~ 
+                              "Shan Human Rights Foundation", 
+                            str_detect(source, "Myanmar Peace Monitor|mmpeacemonitor") ~ 
+                              "Myanmar Peace Monitor", 
+                            str_detect(source, "SATP|SATp|STP") ~ "South Asia Terrorism Portal", 
+                            str_detect(source, "PIPS Pakistan Security Report") ~ 
+                              "PIPS Pakistan Security Report", 
+                            str_detect(source, "PSLF|TNLA") ~ "PSLF/TNLA", 
+                            source == "Pajhwok News" ~ "Pajhwok Afghan News", 
+                            str_detect(source, "Radio New Zealand") ~ "Radio New Zealand", 
+                            str_detect(source, "Samaa") ~ "Samaa TV", 
+                            source %in% c("Scroll India", "Scroll (India)") ~ "Scroll.in", 
+                            source %in% c("Tempo", "Tempo Indonesia", "Tempco News") ~ "Tempo.co", 
+                            str_detect(source, "Than Lwin Times") ~ "Than Lwin Times", 
+                            source == "The Bureau of Investigate Journalism" ~ 
+                              "The Bureau of Investigative Journalism",
+                            source == "The Canadian Press - Broadcast wire" ~ 
+                              "The Canadian Press", 
+                            source %in% c("The Irradwaddy", "The Irrawaddi", "The Irrawaddy", 
+                                          "The Irrawaddy Online", "The Irrawady", "The Irrawassy") ~ 
+                              "The Irrawaddy", 
+                            
+                              "Mizzima",
+                            
+                            
+                            ))
+  arrange(desc(num_sources)) |> 
+  arrange(desc(id))
+  
+```
+
+
+
+```{r}
+ged |> filter(str_detect(source_office, "The Nation")) |> slice(1) |> pull(source_article)
+
+ged |> count(type_of_violence)
+```
+
+
+
+
+
+
+
+
+
+
+
