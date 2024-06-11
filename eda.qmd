@@ -12,6 +12,7 @@ library(here)
 library(lubridate)
 library(patchwork)
 library(scales)
+library(sf)
 
 `%out%` <- Negate(`%in%`)
 options(scipen = 100)
@@ -78,7 +79,8 @@ acled <- rbind(
   # for the dates that you missed
   read_csv(here("raw_data", "2013-01-01-2015-05-24-East_Asia-Oceania-South_Asia-Southeast_Asia.csv")) 
   ) |> 
-  filter(year >= 2013 & year < 2024) 
+  filter(year >= 2013 & year < 2024) |> 
+  mutate(event_date = as.Date(event_date, "%d %B %Y"))
 
 acled_country_list <- acled |>
   count(country, region, iso)
@@ -116,6 +118,19 @@ population_estimates <- crossing(country = population$country_name, year = 2013:
                              str_detect(country, "Korea, Dem. People's Rep.") ~ "North Korea", 
                              country == "Viet Nam" ~ "Vietnam", 
                              TRUE ~ country)) 
+
+
+```
+
+
+## Shapefiles 
+
+```{r}
+world_shape <- st_read(here("data", 
+                            "world-administrative-boundaries", 
+                            "world-administrative-boundaries.shp"), 
+                       quiet = TRUE)
+
 ```
 
 # ACLED
@@ -417,19 +432,30 @@ ged241 |>
 acled_country_list <- acled |> count(country, iso)
 ```
 
+### Sources
+
+```{r warning = FALSE}
+acled_filtered |> glimpse()
+
+acled_sources <- acled_filtered |>
+  select(event_id_cnty, country, event_date, source, notes) |>
+  # This is crazy, this is too many sources
+  # However the curation of their sources has tremendously improved
+  separate(source, sep = "; ", into = paste("source", 1:31, sep = "_")) |> 
+  pivot_longer(cols = c(source_1:source_31), names_to = "ignore", values_to = "source") %>% 
+  filter(!is.na(source)) |> 
+  select(-ignore) |> 
+  group_by(event_id_cnty) |> 
+  mutate(source_count = n()) |> 
+  ungroup() 
+
+
+```
+
 
 # GED
 
-```{r}
-ged |> count(source_office, sort = TRUE)
-
-acled_source <- acled %>% 
-  filter(year >= 2021) %>% 
-  separate(source, sep = "; ", into = paste("v", 1:4, sep = "_")) %>% 
-  pivot_longer(cols = c(v_1:v_4), names_to = "ignore", values_to = "source_long") %>% 
-  filter(!is.na(source_long))
-```
-
+### Sources
 
 
 ```{r}
@@ -444,22 +470,20 @@ ged_sources <-  ged |>
   filter(!is.na(source)) |> 
   mutate(count = 1) |> 
   group_by(source, id) |> 
-  summarise(count = sum(count)) |> 
-  select(-count) |> 
-  mutate(count = 1) |> 
-  group_by(id) |> 
-  mutate(num_sources = sum(count)) |> 
-  ungroup()
+  summarise(count = sum(count), .groups = "drop") |> 
+  select(-count) 
 
-ged_sources |> 
-  count(source) |> 
-  mutate(source = case_when(source == "AFP" ~ "Agence Frace Presse",
+# Separating into two parts because the part above throws an error
+ged_sources <- ged_sources |> 
+  count(id, source) |> 
+  mutate(source = case_when(source %in% c("AFP", "Agence Frace Presse") ~ "Agence France Presse",
                             source == "Aljazeera" ~ "Al Jazeera", 
                             source == "Al Jazeera English" ~ "Al Jazeera", 
                             source == "Amnesty" ~ "Amnesty International", 
                             source == "Antara" ~ "Antara News", 
-                            source == "Associated Press Newswires" ~ "Associated Press", 
-                            source == "The Associated Press" ~ "Associated Press", 
+                            source %in% c("Associated Press Newswires", 
+                                          "AP", "AP News", "The Associated Press") ~ 
+                              "Associated Press",
                             str_detect(source, "BBC Monitoring") ~ "BBC Monitoring", 
                             source %in% c("BBC News", "BBC News Asia", "BBC News World") ~ "BBC", 
                             source %in% c("BNI", "BNI online", "Burma News International") ~ 
@@ -467,15 +491,18 @@ ged_sources |>
                             source == "BenarNews" ~ "Benar News", 
                             source == "Burmalink" ~ "Burma Link", 
                             source == "CNN Indonesia" ~ "CNN", 
-                            str_detect(source, "Crisis Watch|Crsis Watch") ~ "Crisis Watch", 
+                            str_detect(source, "Crisis Watch|Crsis Watch|Crisiswatch") ~ 
+                              "CrisisWatch", 
                             source == "Daily Exelsior" ~ "Daily Excelsior", 
                             source == "DhakaTribune" ~ "Dhaka Tribune", 
                             source == "Dwan" ~ "Dawn", 
-                            str_detect(source, "Eleven") ~ "Eleven Myanmar", 
+                            str_detect(source, "Eleven") ~ "Eleven Media Group", 
                             source == "Forify Rights" ~ "Fortify Rights", 
                             str_detect(source, "Free Burma Ran") ~ "Free Burma Rangers", 
+                            source == "HRW" ~ "Human Rights Watch", 
                             source %in% c("Global New Lights of Myanmar", 
-                                          "Global light of Myanmar") ~ 
+                                          "Global light of Myanmar", 
+                                          "Global New Light Of Myanmar") ~ 
                               "Global New Light of Myanmar", 
                             str_detect(source, "ICG|International Crisis Group") ~ 
                               "International Crisis Group", 
@@ -493,45 +520,278 @@ ged_sources |>
                               "Kachin News Group",
                             str_detect(source, "Mizzima") ~ 
                               "Mizzima",
+                            source == "Mon News" ~ "Mon News Agency", 
                             source == "Myanmar NowShan Human Rights Foundation" ~ 
                               "Shan Human Rights Foundation", 
-                            str_detect(source, "Myanmar Peace Monitor|mmpeacemonitor") ~ 
+                            str_detect(source, "Myanmar Peace Monitor|mmpeacemonitor|Mmpeacemonitor") ~ 
                               "Myanmar Peace Monitor", 
-                            str_detect(source, "SATP|SATp|STP") ~ "South Asia Terrorism Portal", 
+                            source == "Narinjara via BNI Multimedia Group" ~ "Narinjara News", 
+                            str_detect(source, "SATP|SATp|STP|satp|sato|STp") ~ 
+                              "South Asia Terrorism Portal", 
                             str_detect(source, "PIPS Pakistan Security Report") ~ 
                               "PIPS Pakistan Security Report", 
-                            str_detect(source, "PSLF|TNLA") ~ "PSLF/TNLA", 
+                            source == "PNA" ~ "PNA (Philippines News Agency)", 
+                            str_detect(source, "PSLF|TNLA|pslf") ~ "PSLF/TNLA", 
                             source == "Pajhwok News" ~ "Pajhwok Afghan News", 
                             str_detect(source, "Radio New Zealand") ~ "Radio New Zealand", 
                             str_detect(source, "Samaa") ~ "Samaa TV", 
                             source %in% c("Scroll India", "Scroll (India)") ~ "Scroll.in", 
-                            source %in% c("Tempo", "Tempo Indonesia", "Tempco News") ~ "Tempo.co", 
+                            source %in% c("Tempo", "Tempo Indonesia", 
+                                          "Tempco News", "Tempo News") ~ "Tempo.co", 
                             str_detect(source, "Than Lwin Times") ~ "Than Lwin Times", 
                             source == "The Bureau of Investigate Journalism" ~ 
                               "The Bureau of Investigative Journalism",
                             source == "The Canadian Press - Broadcast wire" ~ 
                               "The Canadian Press", 
                             source %in% c("The Irradwaddy", "The Irrawaddi", "The Irrawaddy", 
-                                          "The Irrawaddy Online", "The Irrawady", "The Irrawassy") ~ 
+                                          "The Irrawaddy Online", "The Irrawady", "The Irrawassy", 
+                                          "The rrawaddy", "he Irrawaddy Online", "Irrawaddy", 
+                                          "The Irrawaday") ~ 
                               "The Irrawaddy", 
-                            
-                              "Mizzima",
-                            
-                            
-                            ))
+                            source == "The Nation Thailand" ~ 
+                              "The Nation",
+                            source == "The New Yprk Times" ~ "The New York Times", 
+                            source %in% c("The News (Pakistan)") ~ "The News International",
+                            source == "The Patriot ndia" ~ "The Patriot India",
+                            source == "The Print (India)" ~ "The Print", 
+                            source == "The Shan Herald Agency for News" ~ 
+                              "Shan Herald Agency for News", 
+                            source == "The Stateless Rohinghya" ~ "The Stateless Rohingya", 
+                            str_detect(source, "Times of India") ~ "The Times of India", 
+                            source == "The Wall Street Journal Online" ~ "The Wall Street Journal", 
+                            source %in% c("The Wire", "thewire.in", "Wire") ~ "Wire (India)", 
+                            source %in% c("United Nations Human Rights Council",
+                                          "Human Rights Council") ~ 
+                              "UN Human Rights Council", 
+                            str_detect(source, "HIGH COMMISSIONER FOR HUMAN RIGHTS") ~ "UN OHCHR", 
+                            source == "Voi" ~ "VOI.id", 
+                            str_detect(source, "Xinhua") ~ "Xinhua",
+                            source == "Zee News India" ~ "Zee News (India)", 
+                            source %in% c("bdnews´24.com", "bdnews24.com") ~ "BD News24",
+                            source == "indiatoday.in" ~ "India Today", 
+                            source == "www.thehindu.com" ~ "The Hindu", 
+                            source == "www,thequint.com" ~ "The Quint",
+                            source == "the Balochistan Post" ~ "The Balochistan Post",
+                            source == "www.newindianexpress.com"  ~ "New Indian Express",
+                            str_detect(source, "ABS-CBN") ~ "ABS-CBN",
+                            str_detect(source, "Antara News En") ~ "Antara News", 
+                            str_detect(source, "ATP Maharasthtra|Chhattisgarh|Jharkhand") ~ 
+                              "South Asia Terrorism Portal",
+                            source == "Burma Free Rangers" ~ "Free Burma Rangers", 
+                            source == "India TodayNE" ~ "India Today", 
+                            source == "Philippine Daily Inquirer" ~ "Inquirer.net", 
+                            source == "RFA" ~ "Radio Free Asia", 
+                            source %in% c("SAP", "ATP", "SAT") ~ "South Asia Terrorism Portal",
+                            str_detect(source, "Thaiger") ~ "The Thaiger", 
+                            source == "The New Indian Express" ~ "New Indian Express", 
+                            source == "business-standard.com" ~ "Business Standard", 
+                            source == "Dawn News" ~ "Dawn (Pakistan)", 
+                            str_detect(source, "Kachin Women") ~ 
+                              "Kachin Women's Association Thailand",
+                            source == "hindustantimes" ~ "Hindustan Times", 
+                            str_detect(source, "Voice of America") ~ "VOA", 
+                            TRUE ~ source)) |> 
+  mutate(source = str_trim(source)) |> 
+  group_by(source, id) |> 
+  summarise(num_sources = sum(n), .groups = "drop") |> 
+  left_join(ged |> 
+              select(id, year, country, source_headline), 
+            by = c("id"))
+
+
+  
+```
+
+```{r}
+acled_sources |> glimpse()
+
+acled_sources |> count(country)
+```
+# Comparison
+
+### Comparing sources
+
+```{r}
+
+ged_source_order <- ged_sources |> 
+  filter(country != "Australia") |>
+  group_by(country) |> 
+  summarise(num_sources = n_distinct(source)) |> 
   arrange(desc(num_sources)) |> 
-  arrange(desc(id))
+  pull(country)
+
+acled_sources |> 
+  filter(country %in% ged_source_order) |> 
+  mutate(event_date = as.Date(event_date, "%d %B %Y"), 
+         year = year(event_date)) |> 
+  group_by(country, year) |> 
+  summarise(num_sources = n_distinct(source), .groups = "drop") |> 
+  mutate(dataset = "ACLED") |>
+  rbind(
+    ged_sources |>
+      filter(country != "Australia") |>
+      group_by(country, year) |>
+      summarise(num_sources = n_distinct(source), .groups = "drop") |> 
+      mutate(dataset = "UCDP")
+  ) |> 
+  mutate(country = fct_relevel(country, ged_source_order)) |> 
+  ggplot(aes(x = year, y = num_sources, fill = dataset)) + 
+  geom_col() +
+  facet_wrap(~ country) + 
+  scale_fill_viridis_d(option = "magma", 
+                       begin = .2, end = .7,
+                       direction = -1) +
+  theme(axis.text.x = element_text(angle = 45, 
+                                   hjust = 1)) + 
+  labs(title = "Sources used in the ACLED and UCDP datasets, selected countries", 
+       x = "", y = "Number of distinct sources",
+       fill = "Dataset") + 
+  scale_x_continuous(breaks = c(2013, 2015, 2017, 2019, 2021, 2023))
   
 ```
 
 
 
-```{r}
-ged |> filter(str_detect(source_office, "The Nation")) |> slice(1) |> pull(source_article)
 
-ged |> count(type_of_violence)
+```{r}
+ged |> filter(source_office == "SAT") |> sample_n(1) |> pull(source_article)
+ged |> filter(str_detect(source_office, "Voice of America")) |> sample_n(1) |> pull(source_article)
+
 ```
 
+### Comparing actors 
+
+```{r}
+interaction_codes_acled <- tribble(~interaction_code,	~description,
+10,	"SOLE STATE FORCES ACTION (e.g. base establishment by state forces; remote violence involving state military with no reported casualties; non-violent military operations)",
+11,	"STATE FORCES VERSUS STATE FORCES (e.g. military infighting; battles between a military and mutinous forces; arrests of military officials)",
+12,	"STATE FORCES VERSUS REBELS (e.g. civil war violence between state forces and a rebel actor)",
+13,	"STATE FORCES VERSUS POLITICAL MILITIA (e.g. violence between state forces and unidentified armedgroups; violence between police and political party militias)",
+14,	"STATE FORCES VERSUS IDENTITY MILITIA (e.g. military engagement with a communal militia)",
+15,	"STATE FORCES VERSUS RIOTERS (e.g. suppression of a violent demonstration by police or military)",
+16,	"STATE FORCES VERSUS PROTESTERS (e.g. suppression of a peaceful demonstration by police or military)",
+17,	"STATE FORCES VERSUS CIVILIANS (e.g. state repression of civilians; arrests by police)",
+18,	"STATE FORCES VERSUS EXTERNAL/OTHER FORCES (e.g. inter-state conflict; state engagement with private security forces or a UN operation; strategic developments between a regime and the UN or another external actor)",
+20,	"SOLE REBEL ACTION (e.g. base establishment; remote violence involving rebel groups with no reported target; accidental detonation by a rebel group)",
+22,	"REBELS VERSUS REBELS (e.g. rebel infighting; violence between rebel groups and their splinter movements)",
+23,	"REBELS VERSUS POLITICAL MILITIA (e.g. civil war violence between rebels and a pro-government militia; violence between rebels and unidentified armed groups)",
+24,	"REBELS VERSUS IDENTITY MILITIA (e.g. violence between rebels and local security providers)",
+25,	"REBELS VERSUS RIOTERS (e.g. spontaneous violence against a rebel group; a violent demonstration engaging a rebel group)",
+26,	"REBELS VERSUS PROTESTERS (e.g. violence against protesters by rebels)",
+27,	"REBELS VERSUS CIVILIANS (e.g. rebel targeting of civilians [a strategy commonly used in civil war])",
+28,	"REBELS VERSUS OTHERS (e.g. civil war violence between rebels and an allied state military; rebel violence against a UN operation)",
+30,	"SOLE POLITICAL MILITIA ACTION (e.g. remote violence by an unidentified armed group with no reported target; accidental detonation by a political militia; strategic arson as intimidation by a political party)",
+33,	"POLITICAL MILITIA VERSUS POLITICAL MILITIA (e.g. inter-elite violence)",
+34,	"POLITICAL MILITIA VERSUS IDENTITY MILITIA (e.g. violence between communal militia and an unidentified armed group; violence between political militia and local security providers)",
+35,	"POLITICAL MILITIA VERSUS RIOTERS (e.g. violent demonstration against a political militia; spontaneous violence against a political militia)",
+36,	"POLITICAL MILITIA VERSUS PROTESTERS (e.g. suppression of a peaceful demonstration by a political militia)",
+37,	"POLITICAL MILITIA VERSUS CIVILIANS (e.g. out-sourced state repression carried out by pro-government militias; civilian targeting by political militias or unidentified armed groups)",
+38,	"POLITICAL MILITIA VERSUS OTHERS (e.g. violence between private security forces and unidentified armed groups; violence between pro-government militia and external state military forces)",
+40,	"SOLE IDENTITY MILITIA ACTION (e.g. destruction of property by a communal militia; establishment of a local security militia)",
+44,	"IDENTITY MILITIA VERSUS IDENTITY MILITIA (e.g. inter-communal violence)",
+45,	"IDENTITY MILITIA VERSUS RIOTERS (e.g. violent demonstration against an identity militia; spontaneous violence against an identity militia)",
+46,	"IDENTITY MILITIA VERSUS PROTESTERS (e.g. suppression of a peaceful demonstration by  an identity militia)",
+47,	"IDENTITY MILITIA VERSUS CIVILIANS (e.g. civilian targeting, especially in the context of inter-communal violence)",
+48,	"IDENTITY MILITIA VERSUS OTHER (e.g. external state military engaging in violence against a communal militia)",
+50,	"SOLE RIOTER ACTION (e.g. one-sided violent demonstration; spontaneous arson)",
+55,	"RIOTERS VERSUS RIOTERS (e.g. two-sided violent demonstration in which both sides engage in violence)",
+56,	"RIOTERS VERSUS PROTESTERS (e.g. two-sided demonstration in which only one side engages in violence)",
+57,	"RIOTERS VERSUS CIVILIANS (e.g. violent demonstration in which civilians are injured/killed; spontaneous violence in which civilians are targeted by a mob)",
+58,	"RIOTERS VERSUS OTHERS (e.g. mob violence against regional or international operation)",
+60,	"SOLE PROTESTER ACTION (e.g. one-sided peaceful protest)",
+66,	"PROTESTERS VERSUS PROTESTERS (e.g. two-sided peaceful protest)",
+67,	"PROTESTERS VERSUS CIVILIANS (e.g. peaceful protesters engaging civilians)",
+68,	"PROTESTERS VERSUS OTHER (e.g. suppression of a peaceful demonstration by private security forces)",
+70,	"SOLE CIVILIAN ACTION (e.g. one-sided strategic development)",
+77,	"CIVILIANS VERSUS CIVILIANS (e.g. peaceful interactions between civilians recorded as ‘Strategic developments’)",
+78,	"OTHER ACTOR VERSUS CIVILIANS (e.g. regional or international operation targeting civilians; private security forces targeting civilians)",
+80,	"SOLE OTHER ACTION (e.g. strategic developments involving international or regional operations; remote violence by external military forces with no reported target; non-violent external military operations)",
+88,	"OTHER VERSUS OTHER (e.g. clashes between foreign state forces, international missions, or private security forces)") |> 
+  mutate(simple_description = str_to_title(str_extract(description, "\\b[A-Z](?:[A-Z ]*[A-Z])?\\b")))
+```
+
+```{r}
+actor_codes_acled <- tribble(
+  ~actor_code, ~description, 
+  1, "State Forces", 
+  2, "Rebel Groups", 
+  3, "Political Militias", 
+  4, "Identity Militias", 
+  5, "Rioters",
+  6, "Protesters", 
+  7, "Civilians", 
+  8, "Other Forces"
+)
+```
+
+
+The dataset actors are actually very well-cleaned, especially compared to before 
+
+```{r}
+acled_actors <- rbind(
+  acled_filtered |>
+    select(actor = actor1, actor_code = inter1, event_id_cnty),
+  
+  acled_filtered |> 
+    select(actor = actor2, actor_code = inter2, event_id_cnty)
+  
+  ) |> 
+  left_join(acled_filtered |> 
+              select(event_id_cnty, interaction, event_date, country), 
+            by = "event_id_cnty",
+            relationship = "many-to-many") |> 
+  mutate(event_date = as.Date(event_date, "%d %B %Y"), 
+         year = year(event_date)) |> 
+  left_join(actor_codes_acled |>
+              rename(actor_description = description), 
+            by = "actor_code", 
+            relationship = "many-to-many")
+  
+```
+
+```{r}
+acled_actors_order <- acled_actors |> 
+  filter(country != "Australia") |> 
+  group_by(country) |> 
+  summarise(num_actors = n_distinct(actor)) |> 
+  arrange(desc(num_actors)) |> 
+  pull(country)
+```
+
+
+
+```{r}
+acled_actors |> 
+  filter(country != "Australia") |> 
+  group_by(country, year, actor_description) |> 
+  summarise(num_actors = n_distinct(actor), .groups = "drop") |> 
+  filter(!is.na(actor_description)) |> 
+  mutate(country = fct_relevel(country, acled_actors_order)) |> 
+  ggplot(aes(x = year, y = num_actors, group = actor_description)) + 
+  geom_col(aes(fill = actor_description)) + 
+  facet_wrap(~country, scales = "free_y") + 
+  scale_fill_viridis_d(option = "turbo")
+```
+
+
+```{r}
+acled_filtered |> glimpse()
+  select(actor1, actor2, event_id_cnty, country, interaction) |> 
+  pivot_longer(cols = c(actor1, actor2), 
+               names_to = "order", 
+               values_to = "actor") |> 
+  filter(!is.na(actor))  
+
+  summarise(count = sum(count)) |> 
+  ggplot(aes(x = count))
+  
+acled_filtered |> 
+  filter(country == "Myanmar") |> 
+  distinct(actor1)
+```
+
+
+### Comparing event types 
 
 
 
