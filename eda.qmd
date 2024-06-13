@@ -1,7 +1,15 @@
 ---
-title: "Untitled"
-format: html
-editor: visual
+title: "Initial exploratory data analysis of ACLED-UCDP conflict trends"
+author: "Sean Ng"
+date: "13 June 2024"
+toc: true
+toc-location: left
+toc-depth: 4
+format: 
+  html:
+    page-layout: full
+    code-tools: true
+    self-contained: true
 ---
 
 ```{r setup}
@@ -24,49 +32,51 @@ theme_set(theme_light())
 # Data
 
 
-```{r alt data, message=FALSE}
+## Country list 
+
+From UNDP 
+
+```{r}
+country_list <- c("Afghanistan", "Bangladesh", "Bhutan", "Cambodia", 
+                  "China", "Fiji", "Hong Kong", "India", "Indonesia", 
+                  "Iran", "North Korea", "South Korea", "Laos", 
+                  "Malaysia", "Maldives", "Mongolia", "Myanmar", 
+                  "Nepal", "Pakistan", "Papua New Guinea", "Philippines", 
+                  "Solomon Islands", "Sri Lanka", "Thailand", "Timor-Leste", 
+                  "Vanuatu", "Vietnam")
+```
+
+## Compressed data
+
+Run this if you don't need the original files. This will read in the data from two .RDS files, which are compressed and also remove the danger of one opening .CSVs in Excel, which would break some of them due to Excel's row limits. 
+
+Population estimates are frm WDI. 
+
+```{r compressed data, message=FALSE}
 
 ged241 <- readRDS(here("data", "ged241.rds"))
 
 acled_filtered <- readRDS(here("data", "acled_filtered.rds"))
 
-acled_country_list <- acled_filtered |> 
-  count(region, country, iso)
 
 ged <- ged241 |> 
-  filter(date_start < "2024-01-01" & date_start >= "2013-01-01") |> 
+  filter(date_start < "2024-01-01" & date_start >= "2014-01-01") |> 
   mutate(country = case_when(country == "Cambodia (Kampuchea)" ~ "Cambodia", 
                              country == "Myanmar (Burma)" ~ "Myanmar", 
-                             TRUE ~ country)) |> 
-  filter(country %in% acled_country_list$country)
-
-population <- read_csv(here("data", "wdi_population_data.csv")) |> 
-  slice(1:22) |> 
-  janitor::clean_names() %>%
-  mutate(across(matches("_yr"), ~ as.numeric(.))) %>%
-  pivot_longer(cols = x2015_yr2015:x2023_yr2023, 
-               names_to = "year", 
-               values_to = "population") |> 
-  mutate(year = str_sub(year, start = -4, end = -1), 
-         year = as.integer(year)) 
-
-population_estimates <- crossing(country = population$country_name, year = 2013:2023) |> 
-  left_join(population |> 
-              select(year, country = country_name, population), 
-            by = c("year", "country")) |> 
-  group_by(country) %>% 
-  fill(population, .direction = "updown") |> 
-  mutate(country = case_when(str_detect(country, "Korea, Rep.") ~ "South Korea",
-                             str_detect(country, "Korea, Dem. People's Rep.") ~ "North Korea", 
-                             country == "Viet Nam" ~ "Vietnam", 
-                             TRUE ~ country))
+                             TRUE ~ country)) |>
+  filter(country %in% country_list)
 
 ```
 
 
+
+
+
+## Originals 
+
 The chunk below loads in the original data. I'm thinking that for reproducibility, I can load the filtered datasets in compressed RDS files up to github. And maybe keep the originals in the gitignore folder 
 
-```{r data, message=FALSE}
+```{r raw-data, include=FALSE, message=FALSE, eval=FALSE}
 
 
 ged241 <- readRDS(here("data", "ged241.rds"))
@@ -77,9 +87,11 @@ acled <- rbind(
   read_csv(here("raw_data", "2015-05-25-2024-05-25-South_Asia.csv")),
   read_csv(here("raw_data", "2015-05-25-2024-05-25-Southeast_Asia.csv")), 
   # for the dates that you missed
-  read_csv(here("raw_data", "2013-01-01-2015-05-24-East_Asia-Oceania-South_Asia-Southeast_Asia.csv")) 
+  read_csv(here("raw_data", "2013-01-01-2015-05-24-East_Asia-Oceania-South_Asia-Southeast_Asia.csv")),
+  read_csv(here("raw_data", "2013-01-01-2024-05-25-Afghanistan.csv")),
+  read_csv(here("raw_data", "2013-01-01-2024-05-25-Iran.csv"))
   ) |> 
-  filter(year >= 2013 & year < 2024) |> 
+  filter(year >= 2014 & year < 2024) |> 
   mutate(event_date = as.Date(event_date, "%d %B %Y"))
 
 acled_country_list <- acled |>
@@ -87,7 +99,7 @@ acled_country_list <- acled |>
 
 # Less Afghanistan, Kyrgyzstan and Tajikistan 
 ged <- ged241 |> 
-  filter(date_start < "2024-01-01" & date_start >= "2013-01-01") |> 
+  filter(date_start < "2024-01-01" & date_start >= "2014-01-01") |> 
   mutate(country = case_when(country == "Cambodia (Kampuchea)" ~ "Cambodia", 
                              country == "Myanmar (Burma)" ~ "Myanmar", 
                              TRUE ~ country)) |> 
@@ -98,29 +110,57 @@ acled <- acled |>
   mutate(is_ged = ifelse(country %in% ged$country, "yes", "no")) |> 
   mutate(is_protest = ifelse(event_type == "Protests", "yes", "no"))
 
+
+```
+
+### ACLED filtered
+
+This is the process for making the .RDS
+
+```{r}
+
+acled_filtered <- acled |> 
+  mutate(country = ifelse(country == "East Timor", "Timor-Leste", country), 
+         country = ifelse(admin1 == "Hong Kong", "Hong Kong", country)) |> 
+  filter(country %in% country_list) |> 
+  mutate(fatalities = parse_number(fatalities)) 
+```
+
+```{r eval=FALSE}
+acled_filtered |> write_rds(here("data", "acled_filtered.rds"), 
+                            compress = c("gz"))
+```
+
+
+## Population
+
+```{r}
 population <- read_csv(here("data", "wdi_population_data.csv")) |> 
-  slice(1:22) |> 
+  slice(1:27) |> 
   janitor::clean_names() %>%
   mutate(across(matches("_yr"), ~ as.numeric(.))) %>%
   pivot_longer(cols = x2015_yr2015:x2023_yr2023, 
                names_to = "year", 
                values_to = "population") |> 
   mutate(year = str_sub(year, start = -4, end = -1), 
-         year = as.integer(year)) 
-
-population_estimates <- crossing(country = population$country_name, year = 2013:2023) |> 
-  left_join(population |> 
-              select(year, country = country_name, population), 
-            by = c("year", "country")) |> 
-  group_by(country) %>% 
-  fill(population, .direction = "updown") |> 
+         year = as.integer(year)) |> 
+  rename(country = country_name) |> 
   mutate(country = case_when(str_detect(country, "Korea, Rep.") ~ "South Korea",
                              str_detect(country, "Korea, Dem. People's Rep.") ~ "North Korea", 
+                             str_detect(country, "Hong Kong SAR, China") ~ "Hong Kong", 
+                             str_detect(country, "Iran, Islamic Rep.") ~ "Iran", 
+                             str_detect(country, "Lao PDR") ~ "Laos", 
                              country == "Viet Nam" ~ "Vietnam", 
-                             TRUE ~ country)) 
+                             TRUE ~ country))
 
-
+population_estimates <- crossing(country = population$country, year = 2014:2023) |> 
+  left_join(population |> 
+              select(year, country, population), 
+            by = c("year", "country")) |> 
+  group_by(country) %>% 
+  fill(population, .direction = "updown") 
 ```
+
 
 
 ## Shapefiles 
@@ -131,51 +171,26 @@ world_shape <- st_read(here("data",
                             "world-administrative-boundaries.shp"), 
                        quiet = TRUE)
 
+myanmar_adm1 <- st_read(here("data", 
+                             "mmr_polbnda2_adm1_mimu_250k", 
+                             "mmr_polbnda2_adm1_mimu_250k.shp"), 
+                        quiet = TRUE) |> 
+  rename(state = ST, 
+        admin1_pcode = ST_PCODE) |> st_as_sf()
+
 ```
+
+
+```{r}
+country_iso3 <- world_shape |> 
+  distinct(name, iso3)
+```
+
 
 # ACLED
 
-### Filtered dataset
 
 
-```{r}
-acled_filtered_list <- acled |> 
-  count(country) |> 
-  # filter(country != "Taiwan") |> 
-  filter(n > 400) |>
-  pull(country)
-
-acled_filtered <- acled |> 
-  filter(country %in% acled_filtered_list) 
-```
-
-```{r eval=FALSE}
-acled_filtered |> write_rds(here("data", "acled_filtered.rds"), 
-                            compress = c("gz"))
-```
-
-
-
-```{r}
-acled |> 
-  group_by(country, is_protest) |> 
-  summarise(count = n(), .groups = "drop") |>
-  pivot_wider(names_from = is_protest, 
-              values_from = count) |> 
-  mutate(events = no + yes) |> 
-  filter(events > 400) 
-```
-
-
-
-
-```{r}
-acled_filtered |> 
-  filter(event_type != "Protest") |> 
-  group_by(country) |> 
-  summarise(events = n()) |>
-  arrange(desc(events))
-```
 
 ```{r}
 most_events_list <- acled_filtered |> 
@@ -187,6 +202,7 @@ most_events_list <- acled_filtered |>
 
 most_fatalities_list <- acled_filtered |> 
   group_by(country) |> 
+  mutate(fatalities = as.numeric(fatalities)) |> 
   summarise(fatalities = sum(fatalities, na.rm = TRUE)) |> 
   arrange(desc(fatalities)) |> 
   filter(fatalities > 10) |> 
@@ -196,9 +212,12 @@ most_fatalities_list <- acled_filtered |>
 
 ### Plots by frequency
 
-```{r}
+#### Conflict fatalities
+
+```{r warning = FALSE}
 acled_filtered |> 
-  filter(country %out% c("Australia", "Japan", "Mongolia", "New Zealand", "South Korea")) |> 
+  filter(country %in% most_fatalities_list) |> 
+  mutate(fatalities = parse_number(fatalities)) |> 
   group_by(country, year) |> 
   summarise(fatalities = sum(fatalities, na.rm = TRUE), 
             .groups = "drop") |> 
@@ -214,16 +233,18 @@ acled_filtered |>
                date_breaks = "2 years") + 
   facet_wrap(~ country, 
              scales = "free_y") +
+  scale_y_continuous(labels = comma) +
   theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
   labs(title = "Conflict fatalities in the Asia-Pacific, 2013-2023", 
-       y = "Fatalities", 
+       y = "Annual fatalities", 
        x = "")
 ```
 
+Doesn't really work that well 
 
 ```{r}
 acled_filtered |> 
-  filter(country %out% c("Australia", "Japan", "Mongolia", "New Zealand", "South Korea")) |> 
+  filter(country %in% most_fatalities_list) |> 
   group_by(country, year) |> 
   summarise(fatalities = sum(fatalities, na.rm = TRUE), 
             .groups = "drop") |> 
@@ -326,7 +347,7 @@ acled_filtered |>
 ```
 
 
-```{r}
+```{r fig.height=7}
 acled_filtered |> 
   filter(is_protest == "no") |> 
   group_by(country, is_protest, year) |> 
@@ -359,7 +380,7 @@ acled_filtered |>
 
 
 
-```{r}
+```{r fig.height=7}
 acled_filtered |> 
   filter(is_protest == "yes") |> 
   group_by(country, is_protest, year) |> 
@@ -392,30 +413,8 @@ acled_filtered |>
 
 
 
-```{r}
-ged |>
-  count(country)
-
-ged241 |> 
-  mutate(country = case_when(country == "Cambodia (Kampuchea)" ~ "Cambodia", 
-                             country == "Myanmar (Burma)" ~ "Myanmar", 
-                             TRUE ~ country)) |> 
-  filter(date_start < "2024-05-25" & date_start > "2014-05-23") |> 
-  filter(region == "Asia") |> 
-  count(country)
-```
 
 
-```{r}
-acled |> 
-  mutate(fatalities = parse_number(fatalities)) |> 
-  group_by(country, year) |> 
-  summarise(fatalities = sum(fatalities))
-
-acled |> count(year)
-
-acled |> filter(year != "2024")
-```
 
 ```{r}
 ged241 |> 
@@ -432,10 +431,77 @@ ged241 |>
 acled_country_list <- acled |> count(country, iso)
 ```
 
+
+
+
+# GED
+
+
+
+
+
+# Comparison
+
+### Fatalities
+
+Events aren't really comparable between the two datasets since UCDP is conflict-based (as in a conflict dyad) as opposed to being event-based, like ACLED. 
+
+That being said, it is possible to compare fatalities: 
+
+Whilst both ACLED and UCDP data on fatalities seems to be correlated (c.r. Afghanistan, Pakistan, India, Philippines, Iran and Indonesia); however, ACLED seems to consistently report more fatalities than UCDP. The difference is particularly striking in Myanmar, where I believe the weaknesses of the UCDP dataset were most pronounced (overreliance on traditional media, )
+
+```{r}
+ged_country_list <- ged |> 
+  filter(country != "Australia") |> 
+  group_by(country) |> 
+  summarise(fatalities = sum(best, na.rm = TRUE)) |> 
+  arrange(desc(fatalities)) |> 
+  distinct(country) |> pull()
+
+acled_filtered |> 
+  filter(event_type != "Protests" & 
+           country %in% ged_country_list) |> 
+  select(id = event_id_cnty, 
+         fatalities, 
+         country, 
+         event_date, 
+         year) |>
+  mutate(source = "ACLED") |> 
+  rbind(
+    ged |>
+      filter(country != "Australia") |> 
+      select(id = relid, country, event_date = date_start, year, fatalities = best) |>
+      mutate(source = "UCDP") 
+  ) |> 
+  group_by(country, source, year) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE), .groups = "drop") |> 
+  mutate(country = fct_relevel(country, ged_country_list)) |>
+  ggplot(aes(x = year, y = fatalities)) + 
+  geom_line(aes(colour = source), 
+            size = .7, 
+            alpha = .9) + 
+  facet_wrap(~country, scales = "free_y") +
+  scale_colour_viridis_d(option = "magma", 
+                       begin = .2, end = .7, 
+                       direction = -1) + 
+  theme(axis.text.x = element_text(angle = 45, 
+                                   hjust = 1), 
+        axis.text.y = element_text(size = 4)) + 
+  labs(title = "Fatalities in the ACLED and UCDP datasets, 2014-2023", 
+       x = "", y = "Annual fatalities", 
+       colour = "Dataset") + 
+  scale_x_continuous(breaks = c(2014, 2016, 2018, 2020, 2022)) + 
+  scale_y_continuous(labels = comma)
+
+
+  
+
+```
+
+
 ### Sources
 
 ```{r warning = FALSE}
-acled_filtered |> glimpse()
 
 acled_sources <- acled_filtered |>
   select(event_id_cnty, country, event_date, source, notes) |>
@@ -449,13 +515,13 @@ acled_sources <- acled_filtered |>
   mutate(source_count = n()) |> 
   ungroup() 
 
+acled_sources |> write_csv(here("data", "acled_sources.csv"))
 
 ```
 
 
-# GED
 
-### Sources
+
 
 
 ```{r}
@@ -474,6 +540,7 @@ ged_sources <-  ged |>
   select(-count) 
 
 # Separating into two parts because the part above throws an error
+# See, GED doesn't clean their sources as well as ACLED
 ged_sources <- ged_sources |> 
   count(id, source) |> 
   mutate(source = case_when(source %in% c("AFP", "Agence Frace Presse") ~ "Agence France Presse",
@@ -599,22 +666,19 @@ ged_sources <- ged_sources |>
             by = c("id"))
 
 
+ged_sources |> write_csv(here("data", "ged_sources.csv"))
   
 ```
 
-```{r}
-acled_sources |> glimpse()
 
-acled_sources |> count(country)
-```
-# Comparison
 
-### Comparing sources
 
-```{r}
+
+
+
+```{r fig.height=7}
 
 ged_source_order <- ged_sources |> 
-  filter(country != "Australia") |>
   group_by(country) |> 
   summarise(num_sources = n_distinct(source)) |> 
   arrange(desc(num_sources)) |> 
@@ -629,7 +693,6 @@ acled_sources |>
   mutate(dataset = "ACLED") |>
   rbind(
     ged_sources |>
-      filter(country != "Australia") |>
       group_by(country, year) |>
       summarise(num_sources = n_distinct(source), .groups = "drop") |> 
       mutate(dataset = "UCDP")
@@ -638,7 +701,7 @@ acled_sources |>
   ggplot(aes(x = year, y = num_sources, fill = dataset)) + 
   geom_col() +
   facet_wrap(~ country) + 
-  scale_fill_viridis_d(option = "magma", 
+  scale_fill_viridis_d(option = "cividis", 
                        begin = .2, end = .7,
                        direction = -1) +
   theme(axis.text.x = element_text(angle = 45, 
@@ -646,7 +709,7 @@ acled_sources |>
   labs(title = "Sources used in the ACLED and UCDP datasets, selected countries", 
        x = "", y = "Number of distinct sources",
        fill = "Dataset") + 
-  scale_x_continuous(breaks = c(2013, 2015, 2017, 2019, 2021, 2023))
+  scale_x_continuous(breaks = c(2014, 2016, 2018, 2020, 2022))
   
 ```
 
@@ -657,12 +720,16 @@ acled_sources |>
 ged |> filter(source_office == "SAT") |> sample_n(1) |> pull(source_article)
 ged |> filter(str_detect(source_office, "Voice of America")) |> sample_n(1) |> pull(source_article)
 
+
 ```
 
-### Comparing actors 
+
+### Event types 
+
+Straight from the codebook
 
 ```{r}
-interaction_codes_acled <- tribble(~interaction_code,	~description,
+interaction_codes_acled <- tribble(~interaction_code,	~interaction_description,
 10,	"SOLE STATE FORCES ACTION (e.g. base establishment by state forces; remote violence involving state military with no reported casualties; non-violent military operations)",
 11,	"STATE FORCES VERSUS STATE FORCES (e.g. military infighting; battles between a military and mutinous forces; arrests of military officials)",
 12,	"STATE FORCES VERSUS REBELS (e.g. civil war violence between state forces and a rebel actor)",
@@ -707,7 +774,8 @@ interaction_codes_acled <- tribble(~interaction_code,	~description,
 78,	"OTHER ACTOR VERSUS CIVILIANS (e.g. regional or international operation targeting civilians; private security forces targeting civilians)",
 80,	"SOLE OTHER ACTION (e.g. strategic developments involving international or regional operations; remote violence by external military forces with no reported target; non-violent external military operations)",
 88,	"OTHER VERSUS OTHER (e.g. clashes between foreign state forces, international missions, or private security forces)") |> 
-  mutate(simple_description = str_to_title(str_extract(description, "\\b[A-Z](?:[A-Z ]*[A-Z])?\\b")))
+  mutate(interaction_simple = 
+           str_to_title(str_extract(interaction_description, "\\b[A-Z](?:[A-Z ]*[A-Z])?\\b")))
 ```
 
 ```{r}
@@ -725,10 +793,118 @@ actor_codes_acled <- tribble(
 ```
 
 
-The dataset actors are actually very well-cleaned, especially compared to before 
 
 ```{r}
-acled_actors <- rbind(
+myammar_acled_2022 <- acled_filtered |> 
+  mutate(interaction = parse_number(interaction)) |> 
+  left_join(interaction_codes_acled, 
+            by = c("interaction" = "interaction_code")) |> 
+  mutate(ged_violence_type = 
+           case_when(
+             str_detect(interaction_simple, "Sole") ~ "one-sided", 
+             str_detect(interaction_simple, "State Forces|Police") ~ "state-based",
+             TRUE ~ "non-state")) |> 
+  filter(year == 2022 & country == "Myanmar") |> 
+  mutate(
+    admin1 = str_replace_all(admin1, "\\-East", " (East)"), 
+    admin1 = str_replace_all(admin1, "\\-West", " (West)"),
+    admin1 = str_replace_all(admin1, "\\-North", " (North)"),
+    admin1 = str_replace_all(admin1, "\\-South", " (South)")
+  ) |> 
+  right_join(myanmar_adm1, by = c("admin1" = "state")) |> 
+  st_as_sf() |> 
+  ggplot() +
+  geom_sf(size = .1, colour = "darkgrey", fill = "black", data = myanmar_adm1) +
+  geom_point(aes(x = longitude, y = latitude, 
+                 colour = ged_violence_type,
+                 size = fatalities), 
+             alpha = .3) + 
+  scale_colour_viridis_d(option = "viridis") +
+  # scale_colour_manual(values = c("#7e03a8", "#21918c", "#fc8961")) + 
+  guides(colour = guide_legend(override.aes = list(alpha = 1)), 
+         size = guide_legend(override.aes = list(alpha = 1, 
+                                                 colour = "grey"))) + 
+  theme_void() + 
+  labs(title = "Myanmar 2022 Conflict events and fatalities, ACLED", 
+       colour = "GED violence type", 
+       size = "Fatalities") + 
+  theme(plot.background = element_rect(fill = "black", colour = NA), 
+        legend.text = element_text(colour = "white"), 
+        title = element_text(colour = "white"))
+
+ggsave(here("plots", "myanmar_acled_2022.png"), dpi = 300, height = 16.5, width = 11.7, units = "in")
+            
+```
+
+
+
+
+```{r}
+myanmar_ged_2022 <- ged |> 
+  mutate(violence_type = case_when(
+    type_of_violence == 1 ~ "state-based", 
+    type_of_violence == 2 ~ "non-state", 
+    type_of_violence == 3 ~ "one-sided"
+  )) |> 
+  filter(year == 2022 & country == "Myanmar" & !is.na(adm_1)) |> 
+  mutate(adm_1 = str_replace_all(adm_1, "\\sregion|\\sstate", ""), 
+         adm_1 = ifelse(str_detect(adm_1, "Naypyidaw"), "Nay Pyi Taw", adm_1)) |>
+  right_join(myanmar_adm1, 
+             by = c("adm_1" = "state")) |> 
+  st_as_sf() |> 
+  filter(!is.na(violence_type)) |> 
+  ggplot() +
+  geom_sf(size = .1, colour = "darkgrey", fill = "black", data = myanmar_adm1) +
+  geom_point(aes(x = longitude, y = latitude, 
+                 colour = violence_type,
+                 size = best), 
+             alpha = .5) + 
+  # scale_colour_viridis_d(option = "viridis") +
+  scale_colour_manual(values = c("#21918c", "#fde725")) + 
+  guides(size = guide_legend(override.aes = list(alpha = 1, 
+                                                 colour = "grey")), 
+         colour = guide_legend(override.aes = list(alpha = 1)) 
+         ) + 
+  theme_void() + 
+  labs(title = "Myanmar 2022 Conflict events and fatalities, UCDP", 
+       colour = "GED violence type", 
+       size = "Fatalities") + 
+  theme(plot.background = element_rect(fill = "black", colour = NA), 
+        legend.text = element_text(colour = "white"), 
+        title = element_text(colour = "white"))
+
+
+
+ggsave(here("plots", "myanmar_ged_2022.png"), dpi = 300, height = 16.5, width = 11.7, units = "in")
+  
+
+```
+  
+  
+```{r}
+combined_plot <- myammar_acled_2022 + 
+  myanmar_ged_2022 + 
+  plot_layout(nrow = 1)
+
+ggsave(here("plots", "myanmar_combined_2022.png"), dpi = 300, height = 16.5, width = 23.4, units = "in")
+
+```
+
+
+The linear pattern (which reflect the fight for control of major highways and roads) of conflict in 2022 cannot be easily discerned from the UCDP dataset -- this just might be due to the lack of volume of reporting 
+
+Furthermore, conflict in Northern Shan and along the Chin border are not very clear. 
+
+![](./plots/myanmar_combined_2022.png)
+
+
+
+
+
+### Comparing actors 
+
+```{r}
+rbind(
   acled_filtered |>
     select(actor = actor1, actor_code = inter1, event_id_cnty),
   
@@ -746,23 +922,72 @@ acled_actors <- rbind(
               rename(actor_description = description), 
             by = "actor_code", 
             relationship = "many-to-many")
+
+```
+
+
+
+The dataset actors are actually very well-cleaned, especially compared to before 
+
+
+
+```{r}
+acled_actors <- rbind(
+  acled_filtered |>
+    select(actor = actor1, actor_code = inter1, id = event_id_cnty),
+  
+  acled_filtered |> 
+    select(actor = actor2, actor_code = inter2, id = event_id_cnty)
+  
+  ) |> 
+  left_join(acled_filtered |> 
+              select(id = event_id_cnty, interaction, event_date, country, fatalities), 
+            by = c("id"),
+            relationship = "many-to-many") |> 
+  mutate(event_date = as.Date(event_date, "%d %B %Y"), 
+         year = year(event_date), 
+         actor_code = as.double(actor_code)) |> 
+  left_join(actor_codes_acled |>
+              rename(actor_description = description), 
+            by = "actor_code", 
+            relationship = "many-to-many") |> 
+  mutate(source = "ACLED")
   
 ```
 
+
+```{r}
+
+ged_actors <- rbind(
+  ged |> 
+    select(actor = side_a, actor_code = side_a_new_id, id = relid), 
+  
+  ged |> 
+    select(actor = side_b, actor_code = side_b_new_id, id = relid)
+) |> 
+  
+  left_join(
+    ged |> 
+      select(id = relid, year, event_date = date_start), 
+    by = c("id"),
+    relationship = "many-to-many"
+  ) |> 
+  mutate(actor_description = "", 
+         source = "UCDP")
+
+```
+
+
+
+
 ```{r}
 acled_actors_order <- acled_actors |> 
-  filter(country != "Australia") |> 
   group_by(country) |> 
   summarise(num_actors = n_distinct(actor)) |> 
   arrange(desc(num_actors)) |> 
   pull(country)
-```
 
-
-
-```{r}
 acled_actors |> 
-  filter(country != "Australia") |> 
   group_by(country, year, actor_description) |> 
   summarise(num_actors = n_distinct(actor), .groups = "drop") |> 
   filter(!is.na(actor_description)) |> 
@@ -770,9 +995,83 @@ acled_actors |>
   ggplot(aes(x = year, y = num_actors, group = actor_description)) + 
   geom_col(aes(fill = actor_description)) + 
   facet_wrap(~country, scales = "free_y") + 
-  scale_fill_viridis_d(option = "turbo")
+  scale_fill_viridis_d(option = "turbo") + 
+  scale_x_continuous(breaks = c(2014, 2016, 2018, 2020, 2022)) + 
+  scale_y_continuous(labels = number_format(scale = 1)) + 
+  theme(axis.text.x = element_text(hjust = 1, angle = 45), 
+        legend.position = "top", 
+        legend.text = element_text(size = 5), 
+        legend.key.width = unit(.3, "cm"), 
+        legend.key.height = unit(.3, "cm"), 
+        legend.margin=margin(t = 0, unit='cm')) + 
+  labs(title = "ACLED: Breakdown of conflict actor types in the Asia-Pacific, 2014-2023", 
+       x = "", y = "Number of actors", 
+       fill = "") + 
+  guides(fill = guide_legend(nrow = 1)) + 
+  theme(
+    axis.text.y = element_text(size = 5)
+  )
 ```
 
+```{r}
+ged_actors <- rbind(
+  ged |> select(actor = side_a, actor_id = side_a_new_id, id, year, country), 
+  ged |> select(actor = side_b, actor_id = side_b_new_id, id, year, country)) |>
+  group_by(country) |> 
+  mutate(num_actors_country = n_distinct(actor)) |> 
+  ungroup() 
+
+ged_actors |> 
+  mutate(country = fct_reorder(country, -num_actors_country)) |> 
+  group_by(country, year) |> 
+  summarise(num_actors = n_distinct(actor), .groups = "drop") |>  
+  ggplot(aes(x = year, y = num_actors)) + 
+  geom_col(fill = "blue") + 
+  facet_wrap(~country) + 
+  theme(axis.text.x = element_text(hjust = 1, angle = 45)) + 
+    labs(title = "UCDP: Breakdown of conflict actors in the Asia-Pacific, 2013-2023", 
+       x = "", y = "Number of actors") 
+  
+```
+
+```{r}
+rbind(
+  ged |> filter(country == "Myanmar" & year == 2022) |> 
+    select(actor = side_a, actor_id = side_a_new_id, id, year, country, fatalities = best), 
+  ged |> filter(country == "Myanmar" & year == 2022) |> 
+    select(actor = side_b, actor_id = side_b_new_id, id, year, country, fatalities = best)) |>
+  group_by(actor, id) |> 
+  summarise(assoc_fatalities = mean(fatalities), .groups = "drop") |> 
+  group_by(actor) |> 
+  summarise(assoc_fatalities = sum(assoc_fatalities)) |> 
+  arrange(desc(assoc_fatalities)) |> 
+  mutate(pc_fatalities = assoc_fatalities / sum(assoc_fatalities) * 100)
+
+  
+```
+
+```{r}
+ged |> filter(country == "Myanmar" & side_b == "ULA")
+```
+
+
+```{r}
+
+acled_actors |> 
+  filter(year == 2022 & country == "Myanmar") |> 
+  mutate(actor = case_when(str_detect(actor, "PDF|People's Defense|Defense Force") ~ 
+                             "NUG", 
+                           str_detect(actor, "Pyu Saw Htee") ~ 
+                             "Military Forces of Myanmar (2021-)", 
+                           
+                           
+                           TRUE ~ actor)) |> 
+  mutate(actor = str_sub(actor, 1, 36)) |> 
+  group_by(actor) |> 
+  summarise(assoc_fatalities = sum(fatalities)) |> 
+  arrange(desc(assoc_fatalities)) |> 
+  mutate(pc_fatalites = assoc_fatalities / sum(assoc_fatalities) * 100)
+```
 
 ```{r}
 acled_filtered |> glimpse()
@@ -791,7 +1090,18 @@ acled_filtered |>
 ```
 
 
-### Comparing event types 
+
+```{r}
+acled_filtered |> 
+  filter(event_type != "Protests") |> 
+  mutate(interaction = parse_number(interaction)) |> 
+  left_join(interaction_codes_acled, 
+            by = c("interaction" = "interaction_code")) |> 
+  mutate(interaction_lump = fct_lump(interaction_simple, 19)) |> 
+  count(interaction_lump, year, sort = TRUE) |> 
+  ggplot(aes(x = year, y = n)) + 
+  geom_col(aes(fill = ))
+```
 
 
 

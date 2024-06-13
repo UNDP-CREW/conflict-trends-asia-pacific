@@ -1,0 +1,30 @@
+---
+title: "Initial exploratory data analysis of ACLED-UCDP conflict trends"
+author: "Sean Ng"
+date: "13 June 2024"
+toc: true
+toc-location: left
+toc-depth: 4
+format: 
+  html:
+    page-layout: full
+    code-tools: true
+    self-contained: true
+---
+
+```{r setup}
+
+
+library(tidyverse)
+library(here)
+library(lubridate)
+library(patchwork)
+library(scales)
+library(sf)
+
+`%out%` <- Negate(`%in%`)
+options(scipen = 100)
+theme_set(theme_light())
+
+```
+
