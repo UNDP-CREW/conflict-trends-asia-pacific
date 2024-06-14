@@ -541,7 +541,7 @@ acled_filtered |>
 
 Overall, there is just much less detail in the UCDP dataset. The map below mirrors another done by [Raleigh, Kishi and Linke](https://www.nature.com/articles/s41599-023-01559-4/figures/1) where they noted that UCDP did not collect data on incidents related to the Philippine drug war. 
 
-The plot below already excludes protest events. 
+The ACLED map below already excludes protest events. With the ACLED data, the linear patterns of violence become very clear, as various armed groups fought for the control of major roads and highways. ACLED also picked up on the violence around the borders with India and China, something which UCDP did not. 
 
 <br>
 
