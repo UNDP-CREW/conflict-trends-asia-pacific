@@ -716,17 +716,25 @@ acled_sources |>
 
 
 
-```{r}
-ged |> filter(source_office == "SAT") |> sample_n(1) |> pull(source_article)
-ged |> filter(str_detect(source_office, "Voice of America")) |> sample_n(1) |> pull(source_article)
-
-
-```
 
 
 ### Event types 
 
 Straight from the codebook
+
+```{r}
+actor_codes_acled <- tribble(
+  ~actor_code, ~description, 
+  1, "State Forces", 
+  2, "Rebel Groups", 
+  3, "Political Militias", 
+  4, "Identity Militias", 
+  5, "Rioters",
+  6, "Protesters", 
+  7, "Civilians", 
+  8, "Other Forces"
+)
+```
 
 ```{r}
 interaction_codes_acled <- tribble(~interaction_code,	~interaction_description,
@@ -776,23 +784,29 @@ interaction_codes_acled <- tribble(~interaction_code,	~interaction_description,
 88,	"OTHER VERSUS OTHER (e.g. clashes between foreign state forces, international missions, or private security forces)") |> 
   mutate(interaction_simple = 
            str_to_title(str_extract(interaction_description, "\\b[A-Z](?:[A-Z ]*[A-Z])?\\b")))
+
+interaction_codes_acled |> write_csv(here("data", "interaction_codes_acled.csv"))
 ```
+
 
 ```{r}
-actor_codes_acled <- tribble(
-  ~actor_code, ~description, 
-  1, "State Forces", 
-  2, "Rebel Groups", 
-  3, "Political Militias", 
-  4, "Identity Militias", 
-  5, "Rioters",
-  6, "Protesters", 
-  7, "Civilians", 
-  8, "Other Forces"
-)
+acled_filtered |> 
+  mutate(interaction = parse_number(interaction)) |> 
+  left_join(interaction_codes_acled, 
+            by = c("interaction" = "interaction_code")) |> 
+  mutate(ged_violence_type = 
+           case_when(
+             str_detect(interaction_simple, "Sole") ~ "one-sided", 
+             str_detect(interaction_simple, "State Forces|Police") ~ "state-based",
+             TRUE ~ "non-state")) |> 
+  filter(ged_violence_type == "non-state") |> 
+  filter(year == 2022 & country == "Myanmar") |> 
+  sample_n(5) |> 
+  select(notes, interaction_simple)
+  pull(notes)
 ```
 
-
+### Maps -- event types
 
 ```{r}
 myammar_acled_2022 <- acled_filtered |> 
@@ -801,7 +815,8 @@ myammar_acled_2022 <- acled_filtered |>
             by = c("interaction" = "interaction_code")) |> 
   mutate(ged_violence_type = 
            case_when(
-             str_detect(interaction_simple, "Sole") ~ "one-sided", 
+             str_detect(interaction_simple, 
+                        "Sole|Civilians|State Forces Versus Protesters") ~ "one-sided", 
              str_detect(interaction_simple, "State Forces|Police") ~ "state-based",
              TRUE ~ "non-state")) |> 
   filter(year == 2022 & country == "Myanmar") |> 
@@ -812,30 +827,35 @@ myammar_acled_2022 <- acled_filtered |>
     admin1 = str_replace_all(admin1, "\\-South", " (South)")
   ) |> 
   right_join(myanmar_adm1, by = c("admin1" = "state")) |> 
-  st_as_sf() |> 
+  st_as_sf() |>
   ggplot() +
   geom_sf(size = .1, colour = "darkgrey", fill = "black", data = myanmar_adm1) +
   geom_point(aes(x = longitude, y = latitude, 
-                 colour = ged_violence_type,
+                 colour = fct_relevel(ged_violence_type, 
+                                      c("state-based",
+                                        "non-state",
+                                        "one-sided")),
                  size = fatalities), 
-             alpha = .3) + 
-  scale_colour_viridis_d(option = "viridis") +
-  # scale_colour_manual(values = c("#7e03a8", "#21918c", "#fc8961")) + 
-  guides(colour = guide_legend(override.aes = list(alpha = 1)), 
+             alpha = .25) + 
+  # scale_colour_viridis_d(option = "viridis", begin = .15) +
+  scale_colour_manual(values = c("#fde725", "#b73779", "#21918c")) + 
+  guides(colour = guide_legend(override.aes = list(alpha = 1), 
+                               order = 1), 
          size = guide_legend(override.aes = list(alpha = 1, 
-                                                 colour = "grey"))) + 
+                                                 colour = "grey"), 
+                             order = 2)) + 
   theme_void() + 
   labs(title = "Myanmar 2022 Conflict events and fatalities, ACLED", 
        colour = "GED violence type", 
        size = "Fatalities") + 
-  theme(plot.background = element_rect(fill = "black", colour = NA), 
+  theme(plot.background = element_rect(fill = "black", colour = "black"),
+        rect = element_rect(fill = NA), 
         legend.text = element_text(colour = "white"), 
         title = element_text(colour = "white"))
 
 ggsave(here("plots", "myanmar_acled_2022.png"), dpi = 300, height = 16.5, width = 11.7, units = "in")
             
 ```
-
 
 
 
@@ -869,7 +889,8 @@ myanmar_ged_2022 <- ged |>
   labs(title = "Myanmar 2022 Conflict events and fatalities, UCDP", 
        colour = "GED violence type", 
        size = "Fatalities") + 
-  theme(plot.background = element_rect(fill = "black", colour = NA), 
+  theme(plot.background = element_rect(fill = "black", colour = "black"),
+        rect = element_rect(fill = NA), 
         legend.text = element_text(colour = "white"), 
         title = element_text(colour = "white"))
 
@@ -881,12 +902,13 @@ ggsave(here("plots", "myanmar_ged_2022.png"), dpi = 300, height = 16.5, width = 
 ```
   
   
+  
 ```{r}
 combined_plot <- myammar_acled_2022 + 
   myanmar_ged_2022 + 
   plot_layout(nrow = 1)
 
-ggsave(here("plots", "myanmar_combined_2022.png"), dpi = 300, height = 16.5, width = 23.4, units = "in")
+ggsave(here("plots", "myanmar_combined_2022.png"), dpi = 300, height = 16.5, width = 29, units = "in")
 
 ```
 
@@ -898,7 +920,19 @@ Furthermore, conflict in Northern Shan and along the Chin border are not very cl
 ![](./plots/myanmar_combined_2022.png)
 
 
+```{r}
+ged |> 
+  filter(year == 2022 & country == "Myanmar") |> 
+  count(dyad_new_id, type_of_violence, sort = TRUE)
 
+```
+
+```{r}
+ged |> 
+  filter(dyad_new_id == 955) |> 
+  sample_n(5) |> 
+  pull(source_article)
+```
 
 
 ### Comparing actors 
