@@ -240,6 +240,8 @@ We don't really have enough for trends yet, but we can note prominent spikes in 
 
 ### Sources
 
+
+
 ```{r}
 acled_sources <- acled_filtered |>
   select(event_id_cnty, country, event_date, source, notes) |>
@@ -403,6 +405,11 @@ ged_sources |> write_csv(here("data", "ged_sources.csv"))
   
 ```
 
+We note that ACLED, in general, draws from a much larger number of sources than UCDP. This is true unless ACLED is not collecting a country's data for a given year. 
+
+<br>
+
+9
 
 
 ```{r fig.height=7}
@@ -435,7 +442,7 @@ acled_sources |>
                        direction = -1) +
   theme(axis.text.x = element_text(angle = 45, 
                                    hjust = 1)) + 
-  labs(title = "Sources used in the ACLED and UCDP datasets (2014-2023)", 
+  labs(title = "Number of sources used in the ACLED and UCDP datasets (2014-2023)", 
        x = "", y = "Number of distinct sources",
        fill = "Dataset") + 
   scale_x_continuous(breaks = c(2014, 2016, 2018, 2020, 2022))
@@ -453,7 +460,7 @@ ged_sources_top10 <- ged_sources |>
 ```
 
 
-We note that ACLED, in general, draws from a much wider range of sources than UCDP. Additionally, from the treemaps below, we see that not only does ACLED use more sources than UCDP, UCDP is also highly reliant on a relatively small number of sources: the top 10 sources in the UCDP dataset are responsible for `r paste0(ged_sources_top10, "%")` of all source articles. 
+From the treemaps below, we see that not only does ACLED use more sources than UCDP, UCDP is also highly reliant on a relatively small number of sources: the top 10 sources in the UCDP dataset are responsible for `r paste0(ged_sources_top10, "%")` of all source articles. 
 
 
 
@@ -505,7 +512,7 @@ acled_sources |>
 
 ### Types of violence
 
-ACLED is an event-based dataset, as such, comparing event types does not really work out. Instead, we will undertake the comparison using `interaction type`, which are analogous to UCDP's `type of violence`.  variable. 
+ACLED is an event-based dataset, as such, comparing event types does not really work out. Instead, we will undertake the comparison using `interaction type`, which is analogous to UCDP's `type of violence`.  variable. 
 
 
 <br>
@@ -531,6 +538,7 @@ acled_filtered |>
   group_by(ged_violence_type) |> 
   arrange(desc(acled_fatalities), .by_group = TRUE) |>
   filter(acled_fatalities > 10) |> 
+  mutate(acled_fatalities = format(acled_fatalities, big.mark = ",")) |> 
   select(GED_type = ged_violence_type, 
          ACLED_type = acled_interaction_type, 
          ACLED_fatalities = acled_fatalities) |> 
@@ -543,7 +551,7 @@ acled_filtered |>
 
 <br>
 
-Overall, there is just much less detail in the UCDP dataset. The map below mirrors another done by [Raleigh, Kishi and Linke](https://www.nature.com/articles/s41599-023-01559-4/figures/1) where they noted that UCDP did not collect data on incidents related to the Philippine drug war. 
+Overall, there is just much less detail in the UCDP dataset. The map below mirrors another done by [Raleigh, Kishi and Linke](https://www.nature.com/articles/s41599-023-01559-4/figures/1) where they noted that UCDP did not collect sufficient data on incidents related to the Philippine drug war and the surrounding political violence. 
 
 The ACLED map below already excludes protest events. With the ACLED data, the linear patterns of violence become very clear, as various armed groups fought for the control of major roads and highways. ACLED also picked up on the violence around the borders with India and China, something which UCDP did not. 
 
@@ -604,18 +612,21 @@ Perhaps one of the most easily identifiable differences is that conflict actors 
 <br>
 
 
+
 ```{r fig.height = 7}
 
 acled_actors_order <- acled_actors |> 
   group_by(country) |> 
   summarise(num_actors = n_distinct(actor)) |> 
   arrange(desc(num_actors)) |> 
+  slice(1:20) |> 
   pull(country)
 
 acled_actors |> 
   group_by(country, year, actor_description) |> 
   summarise(num_actors = n_distinct(actor), .groups = "drop") |> 
-  filter(!is.na(actor_description)) |> 
+  filter(!is.na(actor_description) & 
+           country %in% acled_actors_order) |> 
   mutate(country = fct_relevel(country, acled_actors_order)) |> 
   ggplot(aes(x = year, y = num_actors, group = actor_description)) + 
   geom_line(aes(colour = actor_description), 
@@ -631,6 +642,7 @@ acled_actors |>
         legend.key.height = unit(.3, "cm"), 
         legend.margin=margin(t = 0, unit='cm')) + 
   labs(title = "ACLED: Breakdown of conflict actor types in the Asia-Pacific, 2014-2023", 
+       subtitle = "Only includes the top 20 countries in terms of conflict actors", 
        x = "", y = "Number of actors", 
        colour = "") + 
   guides(colour = guide_legend(nrow = 1), 
@@ -638,15 +650,52 @@ acled_actors |>
   theme(
     axis.text.y = element_text(size = 5)
   )
+
+# Keep countries with low actor counts? 
 ```
 
 <br>
 
 From the plot above, we observe that India, Pakistan, Indonesia, Bangladesh and Papua New Guinea all experience spikes in the activity of identity militias -- this group includes a large number of tribal and communal militias. 
 
-Myanmar is in open civil war and has seen a massive proliferation of political militias, who, in many cases have broader aims compared to identity militias.  
+In Thailand, China, Cambodia and the Philippines, the predominance of state actors indicate higher levels of state violence. In comparison, South Korea's uptick in protest activity was not accompanied by an increase in state violence.
 
-Elsewhere, in Thailand, China and Cambodia, the breakdown of actors shows these countries' tendencies towards state control.  
+Myanmar is in open civil war and has seen a massive proliferation of political militias, who, in many cases have broader aims compared to identity militias. Let's take a closer look and put the y-axis on a log scale so it's easier to interpret: 
+
+<br>
+
+
+```{r}
+acled_actors |> 
+  filter(country == "Myanmar") |> 
+  group_by(year, actor_description) |> 
+  summarise(num_actors = n_distinct(actor), .groups = "drop") |> 
+  filter(!is.na(actor_description)) |> 
+  ggplot(aes(x = year, y = num_actors, groups = actor_description)) + 
+  geom_line(aes(colour = actor_description), 
+            size = .7, alpha = .7) +
+  scale_colour_viridis_d(option = "turbo") + 
+  scale_x_date(breaks = "1 year") + 
+  scale_x_continuous(breaks = seq(2014, 2023, 1)) + 
+  scale_y_log10(labels = comma, 
+                breaks = c(0, 1, 3, 10, 30, 100, 300, 1000)) + 
+  theme(axis.text.x = element_text(hjust = 1, angle = 45), 
+        legend.position = "top", 
+        legend.text = element_text(size = 5), 
+        legend.key.width = unit(.3, "cm"), 
+        legend.key.height = unit(.3, "cm"), 
+        legend.margin=margin(t = 0, unit='cm')) + 
+  labs(title = "ACLED: Breakdown of conflict actor types in the Asia-Pacific, 2014-2023", 
+       x = "", y = "Number of actors", 
+       colour = "") + 
+  guides(colour = guide_legend(nrow = 1), 
+         colour = guide_legend(override.aes = list(size = 2))) + 
+  theme(
+    axis.text.y = element_text(size = 5)
+  )
+ 
+```
+
 
 
 

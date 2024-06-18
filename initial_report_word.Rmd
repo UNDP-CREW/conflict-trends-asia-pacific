@@ -113,6 +113,7 @@ myanmar_adm1 <- st_read(here("data",
 ```
 
 
+
 ```{r}
 most_events_list <- acled_filtered |> 
   filter(event_type != "Protest") |> 
@@ -137,6 +138,8 @@ most_fatalities_list <- acled_filtered |>
 ### Fatalities
 
 Both ACLED and UCDP data on fatalities are quite highly correlated -- in the cases in which there is overlap in reporting. 
+
+
 
 
 
@@ -170,6 +173,7 @@ fatalities_lm_summary <- acled_filtered |>
 
 
 ```
+
 
 Of the `r fatalities_lm_summary |> nrow()` countries in the Asia-Pacific between 2014 and 2023 for which the data was comparable, `r sum(fatalities_lm_summary$significant)` had a statistically significant relationship between the number of fatalities reported in the ACLED and UCDP datasets: 
 
@@ -229,7 +233,7 @@ However, we note that the number of conflict fatalities reported by UCDP are con
 
 However, this finding illustrates our hypothesis that even when accounting for ACLED's broader coverage of event types (protests), UCDP's coverage of conflicts in the Asia-Pacific is not as comprehensive as that of ACLED. 
 
-We don't really have enough for trends yet, but we can note prominent spikes in fatalities. For instance, Afghanistan had a fairly long lead up to the peak of violence in 2021, the US withdrawal and the subsequent lessening of tensions. Iran saw a spike of violence coinciding with the 2021-2022 Iranian protests. In Thailand, we see a lessening of tensions from the 2014 coup and its fallout, and the state reasserting itself. And the spike in Sri Lanka in 2019 was related to the 2019 Easter Sunday bombings. 
+We don't really have enough for trends yet, but we can note prominent spikes in fatalities. For instance, Afghanistan had a fairly long lead up to violence peaking in 2021, the subsequent US withdrawal followed by the lessening of tensions. Iran saw a spike of violence coinciding with the 2021-2022 Iranian protests. In Thailand, we see a lessening of tensions from the 2014 coup and its fallout, and the state reasserting itself. And the spike in Sri Lanka in 2019 was related to the 2019 Easter Sunday bombings. 
 
 
 
@@ -600,18 +604,21 @@ Perhaps one of the most easily identifiable differences is that conflict actors 
 <br>
 
 
+
 ```{r fig.height = 7}
 
 acled_actors_order <- acled_actors |> 
   group_by(country) |> 
   summarise(num_actors = n_distinct(actor)) |> 
   arrange(desc(num_actors)) |> 
+  slice(1:20) |> 
   pull(country)
 
 acled_actors |> 
   group_by(country, year, actor_description) |> 
   summarise(num_actors = n_distinct(actor), .groups = "drop") |> 
-  filter(!is.na(actor_description)) |> 
+  filter(!is.na(actor_description) & 
+           country %in% acled_actors_order) |> 
   mutate(country = fct_relevel(country, acled_actors_order)) |> 
   ggplot(aes(x = year, y = num_actors, group = actor_description)) + 
   geom_line(aes(colour = actor_description), 
@@ -627,6 +634,7 @@ acled_actors |>
         legend.key.height = unit(.3, "cm"), 
         legend.margin=margin(t = 0, unit='cm')) + 
   labs(title = "ACLED: Breakdown of conflict actor types in the Asia-Pacific, 2014-2023", 
+       subtitle = "Only includes the top 20 countries in terms of conflict actors", 
        x = "", y = "Number of actors", 
        colour = "") + 
   guides(colour = guide_legend(nrow = 1), 
@@ -634,12 +642,56 @@ acled_actors |>
   theme(
     axis.text.y = element_text(size = 5)
   )
+
+# Keep countries with low actor counts? 
 ```
 
 <br>
 
 From the plot above, we observe that India, Pakistan, Indonesia, Bangladesh and Papua New Guinea all experience spikes in the activity of identity militias -- this group includes a large number of tribal and communal militias. 
 
-Myanmar is in open civil war and has seen a massive proliferation of political militias, who, in many cases have broader aims compared to identity militias.  
+In Thailand, China, Cambodia and the Philippines, the predominance of state actors indicate higher levels of state violence. In comparison, South Korea's uptick in protest activity was not accompanied by an increase in state violence.
 
-Elsewhere, in Thailand, China and Cambodia, the breakdown of actors shows these countries' tendencies towards state control.  
+Myanmar is in open civil war and has seen a massive proliferation of political militias, who, in many cases have broader aims compared to identity militias. Let's take a closer look and put the y-axis on a log scale so it's easier to interpret: 
+
+<br>
+
+
+```{r}
+acled_actors |> 
+  filter(country == "Myanmar") |> 
+  group_by(year, actor_description) |> 
+  summarise(num_actors = n_distinct(actor), .groups = "drop") |> 
+  filter(!is.na(actor_description)) |> 
+  ggplot(aes(x = year, y = num_actors, groups = actor_description)) + 
+  geom_line(aes(colour = actor_description), 
+            size = .7, alpha = .7) +
+  scale_colour_viridis_d(option = "turbo") + 
+  scale_x_date(breaks = "1 year") + 
+  scale_x_continuous(breaks = seq(2014, 2023, 1)) + 
+  scale_y_log10(labels = comma, 
+                breaks = c(0, 1, 3, 10, 30, 100, 300, 1000)) + 
+  theme(axis.text.x = element_text(hjust = 1, angle = 45), 
+        legend.position = "top", 
+        legend.text = element_text(size = 5), 
+        legend.key.width = unit(.3, "cm"), 
+        legend.key.height = unit(.3, "cm"), 
+        legend.margin=margin(t = 0, unit='cm')) + 
+  labs(title = "ACLED: Breakdown of conflict actor types in the Asia-Pacific, 2014-2023", 
+       x = "", y = "Number of actors", 
+       colour = "") + 
+  guides(colour = guide_legend(nrow = 1), 
+         colour = guide_legend(override.aes = list(size = 2))) + 
+  theme(
+    axis.text.y = element_text(size = 5)
+  )
+ 
+```
+
+
+
+
+
+
+
+
