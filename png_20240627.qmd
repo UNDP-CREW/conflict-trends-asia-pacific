@@ -1,0 +1,285 @@
+----
+title: "Initial exploratory data analysis of ACLED-UCDP conflict trends"
+author: "Sean Ng"
+date: "13 June 2024"
+toc: true
+toc-location: left
+toc-depth: 4
+format: 
+  html:
+    page-layout: full
+    code-tools: true
+    self-contained: true
+    
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.width = 9.5)
+
+library(tidyverse)
+library(here)
+library(lubridate)
+library(patchwork)
+library(scales)
+library(sf)
+library(broom)
+library(treemapify)
+library(kableExtra)
+library(readxl)
+library(janitor)
+library(tidytext)
+
+`%out%` <- Negate(`%in%`)
+options(scipen = 100)
+theme_set(theme_light())
+
+show_col(viridis_pal(option = "cividis")(8))
+
+```
+
+# Data
+
+```{r compressed data, message=FALSE}
+
+country_list <- c("Afghanistan", "Bangladesh", "Bhutan", "Cambodia", 
+                  "China", "Fiji", "Hong Kong", "India", "Indonesia", 
+                  "Iran", "North Korea", "South Korea", "Laos", 
+                  "Malaysia", "Maldives", "Mongolia", "Myanmar", 
+                  "Nepal", "Pakistan", "Papua New Guinea", "Philippines", 
+                  "Solomon Islands", "Sri Lanka", "Thailand", "Timor-Leste", 
+                  "Vanuatu", "Vietnam")
+
+actor_codes_acled <- tribble(
+  ~actor_code, ~description, 
+  1, "State Forces", 
+  2, "Rebel Groups", 
+  3, "Political Militias", 
+  4, "Identity Militias", 
+  5, "Rioters",
+  6, "Protesters", 
+  7, "Civilians", 
+  8, "Other Forces"
+)
+
+interaction_codes_acled <- read_csv(here("data", "interaction_codes_acled.csv"))
+
+ged241 <- readRDS(here("data", "ged241.rds"))
+
+acled_filtered <- readRDS(here("data", "acled_filtered.rds")) 
+
+acled_png <- acled_filtered |> 
+  filter(country == "Papua New Guinea")
+
+ged <- ged241 |> 
+  filter(date_start < "2024-01-01" & date_start >= "2014-01-01") |> 
+  mutate(country = case_when(country == "Cambodia (Kampuchea)" ~ "Cambodia", 
+                             country == "Myanmar (Burma)" ~ "Myanmar", 
+                             TRUE ~ country)) |>
+  filter(country %in% country_list)
+
+
+population <- read_csv(here("data", "wdi_population_data.csv")) |> 
+  slice(1:27) |> 
+  janitor::clean_names() %>%
+  mutate(across(matches("_yr"), ~ as.numeric(.))) %>%
+  pivot_longer(cols = x2015_yr2015:x2023_yr2023, 
+               names_to = "year", 
+               values_to = "population") |> 
+  mutate(year = str_sub(year, start = -4, end = -1), 
+         year = as.integer(year)) |> 
+  rename(country = country_name) |> 
+  mutate(country = case_when(str_detect(country, "Korea, Rep.") ~ "South Korea",
+                             str_detect(country, "Korea, Dem. People's Rep.") ~ "North Korea", 
+                             str_detect(country, "Hong Kong SAR, China") ~ "Hong Kong", 
+                             str_detect(country, "Iran, Islamic Rep.") ~ "Iran", 
+                             str_detect(country, "Lao PDR") ~ "Laos", 
+                             country == "Viet Nam" ~ "Vietnam", 
+                             TRUE ~ country))
+
+population_estimates <- crossing(country = population$country, year = 2014:2023) |> 
+  left_join(population |> 
+              select(year, country, population), 
+            by = c("year", "country")) |> 
+  group_by(country) %>% 
+  fill(population, .direction = "updown") 
+
+world_shape <- st_read(here("data", 
+                            "world-administrative-boundaries", 
+                            "world-administrative-boundaries.shp"), 
+                       quiet = TRUE)
+
+
+
+# country_iso3 <- world_shape |> distinct(name, iso3)
+
+```
+
+```{r}
+tracker <- read_xlsx(here("data", "PNG Highlands Conflict Tracker.xlsx")) |> 
+  janitor::clean_names() |> 
+  select(-c(x40:x45), -x) |> 
+  mutate(id = row_number()) |> 
+  mutate(incident_no = ifelse(is.na(incident_no), 
+                              conflict_no, 
+                              incident_no)) %>%
+  mutate(start_date = excel_numeric_to_date(as.numeric(as.character(start_date)), 
+                                            date_system = "modern"), 
+         end_date = excel_numeric_to_date(as.numeric(as.character(end_date)), 
+                                          date_system = "modern")) |> 
+  mutate(province = paste0(province, " Province"), 
+         district = paste0(district, " District"), 
+         llg = paste0(llg, " LLG")) |> 
+  mutate(llg = case_when(
+    llg == "Lower Wage Rural LLG" ~ "Lower Wage LLG", 
+    llg == "Upper Wage Rural LLG" ~ "Upper Wage LLG", 
+    llg == "Pori Rural LLG" ~ "Awi Pori Rural LLG",
+    TRUE ~ llg), 
+    district = ifelse(llg == "Hayapuga Rural LLG", 
+                      "Tari Pori District", 
+                      district)) |> 
+  
+  left_join(
+    png_locations |> 
+      filter(str_detect(adm1_en, "Hela|Southern Highlands")) %>%
+      mutate_at(vars(adm2_en, adm3_en), 
+                ~ str_replace_all(., "\\/", " ")) |> 
+      distinct(adm1_en, adm1_pcode, adm2_en,adm2_pcode,
+               adm3_en, adm3_pcode), 
+    by = c("province" = "adm1_en", 
+           "district" = "adm2_en", 
+           "llg" = "adm3_en")
+  ) |> 
+  mutate_at(vars(total_dead, total_injured), ~ as.numeric(.)) |>
+  replace_na(list(
+    total_dead = 0, 
+    total_injured = 0
+  ))
+  
+png_locations <- read_xlsx(here("data", "png_adminboundaries_tabulardata.xlsx"), 
+                         sheet = "ADM3") |> 
+  janitor::clean_names()
+  
+  net_freedom <- read_xlsx(here("data", "Freedom on the net 2023-11.xlsx")) |> 
+  janitor::clean_names() |> 
+  filter(country %in% country_list) |> 
+  rename(year = edition)
+```
+
+
+
+
+### Tracker actors 
+
+```{r}
+
+tracker_actors <- tracker |>
+  mutate(people_groups_involved = 
+           ifelse(people_groups_involved == "Egenda 1,2, and 3 and Pulim", 
+                  "Egenda 1, Egenda 2 and Egenda 3 and Pulim",
+                  people_groups_involved)) |> 
+  separate(people_groups_involved, remove = FALSE,
+           sep = "\\,|and|\\&|\\-",
+           into = paste0("actor", 1:10)) |> 
+  pivot_longer(cols = actor1:actor10, 
+               names_to = "ignore", 
+               values_to = "actor") |> 
+  filter(!is.na(actor)) 
+
+```
+### Tracker words
+
+```{r}
+tracker_words <- tracker |> 
+  select(id, incident_description) |> 
+  unnest_tokens(word, incident_description) |> 
+  anti_join(stop_words, by = "word") |>
+  add_count(word) |> 
+  arrange(desc(n)) |>
+    left_join(
+    tracker |> 
+      select(id, province, district, llg,
+             status, total_dead, total_injured, 
+             conflict_name),
+    by = "id") 
+  
+
+```
+
+
+```{r}
+tracker |> 
+  filter(str_detect(incident_description, "Compensation")) |> 
+  sample_n(1) |> 
+  pull(incident_description)
+```
+
+
+```{r}
+
+tracker_words %>%
+  mutate(total_casualties = total_dead + total_injured) |> 
+  group_by(word) |> 
+  mutate(number_conflicts = n_distinct(conflict_name)) |> 
+  ungroup() |> 
+  group_by(word) |> 
+  summarise(count = mean(n), 
+            total_casualties = sum(total_casualties, na.rm = TRUE)) |> 
+  filter(word %out% c("abuse", "conflict", "dispute", "due", "price", 
+                      "spillover", "ownership", "resource", "issue")) |> 
+  mutate(category = 
+           case_when(
+             word %in% c("land", "boundary", "ownership", "tresspassing", 
+                         "royalty", "resource") ~ "land", 
+             word %in% c("payment", "theft", "valuables") ~ "valuables", 
+             word %in% c("clan", "spillover") ~ "clan", 
+             TRUE ~ "other"
+           )) |> 
+  head(20) |> 
+  ggplot(aes(x = count,
+             y = fct_reorder(word, count))) +
+  geom_col(aes(fill = total_casualties)) +
+  scale_fill_viridis_c(
+    # direction = -1,
+    option = "magma",
+    begin = .1, end = .9)
+```
+
+Complementarity of the ACLED and the tracker datasets? 
+
+
+
+# ACLED
+
+```{r}
+acled_png |> 
+  filter(event_id_cnty == "PNG759") |> pull(notes)
+```
+
+
+```{r}
+
+acled_png |> 
+  filter(admin1 %in% c("Hela", "Southern Highlands")) |> 
+  mutate(admin1 = paste0(admin1, " Province")) |>   
+  select(event_id_cnty, notes) %>% 
+  unnest_tokens(word, notes) %>% 
+  add_count(word) |> 
+  anti_join(stop_words, by = "word") %>% 
+  filter(str_detect(word, "[a-z]")) %>%
+  filter(word %out% c("southern", "highlands", "hela", "coded")) |> 
+  group_by(word, event_id_cnty) |> 
+  summarise(count = mean(n, na.rm = TRUE))
+  left_join(
+    acled_png |> 
+      select(event_id_cnty,
+             notes,
+             fatalities), 
+    by = "event_id_cnty"
+  ) |> 
+  arrange(desc(n))
+
+
+```
+
