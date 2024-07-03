@@ -31,3 +31,17 @@ acled_actors |>
   theme(
     axis.text.y = element_text(size = 5)
   )
+
+tracker_words <- tracker |> 
+  filter(start_date >= "2014-01-01") |> 
+  select(id, incident_description) |> 
+  unnest_tokens(word, incident_description) |> 
+  anti_join(stop_words, by = "word") |>
+  add_count(word) |> 
+  arrange(desc(n)) |>
+  left_join(
+    tracker |> 
+      select(id, province, district, llg,
+             status, total_dead, total_injured, 
+             conflict_name),
+    by = "id")

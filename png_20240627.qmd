@@ -31,6 +31,9 @@ library(readxl)
 library(janitor)
 library(tidytext)
 library(ggrepel)
+library(widyr)
+library(DT)
+library(ggraph)
 
 `%out%` <- Negate(`%in%`)
 options(scipen = 100)
@@ -68,20 +71,10 @@ actor_codes_acled <- tribble(
 
 interaction_codes_acled <- read_csv(here("data", "interaction_codes_acled.csv"))
 
-ged241 <- readRDS(here("data", "ged241.rds"))
-
 acled_filtered <- readRDS(here("data", "acled_filtered.rds")) 
 
 acled_png <- acled_filtered |> 
   filter(country == "Papua New Guinea")
-
-ged <- ged241 |> 
-  filter(date_start < "2024-01-01" & date_start >= "2014-01-01") |> 
-  mutate(country = case_when(country == "Cambodia (Kampuchea)" ~ "Cambodia", 
-                             country == "Myanmar (Burma)" ~ "Myanmar", 
-                             TRUE ~ country)) |>
-  filter(country %in% country_list)
-
 
 population <- read_csv(here("data", "wdi_population_data.csv")) |> 
   slice(1:27) |> 
@@ -113,19 +106,32 @@ world_shape <- st_read(here("data",
                             "world-administrative-boundaries.shp"), 
                        quiet = TRUE)
 
+png_locations <- read_xlsx(here("data", "png_adminboundaries_tabulardata.xlsx"), 
+                         sheet = "ADM3") |> 
+  janitor::clean_names()
 
+png_shape <- st_read(here("data", 
+                          "png_adm_nso_20190508_shp", 
+                          "png_admbnda_adm3_nso_20190508.shp")) |> 
+  clean_names()
 
 # country_iso3 <- world_shape |> distinct(name, iso3)
 
 ```
 
+
+
+
+# Tracker
+
+
+
+
 ```{r}
 
 
   
-png_locations <- read_xlsx(here("data", "png_adminboundaries_tabulardata.xlsx"), 
-                         sheet = "ADM3") |> 
-  janitor::clean_names()
+
   
 tracker <- read_xlsx(here("data", "PNG Highlands Conflict Tracker.xlsx")) |> 
   janitor::clean_names() |> 
@@ -165,14 +171,78 @@ tracker <- read_xlsx(here("data", "PNG Highlands Conflict Tracker.xlsx")) |>
   replace_na(list(
     total_dead = 0, 
     total_injured = 0
-  ))
+  )) |> 
+  mutate(total_casualties = total_dead + total_injured)
 
 ```
 
+### Tracker map
 
 
 
-### Tracker actors 
+```{r}
+
+png_populated_highlands <- st_read(here("data", 
+                              "hotosm_png_populated_places_points_shp", 
+                              "hotosm_png_populated_places_points_shp.shp")) |> 
+  st_set_crs(4326) |> 
+  st_crop(xmin = 142, xmax = 145, ymin = -4.9, ymax = -7)
+
+
+tracker |> 
+  filter(start_date >= "2014-01-01") |> 
+  right_join(
+    png_shape |> 
+      filter(adm1_en %in% c("Hela Province", 
+                            "Southern Highlands Province")), 
+    by = "adm3_pcode"
+  ) |>
+  st_as_sf() |> 
+  ggplot() + 
+  geom_sf(size = .1, fill = "grey95") + 
+  geom_point(data = png_populated_highlands |> 
+               st_as_sf() |> 
+               mutate(
+                 place = ifelse(place == "isolated_dwelling", 
+                                "isolated dwelling", 
+                                place), 
+                 place = str_to_title(place),
+                 place = fct_rev(fct_relevel(place,
+                                     c("City", "Town", "Hamlet", "Village", "Isolated Dwelling")))),
+             stat = "sf_coordinates",
+             aes(geometry = geometry, 
+                 colour = place), 
+             alpha = .5, 
+             pch = 16) + 
+  scale_colour_manual(values = c("grey85", "grey65", "grey45", "grey25", "grey5"),
+                      guide = guide_legend(override.aes = list(alpha = 1))) +
+  # scale_color_manual(values = c("#810F7C", "#810F7C", "#8856A7", "#8C96C6","#9EBCDA","#BFD3E6"), 
+  #                    guide = guide_legend(override.aes = list(alpha = 1))) + 
+  scale_size_continuous(range = c(.5, 8)) + 
+  geom_point(aes(x = x_lon, 
+                 y = y_lat, 
+                 size = total_casualties), 
+             alpha = .5, 
+             colour = "#810F7C") + 
+  labs(
+    colour = "Settlement", 
+    size = "Casualties\nfrom\nincident", 
+    x = "", 
+    y = "", 
+    title = "Conflict incidents and fatalities in Hela and Southern Highlands Provinces 2014-2023", 
+    subtitle = "Source: UNDP Highlands Conflict Tracker and Humanitarian OpenStreetMap Team"
+  ) +
+  guides(size = guide_legend(order = 1), 
+         colour = guide_legend(reverse = TRUE))
+
+```
+
+Conflict hotspots seem to mirror population, perhaps with some gaps in reporting in the northern part of Southern Highlands Province, around `143.6 -6`, 
+
+
+
+
+### Actors 
 
 ```{r}
 
@@ -239,18 +309,15 @@ tracker_actors <- tracker |>
              TRUE ~ actor_simple
              
              )) |> 
-  filter(actor != "a") |> 
+  filter(actor != "a" & actor != "") |> 
   mutate(total_casualties = total_dead + total_injured)
 
 ```
 
 
-```{r}
-tracker_actors |> 
-  filter(actor == "a")
-```
 
 
+### Highlands conflict tracker actors 
 
 ```{r}
 tracker_actors  |> 
@@ -285,74 +352,168 @@ tracker_actors  |>
   ggplot(aes(x = value, y = actor), )
 ```
 
+<br>
 
+On the x-axis is the number of events each conflict actor has participated in over the past 10 years; on the y-axis is the total number of casualties (dead and injured) associated with their actions that have been recorded in the tracker, this is also reflected in the size of each point. The colour of each point indicates the number of LLGs (admin3) that each actor is active in. 
 
+In the upper right of the plot, we see the more prolific (in violence) communal groups. There is some overlap here with ACLED. The Linapini were also identified as a conflict actor in the ACLED dataset. 
 
+On the left-hand side, we see actors which have only one recorded incident, it is not currently understood how isolated these incidents are. 
 
-### Tracker words
+Further analysis should include the types of incidents each conflict actor is most likely to engage in and from there, flesh out full profiles for each actor. 
+
+There is much rich detail in the incidents reported in the Highlands Conflict Tracker: `r n_distinct(tracker_actors$actor_simple)` conflict actors have been recorded between 2014 and 2023. 
 
 ```{r}
-tracker_words <- tracker |> 
-  filter(start_date >= "2014-01-01") |> 
-  select(id, incident_description) |> 
-  unnest_tokens(word, incident_description) |> 
-  anti_join(stop_words, by = "word") |>
-  add_count(word) |> 
-  arrange(desc(n)) |>
-    left_join(
-    tracker |> 
-      select(id, province, district, llg,
-             status, total_dead, total_injured, 
-             conflict_name),
-    by = "id") 
-  
+tracker_actors |>
+  filter(start_date >= "2014-01-01") |>
+  group_by(actor) |> 
+  summarise(llgs = n_distinct(llg), 
+            event_count = n_distinct(id), 
+            casualties = sum(total_casualties, na.rm = TRUE))
+```
 
+```{r}
+tracker |> 
+  filter(start_date >= "2014-01-01") |>
+  count(incident_description, conflict_name) |> 
+  unnest_tokens(word, conflict_name) |> 
+  anti_join(stop_words, by = "word") |> 
+  add_count(word) |> 
+  arrange(desc(n)) |> 
+  filter(str_detect(word, "[a-z]") & n > 1) |> 
+  filter(word %out% c("fight", "conflict", "fights", "clans", "intertribal", "clan")) |> 
+  group_by(incident_description) |> 
+  mutate(no_actors = n_distinct(word)) |> 
+  ungroup() |> 
+  tidylo::bind_log_odds(incident_description, word, n) |> 
+  filter(!is.infinite(log_odds_weighted)) |> 
+  arrange(desc(log_odds_weighted)) |> 
+  select(Incident_description = incident_description, 
+         Actor = word, 
+         No.Actors = no_actors,
+         Events = n,
+         Log_odds = log_odds_weighted
+         ) |> 
+  datatable(filter = list(position = "top", clear = FALSE), 
+            options = list(pageLength = 10, scrollX = TRUE,
+  #                         
+  #                         ,
+  #                                         initComplete = htmlwidgets::JS(
+  #        "function(settings, json) {",
+  #        paste0("$(this.api().table().container()).css({'font-size': '", "8.5pt", "'});"),
+  #        "}")
+       
+  autoWidth = TRUE,
+  columnDefs = list(list(width = '300px', targets = c(1))))) |> 
+  formatRound(c("Log_odds"), digits = 3)
+ 
+```
+
+<br> 
+
+The limitations of the analysis relate to the underlying data -- some conflicts are just too sparse in events to yield any analysis, especially if they were related to standalone events. 
+
+
+
+```{r}
+viridis_pal(option = "magma")(4) |> show_col()
+```
+
+
+```{r}
+
+set.seed(224) 
+
+tracker_actors |> 
+  filter(start_date >= "2014-01-01") |>
+  select(id, actor_simple, total_casualties) |>
+  mutate(actor_simple = str_replace_all(actor_simple, " ", "")) |> 
+  group_by(id) |> 
+  mutate(actor_count = n_distinct(actor_simple)) |> 
+  mutate(actors_string = paste0(actor_simple, collapse = " ")) |> 
+  ungroup() |> 
+  distinct(id, total_casualties, actor_count, actors_string) |> 
+  unnest_tokens(word, actors_string) |> 
+  add_count(word) |> 
+  arrange(desc(n)) |> 
+  filter(n > 1) |> 
+  pairwise_cor(word, id, sort = TRUE) |>
+  filter(correlation > .1) |> 
+  igraph::graph_from_data_frame() |> 
+  ggraph(layout = "kk") + 
+  geom_edge_link(aes(alpha = correlation, 
+                     edge_width = correlation), 
+                 colour = "#F1605DFF", 
+                 check_overlap = TRUE, 
+                 alpha = .5) + 
+  scale_alpha_continuous(range = c(0.1, 0.4)) +
+  scale_edge_width_continuous(range = c(.2, 2)) + 
+  geom_node_point(colour = "#F1605DFF", alpha = 0.2) +
+  geom_node_text(aes(label = name), size = 3) + 
+  theme(legend.position = "none") + 
+  labs(title = "Relationships between PNG Highlands conflict actors 2014-2023", 
+       subtitle = "Only actors that have been involved in more than one event")
+ 
 ```
 
 
 ```{r}
 tracker |> 
-  filter(str_detect(incident_description, "Compensation")) |> 
-  sample_n(1) |> 
-  pull(incident_description)
+  filter(start_date >= "2014-01-01") |>
+  count(people_groups_involved, conflict_name) |> 
+  unnest_tokens(word, conflict_name) |> 
+  anti_join(stop_words, by = "word") |> 
+  add_count(word) |> 
+  arrange(desc(n)) |> 
+  filter(str_detect(word, "[a-z]") & n > 1) |> 
+  filter(word %out% c("fight", "conflict", "fights", "clans", "intertribal", "clan")) |> 
+  group_by(people_groups_involved) |> 
+  mutate(no_actors = n_distinct(word)) |> 
+  ungroup() |> 
+  tidylo::bind_log_odds(people_groups_involved, word, n) |> 
+  filter(!is.infinite(log_odds_weighted)) |> 
+  mutate(people_groups_involved = str_to_lower(people_groups_involved))
+```
+
+
+
+```{r}
+tracker |> 
+  filter(start_date >= "2014-01-01") |>
+  group_by(conflict_name) |> 
+  summarise(count = n(), 
+            casualties = sum(total_casualties, na.rm = TRUE)) |> 
+  arrange(desc())
+
 ```
 
 
 ```{r}
-
-tracker_words %>%
-  mutate(total_casualties = total_dead + total_injured) |> 
-  group_by(word) |> 
-  mutate(number_conflicts = n_distinct(conflict_name)) |> 
-  ungroup() |> 
-  group_by(word) |> 
-  summarise(count = mean(n), 
-            total_casualties = sum(total_casualties, na.rm = TRUE)) |> 
-  filter(word %out% c("abuse", "conflict", "dispute", "due", "price", 
-                      "spillover", "ownership", "resource", "issue")) |> 
-  mutate(category = 
-           case_when(
-             word %in% c("land", "boundary", "ownership", "tresspassing", 
-                         "royalty", "resource") ~ "land", 
-             word %in% c("payment", "theft", "valuables") ~ "valuables", 
-             word %in% c("clan", "spillover") ~ "clan", 
-             TRUE ~ "other"
-           )) |> 
-  head(20) |> 
-  ggplot(aes(x = count,
-             y = fct_reorder(word, count))) +
-  geom_col(aes(fill = total_casualties)) +
-  scale_fill_viridis_c(
-    # direction = -1,
-    option = "magma",
-    begin = .2, end = .8) + 
-  labs(title = "Most common words in event descriptions 2014-2023",
-       x = "Count of events", 
-       y = "", 
-       fill = "Total\ncasualties")
-
-
+tracker |>
+  filter(start_date >= "2014-01-01" & start_date < "2024-01-01") |> 
+  group_by(incident_description) |> 
+  summarise(event_count = n(), 
+            casualties = sum(total_casualties, na.rm = TRUE)) |>
+  mutate(incident_description = fct_reorder(incident_description,
+                                            casualties)) |> 
+  ggplot(aes(x = casualties,
+             y = incident_description)) + 
+  geom_col(aes(fill = event_count)) + 
+  geom_text(aes(label = casualties), 
+            hjust = "inward", 
+            size = 3, 
+            colour = "grey30") +
+  scale_fill_viridis_c(option = "magma", direction = -1, 
+                       begin = .2, 
+                       end = .9) + 
+  labs(title = "Incidents by total casualties (dead and injured)", 
+       subtitle = "Source: PNG Highlands Conflict Tracker", 
+       y = "",
+       x = "Casualties", 
+       fill = "Event\ncount")
 ```
+
 
 Probably need to relook at cadastral maps 
 dispute resolution? Make all parties aware of all options prior to escalating to violence, 
@@ -369,6 +530,30 @@ Complementarity of the ACLED and the tracker datasets?
 It was election violence that drew ACLED's attention to Papua New Guinea and had them start to record conflict incidents. However, election violence is actually quite sparse 
 
 
+
+
+### Tracker words
+Ultimately not necessary, but it
+
+
+```{r}
+tracker |> 
+  filter(str_detect(incident_description, "Compensation")) |> 
+  sample_n(1) |> 
+  pull(incident_description)
+```
+
+```{r}
+tracker |> 
+  group_by(incident_description) |> 
+  summarise(count = n(), 
+            )
+```
+
+
+
+
+### Tracker line graph
 
 ```{r}
 tracker |> 
@@ -400,17 +585,109 @@ tracker |>
 
 ```
 
+<br>
+
+When did data collection stop? 
+
+```{r}
+tracker_actors |> 
+  filter(start_date >= "2021-01-01")
+  filter(str_detect(actor, "Linapini"))
+```
+
 
 
 # ACLED
 
+
+
+
+```{r}
+acled_filtered |> filter(country == "Cambodia" | 
+                           country == "Papua New Guinea") |>
+  filter(event_date >= "2021-01-01" & event_date < "2024-01-01") |> 
+  mutate(event_date_floor = floor_date(event_date, unit = "month")) |> 
+  group_by(event_date_floor, country) |> 
+  summarise(count = n()) |> 
+  ggplot(aes(x = event_date_floor, 
+             y = count)) +
+  geom_line(aes(colour = country), 
+            size = .7) + 
+  scale_colour_manual(values = c("#440154FF", "#35B779FF")) + 
+  facet_wrap(~ country) + 
+  labs(x = "date", 
+       y = "Number of events", 
+       title = "Comparing ACLED coverage for Papua New Guinea and Cambodia") + 
+  theme(legend.position = "none", 
+        strip.background = element_rect(fill = "black"))
+
+```
+
+
+
+```{r}
+acled_png |> 
+  filter(admin1 %in% c("Hela", "Southern Highlands")) |> 
+  mutate(admin1 = paste0(admin1, " Province")) |> 
+  mutate(event_date_floor = floor_date(event_date, unit = "month")) |> 
+  group_by(event_date_floor) |> 
+  summarise(count = n()) |> 
+  ggplot(aes(x = event_date_floor, 
+             y = count)) +
+  geom_line()
+```
+
+
+
+
+
 Who are the most common actors in ACLED? 
-THe conflict tracker seems to be largely devoid of state actors? Indicating very weak state control?
+The conflict tracker seems to be largely devoid of state actors? Indicating very weak state control?
 
 
 ```{r}
 acled_png |> 
   filter(event_id_cnty == "PNG759") |> pull(notes)
+```
+
+```{r}
+acled_png |> 
+  filter(admin1 %in% c("Hela", "Southern Highlands")) |> 
+  pivot_longer(cols = c(actor1, actor2), 
+               names_to = "ignore", 
+               values_to = "actor") |> 
+  filter(!is.na(actor)) |> 
+  select(-ignore) |> 
+  count(actor, sort = TRUE)
+```
+
+I think we should match the names in the conflict tracker against ACLED. 
+
+```{r}
+acled_png |> 
+  filter(admin1 %in% c("Hela", "Southern Highlands")) |> 
+  mutate(admin1 = paste0(admin1, " Province")) |> 
+  group_by(event_type, year) |> 
+  summarise(events = n(), 
+            fatalities = sum(fatalities, na.rm = TRUE))
+
+acled_png |> 
+  filter(str_detect(actor1, "Linabini") | str_detect(actor2, "Linabini"))
+  
+```
+
+
+```{r}
+acled_png |> 
+  filter(admin1 %in% c("Hela", "Southern Highlands")) |> 
+  mutate(admin1 = paste0(admin1, " Province")) |> 
+  mutate(event_date_floor = floor_date(event_date, unit = "month")) |> 
+  group_by(event_date_floor) |> 
+  summarise(count = n()) |> 
+  ggplot(aes(x = event_date_floor, 
+             y = count)) +
+  geom_line()
+
 ```
 
 
