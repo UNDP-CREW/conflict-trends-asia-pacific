@@ -45,3 +45,14 @@ tracker_words <- tracker |>
              status, total_dead, total_injured, 
              conflict_name),
     by = "id")
+
+ged_png |> 
+  filter(year >= 1995) |> 
+  group_by(year) |>
+  summarise(events = n()) |> 
+  ggplot(aes(y = events, x = year)) + 
+  geom_line() + 
+  scale_x_continuous(breaks = seq(1996, 2024, 2))
+scale_x_date(d
+             ate_breaks = "2 years", 
+             date_label = "%Y")

@@ -129,17 +129,10 @@ png_shape <- st_read(here("data",
 
 ```{r}
 
-
-  
-
-  
 tracker <- read_xlsx(here("data", "PNG Highlands Conflict Tracker.xlsx")) |> 
   janitor::clean_names() |> 
   select(-c(x40:x45), -x) |> 
-  mutate(id = row_number()) |> 
-  mutate(incident_no = ifelse(is.na(incident_no), 
-                              conflict_no, 
-                              incident_no)) %>%
+  mutate(id = row_number()) %>%
   mutate(start_date = excel_numeric_to_date(as.numeric(as.character(start_date)), 
                                             date_system = "modern"), 
          end_date = excel_numeric_to_date(as.numeric(as.character(end_date)), 
@@ -247,12 +240,16 @@ Conflict hotspots seem to mirror population, perhaps with some gaps in reporting
 ```{r}
 
 tracker_actors <- tracker |>
-  mutate(people_groups_involved = 
+    mutate(people_groups_involved = 
            ifelse(people_groups_involved == "Egenda 1,2, and 3 and Pulim", 
                   "Egenda 1, Egenda 2 and Egenda 3 and Pulim",
-                  people_groups_involved)) |> 
+                  people_groups_involved), 
+         people_groups_involved = 
+           str_replace_all(people_groups_involved, "Iriyarepa-Yala", "IriyarepaYala"), 
+         people_groups_involved = 
+           str_replace_all(people_groups_involved, "Wambia-Perepe", "WambiaPerepe")) |> 
   separate(people_groups_involved, remove = FALSE,
-           sep = "\\,|and|\\&|\\-",
+           sep = "\\,| and|\\&|\\-|\\/",
            into = paste0("actor", 1:10)) |> 
   pivot_longer(cols = actor1:actor10, 
                names_to = "ignore", 
@@ -305,6 +302,7 @@ tracker_actors <- tracker |>
              str_detect(actor, "Tambaruma") ~ "Tambaruma", 
              str_detect(actor, "Tobe") ~ "Tobe",
              str_detect(actor, "Toma") ~ "Toma",
+             str_detect(actor, "P") & str_detect(people_groups_involved, "Pandipu") ~ "Pandipu", 
              
              TRUE ~ actor_simple
              
@@ -343,13 +341,6 @@ tracker_actors  |>
        subtitle = "Size indicates number of casualties, colour the number of LLGs (admin3) the actor is present in") +
   theme(plot.subtitle = element_text(size = 8))
 
-
-
-  filter(casualties > 2) |> 
-  pivot_longer(cols = c(events:casualties), 
-               names_to = "type", 
-               values_to = "value") |> 
-  ggplot(aes(x = value, y = actor), )
 ```
 
 <br>
@@ -370,8 +361,37 @@ tracker_actors |>
   group_by(actor) |> 
   summarise(llgs = n_distinct(llg), 
             event_count = n_distinct(id), 
-            casualties = sum(total_casualties, na.rm = TRUE))
+            casualties = sum(total_casualties, na.rm = TRUE)) |> 
+  arrange(desc(event_count)) |> 
+  datatable()
+
 ```
+
+
+Separate conflict actors into various columns, similar to ACLED.
+
+```{r}
+tracker |>
+  mutate(people_groups_involved = 
+           ifelse(people_groups_involved == "Egenda 1,2, and 3 and Pulim", 
+                  "Egenda 1, Egenda 2 and Egenda 3 and Pulim",
+                  people_groups_involved), 
+         people_groups_involved = 
+           str_replace_all(people_groups_involved, "Iriyarepa-Yala", "IriyarepaYala"), 
+         people_groups_involved = 
+           str_replace_all(people_groups_involved, "Wambia-Perepe", "WambiaPerepe")) |> 
+  separate(people_groups_involved, remove = FALSE,
+           sep = "\\,| and|\\&|\\-|\\/",
+           into = paste0("actor", 1:10)) |> 
+  unite(col = "assoc_actors", actor3:actor10, na.rm = TRUE, sep = "") |> 
+  select(people_groups_involved, actor1, actor2, assoc_actors) %>% 
+  mutate_at(vars(actor1, actor2, assoc_actors), 
+                 ~ str_replace_all(., " \\s*\\([^\\)]+\\)", ""))
+
+
+```
+
+
 
 ```{r}
 tracker |> 
@@ -416,10 +436,6 @@ The limitations of the analysis relate to the underlying data -- some conflicts 
 
 
 
-```{r}
-viridis_pal(option = "magma")(4) |> show_col()
-```
-
 
 ```{r}
 
@@ -441,7 +457,7 @@ tracker_actors |>
   pairwise_cor(word, id, sort = TRUE) |>
   filter(correlation > .1) |> 
   igraph::graph_from_data_frame() |> 
-  ggraph(layout = "kk") + 
+  ggraph(layout = "fr") + 
   geom_edge_link(aes(alpha = correlation, 
                      edge_width = correlation), 
                  colour = "#F1605DFF", 
@@ -456,6 +472,18 @@ tracker_actors |>
        subtitle = "Only actors that have been involved in more than one event")
  
 ```
+
+<br>
+
+Uncovering these relationships is also possible because the richness of the data collected. 
+An easy next step to take is to classify these actors -- most seem to be communal militias or tribal groups 
+
+Programmatically, monitoring these relationships and their triggers will help identify who the influence of communal militias can be weakened. Although admittedly, I am no expert on Highlands tribal groups and structures. 
+
+Weaponry? Force strength?
+Protection concerns as well 
+
+Monitoring these most active conflict actors will also improve conflict monitoring in general. 
 
 
 ```{r}
@@ -507,7 +535,7 @@ tracker |>
   scale_fill_viridis_c(option = "magma", direction = -1, 
                        begin = .2, 
                        end = .9) + 
-  labs(title = "Incidents by total casualties (dead and injured)", 
+  labs(title = "Incidents by total casualties (dead and injured) 2014-2023", 
        subtitle = "Source: PNG Highlands Conflict Tracker", 
        y = "",
        x = "Casualties", 
@@ -529,26 +557,6 @@ Complementarity of the ACLED and the tracker datasets?
 
 It was election violence that drew ACLED's attention to Papua New Guinea and had them start to record conflict incidents. However, election violence is actually quite sparse 
 
-
-
-
-### Tracker words
-Ultimately not necessary, but it
-
-
-```{r}
-tracker |> 
-  filter(str_detect(incident_description, "Compensation")) |> 
-  sample_n(1) |> 
-  pull(incident_description)
-```
-
-```{r}
-tracker |> 
-  group_by(incident_description) |> 
-  summarise(count = n(), 
-            )
-```
 
 
 
@@ -589,10 +597,80 @@ tracker |>
 
 When did data collection stop? 
 
+
+From the plot, we can see that there just aren't enough data points to conduct a meaningful comparison. 
+
+
+
+
 ```{r}
 tracker_actors |> 
-  filter(start_date >= "2021-01-01")
-  filter(str_detect(actor, "Linapini"))
+  filter(start_date >= "2021-01-01" & start_date < "2024-01-01") |>
+  mutate(event_date_floor = floor_date(start_date, unit = "month")) |> 
+  group_by(event_date_floor) |> 
+  summarise(event_count = n()) |> 
+  mutate(source = "highlands_tracker") |> 
+  rbind(
+    acled_png |> 
+      filter(event_date  >= "2021-01-01" & event_date < "2024-01-01" & 
+               admin1 %in% c("Hela", "Southern Highlands")) |> 
+      mutate(event_date_floor = floor_date(event_date, unit = "month")) |>
+      group_by(event_date_floor) |> 
+      summarise(event_count = n()) |> 
+      mutate(source = "acled")
+  ) |> 
+  ggplot(aes(x = event_date_floor, 
+             y = event_count)) + 
+  geom_line(aes(colour = source)) + 
+  scale_x_date(date_breaks = "2 months", 
+               date_labels = "%Y-%b") +
+  theme(axis.text.x = element_text(angle = 30, 
+                                   vjust = 1, 
+                                   hjust = 1))
+
+```
+
+
+
+```{r}
+acled_png |>
+  filter(
+    event_date  >= "2021-01-01" & event_date < "2024-01-01" &
+      admin1 %in% c("Hela", "Southern Highlands")) |> 
+  count(sub_event_type, sort = TRUE)
+
+```
+
+### Conflicts
+
+```{r}
+tracker |> 
+  filter(conflict_no == 46)
+```
+
+
+```{r}
+conflict_names <- tracker |> 
+  mutate(conflict_name = str_trim(conflict_name), 
+         start_date = ymd(start_date), 
+         end_date = ymd(end_date)) |>
+  group_by(conflict_name) |> 
+  mutate(start_min = as.Date(min(start_date)),
+         start_max = as.Date(max(start_date)),
+         end_max = as.Date(max(end_date))) |> 
+  summarise(start_min = as.Date(min(start_min)), 
+            start_max = as.Date(max(start_max)), 
+            end_max = max(end_max)) |> 
+  mutate(end_max = as.Date(ifelse(is.na(end_max), start_max, end_max)), 
+         duration = abs(difftime(start_min, end_max, units = c("days")))) |> 
+  mutate(single_incident = ifelse(duration == 0, "no", "yes"))
+
+
+typeof(conflict_names$duration)
+```
+
+```{r}
+tracker |> filter(conflict_name == "Aguiba- Nalipa Conflict")
 ```
 
 
@@ -600,7 +678,12 @@ tracker_actors |>
 # ACLED
 
 
+Thoughts on complementarity: 
+ACLED seems to be much more macro in focus and covers a lot of political and state violence, which the Conflict Tracker is too micro to collect. The conflict tracker needs be supplemented with incident monitoring data -- perhaps reach out to UNDSS for this. But they also might not have coverage in the Highlands. 
 
+
+
+Coding of events -- I would start with ACLED's codebook as a base, and introduce new categories as needed. But I still think that instead of calling them event triggers would be more apt that incident descriptions. 
 
 ```{r}
 acled_filtered |> filter(country == "Cambodia" | 
@@ -623,7 +706,10 @@ acled_filtered |> filter(country == "Cambodia" |
 
 ```
 
+<br>
 
+Is Papua New Guinea getting more violent or is ACLED's coverage improving? But let's also bear in mind that this is only three years of data. 
+This is ACLED
 
 ```{r}
 acled_png |> 
@@ -644,11 +730,15 @@ acled_png |>
 Who are the most common actors in ACLED? 
 The conflict tracker seems to be largely devoid of state actors? Indicating very weak state control?
 
+It would be excellent if we could have the full text description of each incident. This would allow for much richer analysis of the data. For instance, this is these are the `notes` recorded in just one of ACLED's conflict events: 
 
 ```{r}
 acled_png |> 
   filter(event_id_cnty == "PNG759") |> pull(notes)
 ```
+
+Let's also take the opportunity to match the actor names in the ACLED dataset against the ones in the Conflict Tracker. 
+
 
 ```{r}
 acled_png |> 

@@ -684,6 +684,7 @@ acled_actors |>
          colour = guide_legend(override.aes = list(size = 2))) + 
   theme(
     axis.text.y = element_text(size = 5)
+    
   )
  
 ```
