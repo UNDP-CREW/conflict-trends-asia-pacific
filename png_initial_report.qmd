@@ -207,10 +207,6 @@ It is unclear if this increase in event reporting had to do with increased viole
 
 UCDP data is nationwide and goes back to **`r min(ged_png$year)`**, but it records very few incidents, and is mainly concerned with actors trying to change the government or challenge state actors. ACLED only started data collection in **`r min(acled_png$year)`**. 
 
-
-<br><br>
-
-
 ```{r}
 conflict_names <- tracker |> 
   mutate(conflict_name = str_trim(conflict_name), 
@@ -322,7 +318,7 @@ tracker |>
 
 <br>
 
-As the next part of our inspection of the dataset, we can see that the tracker's coverage of Hela and Southern Highlands is fairly good, with the ommission of the area starting at `143.5 -6` and ending at `144.5 -6`. The distribution is also commonsensical, with many conflicts arising around populated areas. There seems to be one large cluster around Koroba and Tari Poi.   
+As the next part of our inspection of the dataset, we can see that the tracker's coverage of Hela and Southern Highlands is fairly good, with the omission of the area starting at `143.5 -6` and ending at `144.5 -6`. The distribution is also commonsensical, with many conflicts arising around populated areas. There seems to be one large cluster around Koroba and Tari Poi.   
 
 Here is another map of the data, this time focusing on conflict status, as in the dashboard: 
 
