@@ -175,6 +175,7 @@ ged_png <- readRDS(here("data", "ged241.rds")) |>
 
 ## 1. Inspecting the dataset 
 
+<br>
 
 The Papua New Guinea Highlands Conflict Tracker is a dataset of conflict incidents collected in Hela and Southern Highlands Provinces. The partner engaged in data collection was ICRC, but data collection has since stopped. 
 
@@ -262,6 +263,8 @@ conflict_names |>
 
 
 ## 2. Mapping the data 
+
+<br>
 
 ```{r}
 tracker |> 
@@ -420,6 +423,8 @@ tracker |>
 
 ## 3. Categorising the data 
 
+<br>
+
 ```{r}
 incident_summary <- tracker |> 
   group_by(incident_description) |> 
@@ -431,7 +436,7 @@ incident_summary <- tracker |>
 ```
 
 
-From the chart on conflict durations in [section 1](#inspecting-the-data), the duration does not seem to be a predictor of conflict casualties. Instead, incident descriptions seems to be more useful. 
+From the chart on conflict durations in [section 1](https://risk-anticipation-hub.github.io/conflict-trends-asia-pacific/png_initial_report.html#inspecting-the-data), the duration does not seem to be a predictor of conflict casualties. Instead, incident descriptions seems to be more useful. 
 
 **`r round(incident_summary |> slice(1:5) %>% {sum(.$pc_casualties)}, digits = 0)`%** of casualties (dead and injured) stem from the first 5 incident descriptions, with land-related incidents forming almost half (**`r round(incident_summary |> filter(str_detect(incident_description, "Land|land")) %>% {sum(.$pc_casualties)}, digits = 0)`%**) of all casualties. 
 
@@ -500,6 +505,8 @@ Collecting much more household, clan or tribe level data like in the tracker all
 <br><br><br>
 
 ## 4. Conflict actors 
+
+<br>
 
 ```{r}
 
@@ -723,6 +730,8 @@ tracker_actors |>
 
 ## 5. Comparisons to other datasets
 
+<br>
+
 Below, we plot the number of incidents reported in the tracker against those reported in ACLED's dataset. Unfortunately, there are just not enough data points to conduct a meaningful comparison or draw any conclusions about patterns. 
 
 <br>
@@ -764,7 +773,7 @@ tracker |>
 
 <br>
 
-Nevertheless, as touched on in the section on [categorising the data](#categorising-the-data), there does not seem to be much overlap between the Highland Tracker and ACLED: they both do seem to be focused on slightly different things. The Highlands Tracker has a more household, clan or tribal view of things and contains crimes that would not be recorded by ACLED. 
+Nevertheless, as touched on in the section on [categorising the data](https://risk-anticipation-hub.github.io/conflict-trends-asia-pacific/png_initial_report.html#categorising-the-data), there does not seem to be much overlap between the Highland Tracker and ACLED: they both do seem to be focused on slightly different things. The Highlands Tracker has a more household, clan or tribal view of things and contains crimes that would not be recorded by ACLED. 
 
 However, the Highlands Tracker is also missing political violence and the movements of state actors (although this absence could also indicate the weakness of the state in Southern Highlands and Hela and its inability to project power over its own territory). To get this added dimension, it should be explored whether the Highlands Tracker should be augmented with ACLED data or with data from UNDSS incident reports. 
 
@@ -800,7 +809,9 @@ acled_filtered |> filter(country == "Cambodia" |
 
 ## 6. Recommendations and next steps 
 
-* Use the file [here](); this is a cleaned version of the tracker. A pivoted dataset, similar to the ACLED actors-focused dataset may be found [here](). 
+<br>
+
+* Use the file [here](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/blob/main/data/tracker.csv); this is a cleaned version of the tracker. A pivoted dataset, similar to the ACLED actors-focused dataset may be found [here](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/blob/main/data/tracker_actors.csv). 
 
 * Merge back the full details of each incident back into the dataset so that more analysis may be done. 
 
