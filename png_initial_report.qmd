@@ -844,7 +844,7 @@ tracker_actors |>
 
 
 
-* The cleaned version of the conflict tracker may be found here: [CSV](https://raw.githubusercontent.com/risk-anticipation-hub/conflict-trends-asia-pacific/main/data/highlands_tracker.csv), [Excel](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/blob/main/data/highlands_tracker.xlsx). A pivoted dataset, similar to how the ACLED actor-based dataset maybe be found here in [CSV](https://raw.githubusercontent.com/risk-anticipation-hub/conflict-trends-asia-pacific/main/data/highlands_tracker_actors.csv) and [Excel](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/blob/main/data/highlands_tracker_actors.xlsx). These versions were generated on `r Sys.Date()`. 
+* The cleaned version of the conflict tracker may be found here: [CSV](https://raw.githubusercontent.com/risk-anticipation-hub/conflict-trends-asia-pacific/main/data/highlands_tracker.csv), [Excel](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/data/higlands_tracker.xlsx). A pivoted dataset, similar to how the ACLED actor-based dataset maybe be found here in [CSV](https://raw.githubusercontent.com/risk-anticipation-hub/conflict-trends-asia-pacific/main/data/highlands_tracker_actors.csv) and [Excel](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/data/highlands_tracker_actors.xlsx). These versions were generated on `r Sys.Date()`. 
 
 * Merge back the full details of each incident back into the dataset so that more analysis may be done. 
 
