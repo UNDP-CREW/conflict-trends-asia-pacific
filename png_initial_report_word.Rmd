@@ -1,15 +1,12 @@
 ---
 title: "Exploratory data analysis of Highlands Conflict Tracker"
 author: "Sean Ng"
-date: "5 July 2024"
-toc: true
-toc-location: left
-toc-depth: 4
-format: 
-  html:
-    page-layout: full
-    code-tools: true
-    self-contained: true
+date: "13 June 2024"
+output:
+  word_document:
+    toc: yes
+always_allow_html: yes
+self_contained: TRUE
     
 ---
 
@@ -35,7 +32,7 @@ library(widyr)
 library(DT)
 library(ggraph)
 library(ggnewscale)
-library(writexl)
+library(flextable)
 
 `%out%` <- Negate(`%in%`)
 options(scipen = 100)
@@ -151,8 +148,7 @@ tracker <- read_xlsx(here("data", "PNG Highlands Conflict Tracker.xlsx")) |>
     total_dead = 0, 
     total_injured = 0
   )) |> 
-  mutate(total_casualties = total_dead + total_injured) %>% 
-  mutate_at(vars(total_displaced:girl_displaced), ~ as.numeric(.)) |> 
+  mutate(total_casualties = total_dead + total_injured) |> 
   mutate(status = ifelse(str_detect(status, "Cease fire"), 
                          "Ceasefire", 
                          status)) 
@@ -170,13 +166,9 @@ ged_png <- readRDS(here("data", "ged241.rds")) |>
                              TRUE ~ country)) |>
   filter(country == "Papua New Guinea")
 
-
-
-
+# tracker |> filter(!is.na(x_lon) & !is.na(y_lat)) |> write_csv(here("data", "tracker.csv"))
 
 ```
-
-
 
 
 ## 1. Inspecting the dataset 
@@ -260,8 +252,8 @@ conflict_names |>
     
 ```
 
-<br><br><br>
 
+\nb
 
 
 ## 2. Mapping the data 
@@ -413,9 +405,10 @@ tracker |>
               values_from = casualties, 
               values_fill = 0) |>
   adorn_totals(c("col", "row")) |> 
-  kable(caption = "Casualties by district and conflict status, 2014-2023") |> 
-  kable_styling(bootstrap_options = c("striped", "hover"),
-                font_size = 10, full_width = FALSE) 
+  flextable() |> 
+  theme_vanilla()
+ 
+
 ```
 
 
@@ -583,7 +576,7 @@ tracker_actors <- tracker |>
   filter(actor != "a" & actor != "") |> 
   mutate(total_casualties = total_dead + total_injured)
 
-tracker_actors |> write_csv(here("data", "tracker_actors.csv"))
+# tracker_actors |> write_csv(here("data", "tracker_actors.csv"))
 
 ```
 
@@ -646,7 +639,7 @@ Below is a network graph of the most-commonly occurring relationships amongst co
 
 The strength of the relationship (i.e. how often they are involved in the same incidents) is indicated by transparency of each line and the thickness indicates the number of events where both actors were involved together. 
 
-We note several dyads (as they would be termed by the UCDP): the Linapini-Tipa, Aguiba-Nalipa and Hatani-Toma are all (probably) adversarial relationships and rivalries. There is also one larger cluster of tribes. However, due to the sparsity of data, a comparatively small number of events might inflate the importance of some conflicts that may consisted of very few events. 
+We note several dyads (as they would be termed by the UCDP): the Linapini-Tipa, Aguiba-Nalipa and Hatani-Toma are all (probably) adversarial relationships and rivalries. There is also one larger cluster of tribes. However, due to the sparsity of data, a comparatively small number of events might inflate the importance of some conflicts that may have been one-time events. 
 
 <br>
 
@@ -704,11 +697,10 @@ tracker_actors |>
 
 <br>
 
-There is much rich detail in the incidents reported in the Highlands Conflict Tracker: `r n_distinct(tracker_actors$actor_simple)` conflict actors have been recorded between 2014 and 2023. Below is a searchable summary by actor: 
+There is much rich detail in the incidents reported in the Highlands Conflict Tracker: `r n_distinct(tracker_actors$actor_simple)` conflict actors have been recorded between 2014 and 2023. 
 
-<br>
 
-```{r}
+```{r eval = FALSE}
 tracker_actors |>
   filter(start_date >= "2014-01-01") |>
   group_by(actor) |> 
@@ -813,38 +805,7 @@ acled_filtered |> filter(country == "Cambodia" |
 
 <br>
 
-```{r export-outputs}
-tracker_actors |> 
-  select(-actor_simple) |> 
-  pivot_wider(names_from = ignore,
-              values_from = actor, 
-              values_fill = "") |> 
-  unite("assoc_actors", actor3:actor10, na.rm = TRUE) |> 
-  mutate(assoc_actors = str_replace_all(assoc_actors, "\\_", "")) |> 
-  write_csv(here("data", "highlands_tracker.csv"))
-
-tracker_actors |> 
-  select(-actor_simple) |> 
-  pivot_wider(names_from = ignore,
-              values_from = actor, 
-              values_fill = "") |> 
-  unite("assoc_actors", actor3:actor10, na.rm = TRUE) |> 
-  mutate(assoc_actors = str_replace_all(assoc_actors, "\\_", "")) |> 
-  write_xlsx(here("data", "highlands_tracker.xslx"))
-  
-tracker_actors |>
-  select(-actor) |> 
-  write_csv(here("data", "highlands_tracker_actors.csv"))
-
-tracker_actors |> 
-  select(-actor) |> 
-  write_xlsx(here("data", "highlands_tracker_actors.xlsx"))
-
-```
-
-
-
-* The cleaned version of the conflict tracker may be found here: [CSV](https://raw.githubusercontent.com/risk-anticipation-hub/conflict-trends-asia-pacific/main/data/highlands_tracker.csv), [XLSX](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/blob/main/data/highlands_tracker.xlsx). A pivoted dataset, similar to how the ACLED actor-based dataset maybe be found here in [CSV](https://raw.githubusercontent.com/risk-anticipation-hub/conflict-trends-asia-pacific/main/data/highlands_tracker_actors.csv) and [Excel](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/blob/main/data/highlands_tracker_actors.xlsx). These versions were generated on `r Sys.Date()`. 
+* Use the file [here](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/blob/main/data/tracker.csv); this is a cleaned version of the tracker. A pivoted dataset, similar to the ACLED actors-focused dataset may be found [here](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/blob/main/data/tracker_actors.csv). 
 
 * Merge back the full details of each incident back into the dataset so that more analysis may be done. 
 
