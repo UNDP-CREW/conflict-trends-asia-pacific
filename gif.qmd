@@ -1,0 +1,198 @@
+---
+title: "Gifs working"
+author: "Sean Ng"
+date: "12 July 2024"
+toc: true
+toc-location: left
+toc-depth: 4
+format: 
+  html:
+    page-layout: full
+    code-tools: true
+    self-contained: true
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.width = 9.5)
+
+library(tidyverse)
+library(here)
+library(lubridate)
+library(patchwork)
+library(scales)
+library(sf)
+library(broom)
+library(treemapify)
+library(kableExtra)
+library(gganimate)
+library(gifski)
+
+`%out%` <- Negate(`%in%`)
+options(scipen = 100)
+theme_set(theme_light())
+
+show_col(viridis_pal(option = "cividis")(8))
+
+```
+
+
+
+```{r data}
+country_list <- c("Afghanistan", "Bangladesh", "Bhutan", "Cambodia", 
+                  "China", "Fiji", "Hong Kong", "India", "Indonesia", 
+                  "Iran", "North Korea", "South Korea", "Laos", 
+                  "Malaysia", "Maldives", "Mongolia", "Myanmar", 
+                  "Nepal", "Pakistan", "Papua New Guinea", "Philippines", 
+                  "Solomon Islands", "Sri Lanka", "Thailand", "Timor-Leste", 
+                  "Vanuatu", "Vietnam")
+
+actor_codes_acled <- tribble(
+  ~actor_code, ~description, 
+  1, "State Forces", 
+  2, "Rebel Groups", 
+  3, "Political Militias", 
+  4, "Identity Militias", 
+  5, "Rioters",
+  6, "Protesters", 
+  7, "Civilians", 
+  8, "Other Forces"
+)
+
+
+asia_pacific_shape <- st_read(here("data", 
+                                   "world-administrative-boundaries", 
+                                   "world-administrative-boundaries.shp"), 
+                              quiet = TRUE) |> 
+  mutate(country = case_when(
+    name == "Iran (Islamic Republic of)" ~ "Iran", 
+    name == "Republic of Korea" ~ "South Korea", 
+    name == "Democratic People's Republic of Korea" ~ "North Korea", 
+    name == "Lao People's Democratic Republic" ~ "Laos", 
+    TRUE ~ name
+  )) |> 
+  filter(country %in% country_list)
+```
+
+```{r}
+asia_pacific_event_types <- acled_filtered |>  
+  filter(sub_event_type %out% c("Agreement", 
+                                "Change to group/activity", 
+                                "Headquarters or base established", 
+                                "Non-violent transfer of territory")) |> 
+  mutate(quarter = floor_date(event_date, "quarter")) %>%
+  select(event_id_cnty, event_type, longitude, latitude, event_type, quarter, fatalities) |> 
+  mutate(quarter = map(quarter, ~seq.Date(as.Date(.), as.Date("2023-12-01"), by = "quarter"))) |> 
+  unnest(quarter) |> 
+  mutate(quarter = format_ISO8601(quarter, precision = "ym")) %>%
+  ggplot() + 
+  geom_sf(data = asia_pacific_shape, size = .5, colour = "grey", fill = "black") + 
+  geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .15) + 
+  
+  theme_void() +
+  guides(colour = guide_legend(override.aes = list(alpha = 1)), 
+         size = guide_legend(override.aes = list(alpha = 1, 
+                                                 colour = "grey"))) +
+  theme(plot.background = element_rect(fill = "black", colour = "black"),
+        rect = element_rect(fill = NA), 
+        legend.text = element_text(colour = "white"), 
+        title = element_text(colour = "white"),
+        legend.title = element_text(face = "bold"),
+        plot.caption = element_text(hjust = 0.2)) + 
+  gganimate::transition_manual(quarter) + 
+  labs(title = "Asia-Pacific conflict events in { current_frame }", 
+       subtitle = "Excludes non-violent strategic developments", 
+       caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com",
+       colour = "Event type")
+
+
+gganimate::animate(asia_pacific_event_types, width = 2480, height = 1748, res = 150, duration = 60, renderer = gifski_renderer())
+
+gganimate::anim_save(here("plots", "asia_pacific_event_types.gif"))
+```
+
+```{r}
+world_shape |> 
+  ggplot() + 
+  geom_sf() + 
+  coord_sf(xlim = c(44, 155), 
+           ylim = c(-15, 52))
+```
+
+
+```{r}
+asia_pacific_event_types <- acled_filtered |>  
+  filter(!is.na(longitude) & !is.na(latitude)) |> 
+  filter(sub_event_type %out% c("Agreement", 
+                                "Change to group/activity", 
+                                "Headquarters or base established", 
+                                "Non-violent transfer of territory")) |> 
+  mutate(quarter = floor_date(event_date, "quarter")) %>%
+  select(event_id_cnty, event_type, longitude, latitude, event_type, quarter, fatalities) |> 
+  mutate(quarter = map(quarter, ~seq.Date(as.Date(.), as.Date("2023-12-01"), by = "quarter"))) |> 
+  unnest(quarter) |> 
+  mutate(quarter = format_ISO8601(quarter, precision = "ym")) %>%
+  ggplot() +
+  geom_sf(data = world_shape, size = .5, colour = "grey30", fill = "black") + 
+  coord_sf(xlim = c(43, 155), 
+           ylim = c(-15, 52)) +
+  geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
+  scale_size_continuous(range = c(0.1, 4)) +
+  theme(plot.background = element_rect(fill = "black", colour = "black"),
+        rect = element_rect(fill = NA),
+        legend.text = element_text(colour = "white"), 
+        title = element_text(colour = "white"),
+        legend.title = element_text(face = "bold"),
+        plot.caption = element_text(hjust = 0.2)) + 
+  guides(colour = guide_legend(override.aes = list(alpha = 1)), 
+         size = guide_legend(override.aes = list(alpha = 1, 
+                                                 colour = "grey"))) + 
+  labs(title = "Asia-Pacific conflict events in { current_frame }", 
+       subtitle = "Excludes non-violent strategic developments", 
+       caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com",
+       colour = "Event type") + 
+  gganimate::transition_manual(quarter) 
+
+gganimate::animate(asia_pacific_event_types, width = 2480, height = 1748, res = 150, 
+                   duration = 40, 
+                   renderer = gifski_renderer())
+
+gganimate::anim_save(here("plots", "asia_pacific_event_types.gif"))
+```
+
+```{r}
+acled_filtered |>  
+  filter(!is.na(longitude) & !is.na(latitude)) |> 
+  filter(sub_event_type %out% c("Agreement", 
+                                "Change to group/activity", 
+                                "Headquarters or base established", 
+                                "Non-violent transfer of territory")) |> 
+  mutate(quarter = floor_date(event_date, "quarter")) %>%
+  select(event_id_cnty, event_type, longitude, latitude, event_type, quarter, fatalities) |> 
+  # mutate(quarter = map(quarter, ~seq.Date(as.Date(.), as.Date("2023-12-01"), by = "quarter"))) |> 
+  # unnest(quarter) |> 
+  # mutate(quarter = format_ISO8601(quarter, precision = "ym")) %>%
+  ggplot() +
+  geom_sf(data = world_shape, size = .5, colour = "grey30", fill = "black") + 
+  coord_sf(xlim = c(43, 155), 
+           ylim = c(-15, 52)) +
+  geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
+  scale_size_continuous(range = c(0.1, 4)) +
+  theme(plot.background = element_rect(fill = "black", colour = "black"),
+        panel.background = element_rect(fill = "black", colour = "black"),
+        rect = element_rect(fill = "NA"),
+        legend.text = element_text(colour = "white"), 
+        title = element_text(colour = "white"),
+        legend.title = element_text(face = "bold"),
+        plot.caption = element_text(hjust = 0.2)) + 
+  guides(colour = guide_legend(override.aes = list(alpha = 1)), 
+         size = guide_legend(override.aes = list(alpha = 1, 
+                                                 colour = "grey"))) + 
+  theme_void() + 
+  labs(title = "Asia-Pacific conflict events in { current_frame }", 
+       subtitle = "Excludes non-violent strategic developments", 
+       caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com",
+       colour = "Event type")
+```
+

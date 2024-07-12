@@ -103,6 +103,16 @@ world_shape <- st_read(here("data",
                             "world-administrative-boundaries.shp"), 
                        quiet = TRUE)
 
+asia_pacific_shape <- world_shape |> 
+  mutate(country = case_when(
+    name == "Iran (Islamic Republic of)" ~ "Iran", 
+    name == "Republic of Korea" ~ "South Korea", 
+    name == "Democratic People's Republic of Korea" ~ "North Korea", 
+    name == "Lao People's Democratic Republic" ~ "Laos", 
+    TRUE ~ name
+  )) |> 
+  filter(country %in% country_list) 
+
 myanmar_adm1 <- st_read(here("data", 
                              "mmr_polbnda2_adm1_mimu_250k", 
                              "mmr_polbnda2_adm1_mimu_250k.shp"), 
@@ -133,6 +143,8 @@ most_fatalities_list <- acled_filtered |>
   pull(country)
 
 ```
+
+
 
 
 # Comparison
