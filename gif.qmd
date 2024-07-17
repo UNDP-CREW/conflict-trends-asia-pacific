@@ -38,6 +38,7 @@ show_col(viridis_pal(option = "cividis")(8))
 ```
 
 
+# Data
 
 ```{r data}
 country_list <- c("Afghanistan", "Bangladesh", "Bhutan", "Cambodia", 
@@ -46,7 +47,8 @@ country_list <- c("Afghanistan", "Bangladesh", "Bhutan", "Cambodia",
                   "Malaysia", "Maldives", "Mongolia", "Myanmar", 
                   "Nepal", "Pakistan", "Papua New Guinea", "Philippines", 
                   "Solomon Islands", "Sri Lanka", "Thailand", "Timor-Leste", 
-                  "Vanuatu", "Vietnam")
+                  "Vanuatu", "Vietnam") 
+
 
 actor_codes_acled <- tribble(
   ~actor_code, ~description, 
@@ -73,7 +75,48 @@ asia_pacific_shape <- st_read(here("data",
     TRUE ~ name
   )) |> 
   filter(country %in% country_list)
+
+acled_filtered <- read_rds(here("data", "acled_filtered.rds"))
+
+world_shape <- st_read(here("data", 
+                            "world-administrative-boundaries", 
+                            "world-administrative-boundaries.shp"), 
+                       quiet = TRUE) |> 
+  mutate(country = case_when(
+    name == "Iran (Islamic Republic of)" ~ "Iran", 
+    name == "Republic of Korea" ~ "South Korea", 
+    name == "Democratic People's Republic of Korea" ~ "North Korea", 
+    name == "Lao People's Democratic Republic" ~ "Laos", 
+    TRUE ~ name
+  )) 
+
+asia_pacific_shape <- world_shape  |> 
+  filter(country %in% country_list) 
+
+interaction_codes_acled <- read_csv(here("data", "interaction_codes_acled.csv"))
+
+actor_codes_acled <- tribble(
+  ~actor_code, ~description, 
+  1, "State Forces", 
+  2, "Rebel Groups", 
+  3, "Political Militias", 
+  4, "Identity Militias", 
+  5, "Rioters",
+  6, "Protesters", 
+  7, "Civilians", 
+  8, "Other Forces"
+)
+
 ```
+
+
+
+
+
+> New variable for conflict in border areas. 
+> Define buffer radius
+
+# Gif
 
 ```{r}
 asia_pacific_event_types <- acled_filtered |>  
@@ -160,6 +203,12 @@ gganimate::animate(asia_pacific_event_types, width = 2480, height = 1748, res = 
 
 gganimate::anim_save(here("plots", "asia_pacific_event_types.gif"))
 ```
+
+
+### Interaction codes
+
+
+### Test for aesthetics 
 
 ```{r}
 acled_filtered |>  
