@@ -116,6 +116,10 @@ actor_codes_acled <- tribble(
 > New variable for conflict in border areas. 
 > Define buffer radius
 
+For Afghanhistan, basically, create a line approximating the border, then 
+
+
+
 # Gif
 
 ```{r}

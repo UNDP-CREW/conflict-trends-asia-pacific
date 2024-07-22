@@ -136,30 +136,44 @@ acled_filtered |> write_rds(here("data", "acled_filtered.rds"),
 ## Population
 
 ```{r}
-population <- read_csv(here("data", "wdi_population_data.csv")) |> 
-  slice(1:27) |> 
-  janitor::clean_names() %>%
-  mutate(across(matches("_yr"), ~ as.numeric(.))) %>%
-  pivot_longer(cols = x2015_yr2015:x2023_yr2023, 
+c79110d5-9ff2-4dbb-a0c6-f560b5bad577_Data.csv
+
+population <- read_csv(here("data", "wdi_all_countries_population.csv")) |> 
+  janitor::clean_names()  %>%
+  mutate(across(matches("_yr"), ~ as.numeric(.))) |> 
+  pivot_longer(cols = x2000_yr2000:x2023_yr2023, 
                names_to = "year", 
-               values_to = "population") |> 
+               values_to = "population") |>
   mutate(year = str_sub(year, start = -4, end = -1), 
-         year = as.integer(year)) |> 
+         year = as.double(year)) |> 
   rename(country = country_name) |> 
-  mutate(country = case_when(str_detect(country, "Korea, Rep.") ~ "South Korea",
+  mutate(country = 
+           case_when(str_detect(country, "Korea, Rep.") ~ "South Korea",
                              str_detect(country, "Korea, Dem. People's Rep.") ~ "North Korea", 
                              str_detect(country, "Hong Kong SAR, China") ~ "Hong Kong", 
                              str_detect(country, "Iran, Islamic Rep.") ~ "Iran", 
                              str_detect(country, "Lao PDR") ~ "Laos", 
                              country == "Viet Nam" ~ "Vietnam", 
-                             TRUE ~ country))
+                             TRUE ~ country), 
+         country_iso = countrycode::countrycode(country,
+                                   origin = "country.name", 
+                                   destination = "iso3c")) |> 
+  filter(!is.na(country) & 
+           country %out% c("Data from database: World Development Indicators", 
+                           "Last Updated: 06/28/2024"))
+```
 
-population_estimates <- crossing(country = population$country, year = 2014:2023) |> 
+
+```{r}
+
+population_estimates <- crossing(country = population$country, year = 2000:2023) |> 
   left_join(population |> 
               select(year, country, population), 
             by = c("year", "country")) |> 
   group_by(country) %>% 
   fill(population, .direction = "updown") 
+
+population_estimates |> write_csv(here("data", "population_estimates.csv"))
 ```
 
 
