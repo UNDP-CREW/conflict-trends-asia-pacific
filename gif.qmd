@@ -129,7 +129,7 @@ asia_pacific_event_types <- acled_filtered |>
                                 "Headquarters or base established", 
                                 "Non-violent transfer of territory")) |> 
   mutate(quarter = floor_date(event_date, "quarter")) %>%
-  select(event_id_cnty, event_type, longitude, latitude, event_type, quarter, fatalities) |> 
+  select(event_id_cnty, event_type, longitude, latitude, event_type, quarter, fatalities) %>%
   mutate(quarter = map(quarter, ~seq.Date(as.Date(.), as.Date("2023-12-01"), by = "quarter"))) |> 
   unnest(quarter) |> 
   mutate(quarter = format_ISO8601(quarter, precision = "ym")) %>%
@@ -176,7 +176,7 @@ asia_pacific_event_types <- acled_filtered |>
                                 "Headquarters or base established", 
                                 "Non-violent transfer of territory")) |> 
   mutate(quarter = floor_date(event_date, "quarter")) %>%
-  select(event_id_cnty, event_type, longitude, latitude, event_type, quarter, fatalities) |> 
+  select(event_id_cnty, event_type, longitude, latitude, event_type, quarter, fatalities) %>% 
   mutate(quarter = map(quarter, ~seq.Date(as.Date(.), as.Date("2023-12-01"), by = "quarter"))) |> 
   unnest(quarter) |> 
   mutate(quarter = format_ISO8601(quarter, precision = "ym")) %>%

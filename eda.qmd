@@ -21,10 +21,16 @@ library(lubridate)
 library(patchwork)
 library(scales)
 library(sf)
+library(terra)
+library(tmap)
+library(ggstream)
+library(ggnewscale)
 
 `%out%` <- Negate(`%in%`)
 options(scipen = 100)
 theme_set(theme_light())
+
+tmap_options(check.and.fix = TRUE)
 
 ```
 
@@ -32,7 +38,7 @@ theme_set(theme_light())
 # Data
 
 
-## Country list 
+## Country list, population and shapefiles
 
 From UNDP 
 
@@ -44,7 +50,58 @@ country_list <- c("Afghanistan", "Bangladesh", "Bhutan", "Cambodia",
                   "Nepal", "Pakistan", "Papua New Guinea", "Philippines", 
                   "Solomon Islands", "Sri Lanka", "Thailand", "Timor-Leste", 
                   "Vanuatu", "Vietnam")
+
+population <- read_csv(here("data", "wdi_all_countries_population.csv")) |> 
+  janitor::clean_names()  %>%
+  mutate(across(matches("_yr"), ~ as.numeric(.))) |> 
+  pivot_longer(cols = x2000_yr2000:x2023_yr2023, 
+               names_to = "year", 
+               values_to = "population") |>
+  mutate(year = str_sub(year, start = -4, end = -1), 
+         year = as.double(year)) |> 
+  rename(country = country_name) |> 
+  mutate(country = 
+           case_when(str_detect(country, "Korea, Rep.") ~ "South Korea",
+                             str_detect(country, "Korea, Dem. People's Rep.") ~ "North Korea", 
+                             str_detect(country, "Hong Kong SAR, China") ~ "Hong Kong", 
+                             str_detect(country, "Iran, Islamic Rep.") ~ "Iran", 
+                             str_detect(country, "Lao PDR") ~ "Laos", 
+                             country == "Viet Nam" ~ "Vietnam", 
+                             TRUE ~ country), 
+         country_iso = countrycode::countrycode(country,
+                                   origin = "country.name", 
+                                   destination = "iso3c")) |> 
+  filter(!is.na(country) & 
+           country %out% c("Data from database: World Development Indicators", 
+                           "Last Updated: 06/28/2024"))
+
+# population_estimates <- crossing(country = population$country, year = 2000:2023) |> 
+#   left_join(population |> 
+#               select(year, country, population), 
+#             by = c("year", "country")) |> 
+#   group_by(country) %>% 
+#   fill(population, .direction = "updown") 
+
+
+population_estimates <- read_csv(here("data", "population_estimates.csv"))
+
+world_shape <- st_read(here("data", 
+                            "world-administrative-boundaries", 
+                            "world-administrative-boundaries.shp"), 
+                       quiet = TRUE)
+
+myanmar_adm1 <- st_read(here("data", 
+                             "mmr_polbnda2_adm1_mimu_250k", 
+                             "mmr_polbnda2_adm1_mimu_250k.shp"), 
+                        quiet = TRUE) |> 
+  rename(state = ST, 
+        admin1_pcode = ST_PCODE) |> st_as_sf()
+
+country_iso3 <- world_shape |> 
+  distinct(name, iso3)
 ```
+
+
 
 ## Compressed data
 
@@ -76,6 +133,9 @@ ged <- ged241 |>
 
 The chunk below loads in the original data. I'm thinking that for reproducibility, I can load the filtered datasets in compressed RDS files up to github. And maybe keep the originals in the gitignore folder 
 
+
+
+
 ```{r raw-data, include=FALSE, message=FALSE, eval=FALSE}
 
 
@@ -92,7 +152,7 @@ acled <- rbind(
   read_csv(here("raw_data", "2013-01-01-2024-05-25-Afghanistan.csv")),
   read_csv(here("raw_data", "2013-01-01-2024-05-25-Iran.csv"))
   ) |> 
-  filter(year >= 2014 & year < 2024) |> 
+  # filter(year >= 2014 & year < 2024) |> 
   mutate(event_date = as.Date(event_date, "%d %B %Y"))
 
 acled_country_list <- acled |>
@@ -124,7 +184,7 @@ acled_filtered <- acled |>
   mutate(country = ifelse(country == "East Timor", "Timor-Leste", country), 
          country = ifelse(admin1 == "Hong Kong", "Hong Kong", country)) |> 
   filter(country %in% country_list) |> 
-  mutate(fatalities = parse_number(fatalities)) 
+  mutate(fatalities = parse_number(fatalities))
 ```
 
 ```{r eval=FALSE}
@@ -133,73 +193,9 @@ acled_filtered |> write_rds(here("data", "acled_filtered.rds"),
 ```
 
 
-## Population
-
-```{r}
-c79110d5-9ff2-4dbb-a0c6-f560b5bad577_Data.csv
-
-population <- read_csv(here("data", "wdi_all_countries_population.csv")) |> 
-  janitor::clean_names()  %>%
-  mutate(across(matches("_yr"), ~ as.numeric(.))) |> 
-  pivot_longer(cols = x2000_yr2000:x2023_yr2023, 
-               names_to = "year", 
-               values_to = "population") |>
-  mutate(year = str_sub(year, start = -4, end = -1), 
-         year = as.double(year)) |> 
-  rename(country = country_name) |> 
-  mutate(country = 
-           case_when(str_detect(country, "Korea, Rep.") ~ "South Korea",
-                             str_detect(country, "Korea, Dem. People's Rep.") ~ "North Korea", 
-                             str_detect(country, "Hong Kong SAR, China") ~ "Hong Kong", 
-                             str_detect(country, "Iran, Islamic Rep.") ~ "Iran", 
-                             str_detect(country, "Lao PDR") ~ "Laos", 
-                             country == "Viet Nam" ~ "Vietnam", 
-                             TRUE ~ country), 
-         country_iso = countrycode::countrycode(country,
-                                   origin = "country.name", 
-                                   destination = "iso3c")) |> 
-  filter(!is.na(country) & 
-           country %out% c("Data from database: World Development Indicators", 
-                           "Last Updated: 06/28/2024"))
-```
-
-
-```{r}
-
-population_estimates <- crossing(country = population$country, year = 2000:2023) |> 
-  left_join(population |> 
-              select(year, country, population), 
-            by = c("year", "country")) |> 
-  group_by(country) %>% 
-  fill(population, .direction = "updown") 
-
-population_estimates |> write_csv(here("data", "population_estimates.csv"))
-```
 
 
 
-## Shapefiles 
-
-```{r}
-world_shape <- st_read(here("data", 
-                            "world-administrative-boundaries", 
-                            "world-administrative-boundaries.shp"), 
-                       quiet = TRUE)
-
-myanmar_adm1 <- st_read(here("data", 
-                             "mmr_polbnda2_adm1_mimu_250k", 
-                             "mmr_polbnda2_adm1_mimu_250k.shp"), 
-                        quiet = TRUE) |> 
-  rename(state = ST, 
-        admin1_pcode = ST_PCODE) |> st_as_sf()
-
-```
-
-
-```{r}
-country_iso3 <- world_shape |> 
-  distinct(name, iso3)
-```
 
 
 # ACLED
@@ -225,14 +221,13 @@ most_fatalities_list <- acled_filtered |>
 
 ```
 
-### Plots by frequency
+## Plots by frequency
 
 #### Conflict fatalities
 
 ```{r warning = FALSE}
 acled_filtered |> 
-  filter(country %in% most_fatalities_list) |> 
-  mutate(fatalities = parse_number(fatalities)) |> 
+  filter(country %in% most_fatalities_list) |>  
   group_by(country, year) |> 
   summarise(fatalities = sum(fatalities, na.rm = TRUE), 
             .groups = "drop") |> 
@@ -242,7 +237,7 @@ acled_filtered |>
          fatalities_100k = fatalities / population * 100000, 
          country = fct_relevel(country, most_fatalities_list)) |>
   ggplot(aes(x = date, y = fatalities)) + 
-  geom_smooth(alpha = .1, colour = "red") + 
+  geom_smooth(alpha = .1, colour = "salmon") + 
   geom_line(aes(group = country)) + 
   scale_x_date(date_labels = "%Y", 
                date_breaks = "2 years") + 
@@ -250,12 +245,61 @@ acled_filtered |>
              scales = "free_y") +
   scale_y_continuous(labels = comma) +
   theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
-  labs(title = "Conflict fatalities in the Asia-Pacific, 2013-2023", 
+  labs(title = "Conflict fatalities by country in the Asia-Pacific in descending order, 2013-2023", 
+       subtitle = "Black are the actual events, the trend line is in pink",
        y = "Annual fatalities", 
        x = "")
+
+acled_filtered |> glimpse()
+```
+```{r}
+acled_filtered |> count(event_date)
 ```
 
-Doesn't really work that well 
+ 
+```{r}
+acled_filtered |> 
+  filter(year >= 2014) |> 
+  mutate(halfyear = floor_date(event_date, "halfyear")) %>%
+  filter(country %in% most_fatalities_list) |>  
+  group_by(country, year, halfyear, event_type) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE), 
+            .groups = "drop") |>
+  mutate(country = fct_relevel(country, most_fatalities_list)) |>
+  ggplot(aes(x = halfyear, y = fatalities)) + 
+  geom_line(aes(colour = event_type),  
+            alpha = .7, size = .4) + 
+  scale_x_date(date_labels = "%Y", 
+               date_breaks = "2 years") + 
+  facet_wrap(~ country, 
+             scales = "free_y") +
+  scale_y_continuous(labels = comma) +
+  scale_colour_manual(values = c("#7A0403FF", "#E1DD37FF", "#46F884FF", "#3E9BFEFF", "#30123BFF", "#F05B12FF")) + 
+  theme(axis.text.x = element_text(angle = 60, hjust = 1), 
+        legend.position = "top", 
+        legend.text = element_text(size = 5), 
+        legend.key = element_rect(size = 3), 
+        axis.text.y = element_text(size = 3), 
+        legend.margin=margin(t = 0, unit='cm'), 
+        strip.background = element_rect(fill = "black"), 
+        plot.title = element_text(size = 13)) + 
+  labs(title = "Conflict fatalities by event type and country in the Asia-Pacific in descending order, 2014-2024",
+       y = "Annual fatalities", 
+       x = "", 
+       colour = "") + 
+  guides(colour = guide_legend(nrow = 1, 
+                               override.aes = list(alpha = 1, 
+                                                   size = 4)))
+
+```
+
+
+
+
+
+
+
+Works a little better now 
 
 ```{r}
 acled_filtered |> 
@@ -267,7 +311,7 @@ acled_filtered |>
             by = c("country", "year")) |>
   mutate(date = as.Date(paste(year, 1, 1, sep="-")), 
          fatalities_100k = fatalities / population * 100000, 
-         country = fct_relevel(country, most_fatalities_list)) |>
+         country = fct_reorder(country, -fatalities_100k)) |> 
   arrange(country) |> 
   ggplot(aes(x = date, y = fatalities_100k)) + 
   geom_smooth(alpha = .1, colour = "red") + 
@@ -282,6 +326,9 @@ acled_filtered |>
        x = "")
 ```
 
+10-year 
+5-year
+current
 
 ```{r}
 acled_filtered |> 
@@ -349,6 +396,162 @@ acled_filtered |>
              scales = "free_y")  
 
 ```
+
+## Event type 
+
+### Streamgraph
+
+```{r}
+acled_filtered |> 
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
+  group_by(country, event_type, quarter) |> 
+  summarise(events = n_distinct(event_id_cnty), 
+            fatalities = sum(fatalities, na.rm = TRUE))
+
+acled_filtered |> 
+  count(sub_event_type)
+
+acled_filtered |> 
+  filter(sub_event_type %out% c("Agreement", "Change to group/activity", "Headquarters or base established")) |> 
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
+  group_by(country, event_type, quarter) |> 
+  summarise(events = n_distinct(event_id_cnty), 
+            fatalities = sum(fatalities, na.rm = TRUE), 
+            .groups = "drop") |> 
+  mutate(country = fct_relevel(country, most_fatalities_list)) |>
+  filter(fatalities > 0) |> 
+  ggplot(aes(x = quarter, y = fatalities, fill = event_type)) + 
+  geom_stream() + 
+  facet_wrap(~country, scales = "free_y")
+
+
+  geom_area() + 
+  scale_y_log10()
+  geom_col(aes(fill = event_type), position = "stack")
+  geom_area(aes(fill = event_type), position = "fill")
+```
+
+
+```{r}
+
+data(land, World) 
+
+
+```
+
+
+## Cross-border
+
+```{r}
+library(spData)
+
+afg_shape <- world_shape |> 
+  filter(str_detect(name, "Afghanistan")) 
+
+irn_shape <- world_shape |>  
+  filter(str_detect(name, "Iran")) 
+
+pak_shape <- world_shape |> 
+  filter(name == "Pakistan")
+
+afpak_border <- st_intersection(afg_shape, pak_shape, model = "closed")
+
+afir_border <- st_intersection(afg_shape, irn_shape, model = "closed")
+
+afir_border |> st_buffer(dist = 100)
+
+afir_buffer <- afir_border |> st_buffer(dist = 100000, endCapStyle = "FLAT")
+
+afpak_buffer <- afpak_border |> st_buffer(dist = 100000, endCapStyle = "FLAT")
+
+afpakir_buffer <- afpak_buffer |> 
+  st_union(afir_buffer)
+
+
+
+```
+
+```{r}
+afpakir <- acled_filtered |> 
+  filter(country %in% c("Afghanistan", "Pakistan", "Iran")) |> 
+  select(event_id_cnty, event_date, country, latitude, longitude, )
+```
+
+```{r}
+
+tm_shape(land, xlim = c(75.31, 59.6) , ylim =c(29.4, 38.8)) + 
+  tm_raster("elevation", palette = terrain.colors(10)) + 
+tm_shape(afpakir_buffer |> st_make_valid(), col = "grey", alpha = .5) + 
+  tm_polygons() + 
+tm_shape(
+  acled_filtered |> 
+  filter(country %in% c("Afghanistan", "Pakistan", "Iran")) |> 
+  select(event_id_cnty, event_date, event_type, country, latitude, longitude, fatalities) |>
+  filter(!is.na(latitude) & !is.na(longitude)) |> 
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+) + 
+  tm_bubbles(size = "fatalities") 
+
+afpakir_buffer |> class()
+```
+
+
+
+
+```{r}
+data(land)
+
+
+afpakir <- acled_filtered |> 
+  filter(country %in% c("Afghanistan", "Pakistan", "Iran")) |> 
+  select(event_id_cnty, event_date, event_type, country, latitude, longitude, fatalities) |>
+  filter(!is.na(latitude) & !is.na(longitude)) |> 
+  ggplot() + 
+  geom_sf(data = land |> st_as_sf()|> filter(!is.na(elevation)), 
+          aes(fill = elevation), 
+          alpha = .3) + 
+  scale_fill_gradient(low = "grey90", high = "grey30") +
+  geom_sf(data = world_shape, size = 1, colour = "black", alpha = 0) + 
+  geom_sf(data = afpakir_buffer, fill = "gold", alpha = .1, colour = "gold") +
+  coord_sf(xlim = c(75.31, 59.6) , ylim =c(29.4, 38.8)) + 
+  geom_point(aes(x = longitude, y = latitude, size = fatalities, colour = event_type), alpha = .05) 
+  scale_size_continuous(range = c(.1, 4)) +
+  theme_void() +
+  guides(size = guide_legend(override.aes = list(alpha = 1)), 
+         colour = guide_legend(override.aes = list(alpha = 1)))
+  
+land |>  st_as_sf() 
+  
+class(land)
+
+land |> st_as_sf()|> filter(!is.na(elevation))
+
+ggsave(here("plots", "afpakir.png"), 
+       units = "mm", 
+       height = 230, 
+       width = 297)
+```
+
+
+```{r}
+tm_shape(afg_shape) + 
+  tm_borders() + 
+tm_shape(pak_shape) + 
+  tm_borders() + 
+tm_shape(irn_shape) + 
+  tm_borders() + 
+tm_shape(afpak_border) + 
+  tm_lines(col = "red") +
+tm_shape(afir_border) + 
+  tm_lines(col = "red") + 
+tm_shape(afir_buffer) + 
+  tm_polygons(col = "orange", 
+              alpha = .5) + 
+tm_shape(afpak_buffer) + 
+  tm_polygons(col = "orange", 
+              alpha = .5)
+```
+
 
 ### Protest and non-protest events 
 
@@ -1096,7 +1299,7 @@ rbind(
   arrange(desc(assoc_fatalities)) |> 
   mutate(pc_fatalities = assoc_fatalities / sum(assoc_fatalities) * 100)
 
-  
+
 ```
 
 ```{r}
