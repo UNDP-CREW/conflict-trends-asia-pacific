@@ -208,7 +208,7 @@ summary_stats |>
   select(country, events_2014, events_2023, `events_diff%` = event_diff_pc, 
          fatalities_2014, fatalities_2023, `fatalities_diff%` = fatalities_diff_pc) |> 
   kable(caption = "10 years of conflict: comparison 2014 and 2023") |> 
-  kable_classic("striped", full_width = FALSE) |>
+  kable_classic_2("striped", full_width = TRUE) |>
   column_spec(4, color = "grey50", background = 
                 spec_color(event_diff_spec_2014$event_diff_pc[1:8], direction = -1, end = .9, 
                            option = "magma")) |> 
@@ -279,7 +279,7 @@ summary_stats |>
   select(country, events_2019, events_2023, `events_diff%` = event_diff_pc, 
          fatalities_2019, fatalities_2023, `fatalities_diff%` = fatalities_diff_pc) |>
   kable(caption = "5 years of conflict: comparison 2019 and 2023") |> 
-  kable_classic("striped", full_width = FALSE) |> 
+  kable_classic_2("striped", full_width = TRUE) |> 
   column_spec(4, color = "grey30", background = 
                 spec_color(event_diff_spec_2019$event_diff_pc[1:19], direction = -1, end = .9, 
                            option = "magma")) |> 
@@ -428,7 +428,7 @@ Myanmar and Afghanistan bear all the patterns of war. But what is surprising is 
 
 <br>
 
-```{r}
+```{r fig.height = 6}
 event_stream_data |> 
   mutate(country = fct_relevel(country, most_events_list)) |>
   filter(country %in% c("Myanmar", "Afghanistan", 
@@ -439,7 +439,7 @@ event_stream_data |>
   event_type_streamgraph(events) + 
   labs(title = "Number of political incidents by event type over time", 
        subtitle = "Data from 2019-01-01 to 2024-05-31",
-       y = "Events by quarter") + 
+       y = "Events per quarter") + 
   theme(legend.position = "top") 
 ```
 <br>
