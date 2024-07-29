@@ -25,6 +25,7 @@ library(terra)
 library(tmap)
 library(ggstream)
 library(ggnewscale)
+library(patchwork)
 
 `%out%` <- Negate(`%in%`)
 options(scipen = 100)
@@ -99,6 +100,23 @@ myanmar_adm1 <- st_read(here("data",
 
 country_iso3 <- world_shape |> 
   distinct(name, iso3)
+
+acled_filtered <- readRDS(here("data", "acled_filtered.rds"))
+
+most_events_list <- acled_filtered |> 
+  filter(event_type != "Protest") |> 
+  group_by(country) |> 
+  summarise(events = n()) |> 
+  arrange(desc(events)) |> 
+  pull(country)
+
+most_fatalities_list <- acled_filtered |> 
+  group_by(country) |> 
+  mutate(fatalities = as.numeric(fatalities)) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE)) |> 
+  arrange(desc(fatalities)) |> 
+  pull(country)
+
 ```
 
 
@@ -203,30 +221,13 @@ acled_filtered |> write_rds(here("data", "acled_filtered.rds"),
 
 
 
-```{r}
-most_events_list <- acled_filtered |> 
-  filter(event_type != "Protest") |> 
-  group_by(country) |> 
-  summarise(events = n()) |> 
-  arrange(desc(events)) |> 
-  pull(country)
-
-most_fatalities_list <- acled_filtered |> 
-  group_by(country) |> 
-  mutate(fatalities = as.numeric(fatalities)) |> 
-  summarise(fatalities = sum(fatalities, na.rm = TRUE)) |> 
-  arrange(desc(fatalities)) |> 
-  filter(fatalities > 10) |> 
-  pull(country)
-
-```
-
 ## Plots by frequency
 
 #### Conflict fatalities
 
 ```{r warning = FALSE}
 acled_filtered |> 
+  filter(year > 2013 & <= 2025) |> 
   filter(country %in% most_fatalities_list) |>  
   group_by(country, year) |> 
   summarise(fatalities = sum(fatalities, na.rm = TRUE), 
@@ -245,7 +246,7 @@ acled_filtered |>
              scales = "free_y") +
   scale_y_continuous(labels = comma) +
   theme(axis.text.x = element_text(angle = 60, hjust = 1)) + 
-  labs(title = "Conflict fatalities by country in the Asia-Pacific in descending order, 2013-2023", 
+  labs(title = "Political incident fatalities by country in descending order, 2014-2023", 
        subtitle = "Black are the actual events, the trend line is in pink",
        y = "Annual fatalities", 
        x = "")
@@ -402,33 +403,276 @@ acled_filtered |>
 ### Streamgraph
 
 ```{r}
-acled_filtered |> 
-  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
-  group_by(country, event_type, quarter) |> 
-  summarise(events = n_distinct(event_id_cnty), 
-            fatalities = sum(fatalities, na.rm = TRUE))
-
-acled_filtered |> 
-  count(sub_event_type)
-
-acled_filtered |> 
+event_stream_data <- acled_filtered |> 
   filter(sub_event_type %out% c("Agreement", "Change to group/activity", "Headquarters or base established")) |> 
   mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
   group_by(country, event_type, quarter) |> 
   summarise(events = n_distinct(event_id_cnty), 
             fatalities = sum(fatalities, na.rm = TRUE), 
-            .groups = "drop") |> 
+            .groups = "drop") 
+
+event_type_streamgraph <- function(df, column_var) {
+  
+  column_var <- enquo(column_var)
+  
+  df |>
+    ggplot(aes(x = quarter, y = !!column_var, fill = event_type)) + 
+    geom_stream(aes(fill = event_type)) + 
+    scale_fill_manual(values = c(
+      "Battles" = "#7A0403FF",
+      "Violence against civilians" = "#F05B12FF",
+      "Explosions/Remote violence" = "#E1DD37FF",
+      "Protests" = "#25ECA7FF",
+      "Strategic developments" = "#30123BFF",
+      "Riots" = "#3E9BFEFF"
+    )) +
+    facet_wrap(~ country, scales = "free_y") + 
+    labs(fill = "", 
+         x = "") +
+    theme(legend.position = c(.4, .1),
+          legend.key.width = unit(.3, "cm"), 
+          legend.key.height = unit(.3, "cm"),
+          legend.text = element_text(size = 5), 
+          axis.text.y = element_text(size = 4), 
+          axis.text.x = element_text(size = 4, angle = 30, hjust = 1, vjust = 1), 
+          strip.text = element_text(size = 7), 
+          strip.background = element_rect(fill = "black"), 
+          plot.title = element_text(size = 13), 
+          plot.subtitle = element_text(size = 11)) + 
+    guides(fill = guide_legend(nrow = 1))
+}
+```
+
+
+From the chart below, sorted in order of number of fatalities from political incidents per quarter, it is clear that Afghanistan, Myanmar, Pakistan and Philippines have experienced severe political unrest, ranging from war, terrorism and political killings. Conflict in Afghanistan, Pakistan and Philippines has fallen since its peak (significantly), but Myanmar is still in full conflagration: 
+
+<br>
+
+```{r}
+
+event_stream_data |> 
   mutate(country = fct_relevel(country, most_fatalities_list)) |>
-  filter(fatalities > 0) |> 
-  ggplot(aes(x = quarter, y = fatalities, fill = event_type)) + 
-  geom_stream() + 
-  facet_wrap(~country, scales = "free_y")
+  filter(fatalities > 0) |>
+  event_type_streamgraph(fatalities) + 
+  labs(title = "Number of fatalities by event type over time", 
+       subtitle = "Data from 2014-01-01 to 2024-05-31, but not countries had full coverage during this period",
+       y = "Fatalities by quarter")
+
+```
+<br>
+
+The streamgraphs below show the number of political incidents per quarter broken down by event type, sorted in order by the number of political incidents. 
+
+It should be noted that in "stable" countries, the flavour of political conflict should consist mainly of protests (which indicate widespread dissatisfaction but not that all nonviolent means have been exhausted). 
+
+<br> 
+
+```{r}
+
+event_stream_data |> 
+  mutate(country = fct_relevel(country, most_events_list)) |>
+  event_type_streamgraph(events) + 
+  labs(title = "Number of political incidents by event type over time", 
+       y = "Events by quarter")
+```
+
+<br>
 
 
-  geom_area() + 
-  scale_y_log10()
-  geom_col(aes(fill = event_type), position = "stack")
-  geom_area(aes(fill = event_type), position = "fill")
+Let's take a closer look at some countries of interest and narrow down from a ten-year horizon to a five-year one:
+
+Myanmar and Afghanistan bear all the patterns of war. But what is surprising is the extent to which Philippine civil society has deteriorated due to damage from the drug war. When compared to other countries, their share of protests is abysmally low, lower even than Cambodia. 
+
+This is the country of the EDSA revolution after all, yet we see a population cowed into submission by massive levels of violence against civilians. How to foster greater participation in the democratic space once again? 
+
+In South Asia, Bangladesh seems to have the weakest and least-stable state -- protests are a natural feature of any democracy, but riots are violent public disturbances that are highly disruptive. Bangladesh seems to have a higher ratio of riots to protests than any other country except Papua New Guinea. 
+
+Political incidents had been falling until they increased around 2018, around the time of the Rohingya genocide and the influx of 700,000 refugees into Cox's Bazaar. However, the Bangladeshi state 
+
+The Vietnamese state has seized the opportunity presented by COVID to clamp down on all types of political incidents. China, for all the news of its lockdowns, only saw a modest reduction in political incidents and is currently undergoing a spike in unrest related to labour and wage issues. 
+
+In post-genocide Myanmar, with the longstanding civil war with ethnic and communal militias in the background, the population exploded in protests against the Tatmadaw's coup. However, nonviolent means were soon exhausted, as evidenced when the Tatmadaw cracked down with unprecedented violence. The country is now in full civil war. 
+
+With the victory of the Taliban, Afghanistan has seen a 96% reduction on conflict fatalities and a 83% drop in conflict events since 2019 levels. However, civil society has by no means occurred, nor does Afghanistan bear any of the hallmarks of a participatory democracy. 
+
+<br>
+
+```{r}
+event_stream_data |> 
+  mutate(country = fct_relevel(country, most_events_list)) |>
+  filter(country %in% c("Myanmar", "Afghanistan", "Bangladesh", 
+                        "Philippines", "China", "Thailand", 
+                        "Vietnam"
+                        ) & 
+           quarter >= "2019-01-01") |>  
+  event_type_streamgraph(events) + 
+  labs(title = "Number of political incidents by event type over time", 
+       subtitle = "Data from 2019-01-01 to 2024-05-31",
+       y = "Events by quarter") + 
+  theme(legend.position = c(.6, .1)) + 
+  guides(fill = guide_legend(nrow = 2))
+```
+
+Thailand seems to have clamped down firmly on unrest. Two clear humps, one in early 2014 and another in 2021, lining up with their coups. During the period under military rule, political incidents did decrease, but every other type of political violence did increase, indicating that the many protesters probably felt that non-violent means had been exhausted. 
+
+It appears that Philippine civil society has suffered massive setbacks. Is Philippine society returning to "normal"? Are political killings the norm for the Philippines? After all, this is not only the country of the EDSA revolution but also the Marcos dictatorship. 
+
+### Philippines 
+
+Even as the Duterte drug war ceased operation and killings began to drop off sharply, the flavour of political unrest in the Philippines seems deeply changed, with civil society suffering massive setbacks. The streamgraph below is of the past five years in the Philippines: 
+
+```{r}
+event_stream_data |> 
+  mutate(country = fct_relevel(country, most_events_list)) |>
+  filter(country == "Philippines" & quarter >= "2019-01-01") |>
+  event_type_streamgraph(events) + 
+  labs(title = "Number of political incidents by event type over time", 
+       subtitle = "Data from 2019-01-01 to 2024-05-31",
+       y = "Number of events per quarter")
+```
+
+We can see clearly how protests in Myanmar converted to the full on civil war that the country is currently experiencing. 
+
+Non-violent political participation seems nonexistent in Afghanistan
+Is Indonesia getting more restive?
+
+
+
+## Summary 
+
+Political incidents have greatly increased across the Asia-Pacific. Based on the 9 countries in the region that ACLED has been monitoring since 2014, 
+
+```{r}
+acled_filtered |> filter(country == "Bangladesh") |> 
+  sample_n(5) |> 
+  pull(notes)
+
+country_list_2014 <- acled_filtered |> filter(year == 2014) |> count(country) |> pull(country)
+country_list_2019 <- acled_filtered |> filter(year == 2019) |> count(country) |> pull(country)
+
+
+summary_stats <- cbind(filter(acled_filtered, year == 2014) |> 
+  summarise(events_2014 = n_distinct(event_id_cnty)), 
+filter(acled_filtered, year == 2019) |> 
+  summarise(events_2019 = n_distinct(event_id_cnty)), 
+filter(acled_filtered, year == 2023 & country %in% country_list_2014) |> 
+  summarise(events_2023_2014 = n_distinct(event_id_cnty)), 
+filter(acled_filtered, year == 2013 & country %in% country_list_2019) |> 
+  summarise(events_2023_2019 = n_distinct(event_id_cnty)) 
+)
+
+```
+
+Because of the inclusion of Afghanistan. 
+
+```{r}
+event_stream_data |>
+  mutate(year = floor_date(quarter, "year")) |> 
+  group_by(year) |> 
+  summarise(events = sum(events), 
+            fatatities = sum(fatalities))  
+
+  
+
+```
+
+
+```{r}
+event_stream_data |>
+  mutate(year = floor_date(quarter, "year")) |> 
+  group_by(country, year) |> 
+  summarise(events = sum(events), 
+            fatatities = sum(fatalities))
+ 
+```
+
+
+
+```{r}
+world_shape |> st_drop_geometry() |> glimpse()
+```
+
+```{r}
+acled_filtered |> 
+  filter(country == "Bangladesh") |> 
+  mutate(quarter = floor_date(event_date, "quarter")) |> 
+  group_by(quarter, admin2) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE), 
+            events = n_distinct(event_id_cnty), 
+            .groups = "drop") |>
+  filter(admin2 %in% bangladesh_admin2) |> 
+  pivot_longer(cols = c(fatalities, events), 
+               names_to = "type", 
+               values_to = "value") |> 
+  ggplot(aes(x = quarter, y = value)) + 
+  geom_line(aes(colour = type)) + 
+  facet_wrap(~admin2, scales = "free_y")
+```
+
+```{r}
+bangladesh_admin2 <- acled_filtered |> 
+  filter(country == "Bangladesh") |> 
+  group_by(admin2) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE), 
+            events = n_distinct(event_id_cnty), 
+            .groups = "drop") |> 
+  arrange(desc(fatalities)) |> 
+  head(20) |> pull(admin2)
+```
+
+### Fatalities by event
+
+
+```{r}
+acled_filtered |>  
+  filter(!is.na(longitude) & !is.na(latitude) & country == "Bangladesh") |> 
+  filter(sub_event_type %out% c("Agreement", 
+                                "Change to group/activity", 
+                                "Headquarters or base established", 
+                                "Non-violent transfer of territory")) |> 
+  mutate(quarter = floor_date(event_date, "quarter")) %>%
+  select(event_id_cnty, event_type, longitude, latitude, event_type, quarter, fatalities) |> 
+  # mutate(quarter = map(quarter, ~seq.Date(as.Date(.), as.Date("2023-12-01"), by = "quarter"))) |> 
+  # unnest(quarter) |> 
+  # mutate(quarter = format_ISO8601(quarter, precision = "ym")) %>%
+  ggplot() +
+  geom_sf(data = world_shape |> filter(name == "Bangladesh"), 
+          size = .5, colour = "grey30", fill = "black") + 
+  geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
+  scale_size_continuous(range = c(0.1, 4)) +
+  theme(plot.background = element_rect(fill = "black", colour = "black"),
+        panel.background = element_rect(fill = "black", colour = "black"),
+        rect = element_rect(fill = "NA"),
+        legend.text = element_text(colour = "white"), 
+        title = element_text(colour = "white"),
+        legend.title = element_text(face = "bold"),
+        plot.caption = element_text(hjust = 0.2)) + 
+  guides(colour = guide_legend(override.aes = list(alpha = 1)), 
+         size = guide_legend(override.aes = list(alpha = 1, 
+                                                 colour = "grey"))) + 
+  theme_void() + 
+  labs(title = "Asia-Pacific conflict events in { current_frame }", 
+       subtitle = "Excludes non-violent strategic developments", 
+       caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com",
+       colour = "Event type")
+```
+
+
+```{r}
+viridis_pal(option = "turbo")(15) |> show_col()
+```
+
+
+
+```{r}
+viridis_pal(option = "turbo")(6) |> show_col()
+
+c("Battles" = "#7A0403FF", 
+  "Violence against civilians" = "#F05B12FF", 
+  "Explosions/Remote violence" = "#E1DD37FF", 
+  "Protests" = "#46F884FF", 
+  "Strategic developments" = "#30123BFF",
+  "Riots" = "#3E9BFEFF")
 ```
 
 
@@ -442,9 +686,9 @@ data(land, World)
 
 ## Cross-border
 
-```{r}
-library(spData)
+### Afpakir 
 
+```{r}
 afg_shape <- world_shape |> 
   filter(str_detect(name, "Afghanistan")) 
 
@@ -465,9 +709,15 @@ afir_buffer <- afir_border |> st_buffer(dist = 100000, endCapStyle = "FLAT")
 afpak_buffer <- afpak_border |> st_buffer(dist = 100000, endCapStyle = "FLAT")
 
 afpakir_buffer <- afpak_buffer |> 
-  st_union(afir_buffer)
+  st_union(afir_buffer) |> 
+  rename(iso_3166_2 = iso_3166_1_.1.1) |> 
+  st_make_valid()
 
+st_write(afpakir_buffer, here("data", "afpakir_buffer", "afpakir_buffer.shp"))
+st_write(afpak_buffer, here("data", "afpak_buffer", "afpak_buffer.shp"))
+st_write(afir_buffer, here("data", "afir_buffer", "afir_buffer.shp"))
 
+afpakir_buffer |> glimpse()
 
 ```
 
@@ -551,6 +801,49 @@ tm_shape(afpak_buffer) +
   tm_polygons(col = "orange", 
               alpha = .5)
 ```
+
+### MMR-BNG-THA-IND
+
+```{r}
+mmr_shape <- world_shape |> 
+  filter(str_detect(name, "Myanmar")) 
+
+bng_shape <- world_shape |>  
+  filter(str_detect(name, "Bangladesh")) 
+
+ind_shape <- world_shape |> 
+  filter(name == "India")
+
+tha_shape <- world_shape |> 
+  filter(name == "Thailand")
+
+lao_shape <- world_shape |> 
+  filter(name == "Lao People's Democratic Republic")
+
+afpak_border <- st_intersection(afg_shape, pak_shape, model = "closed")
+
+afir_border <- st_intersection(afg_shape, irn_shape, model = "closed")
+
+afir_border |> st_buffer(dist = 100)
+
+afir_buffer <- afir_border |> st_buffer(dist = 100000, endCapStyle = "FLAT")
+
+afpak_buffer <- afpak_border |> st_buffer(dist = 100000, endCapStyle = "FLAT")
+
+afpakir_buffer <- afpak_buffer |> 
+  st_union(afir_buffer) |> 
+  rename(iso_3166_2 = iso_3166_1_.1.1) |> 
+  st_make_valid()
+
+st_write(afpakir_buffer, here("data", "afpakir_buffer", "afpakir_buffer.shp"))
+st_write(afpak_buffer, here("data", "afpak_buffer", "afpak_buffer.shp"))
+st_write(afir_buffer, here("data", "afir_buffer", "afir_buffer.shp"))
+
+afpakir_buffer |> glimpse()
+
+world_shape |> st_drop_geometry() |> filter(str_detect(name, "Lao"))
+```
+
 
 
 ### Protest and non-protest events 
