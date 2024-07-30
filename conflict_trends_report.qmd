@@ -130,11 +130,16 @@ afpak_buffer <- st_read(here("data", "afpak_buffer", "afpak_buffer.shp")) |> st_
 afir_buffer <- st_read(here("data", "afir_buffer", "afir_buffer.shp")) |> st_as_sf()
 
 
-data(land, World)
 
 ```
 
 ## Introduction
+
+Conflict (including political unrest) in the Asia-Pacific is multifarious and interconnected. The gif below displays cumulative conflict events tracked by ACLED for the past 10 years. 
+
+Making sense of this data will require a deeper examination of the various contexts in this region and the ways in which they interact. Three major foci are observed -- one around Afghanistan and Pakistan, one in the Philippines, and one in Myanmar and its border regions. 
+
+![](./plots/asia_pacific_event_types.gif)
 
 Below is a table comparing the the number of political conflict events and fatalities in the countries that ACLED has been monitoring since 2014. Conflict has decreased across these countries since 2014, with the notable exception of Myanmar.
 
