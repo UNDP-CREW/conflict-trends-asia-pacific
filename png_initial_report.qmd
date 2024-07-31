@@ -176,6 +176,11 @@ ged_png <- readRDS(here("data", "ged241.rds")) |>
 
 ```
 
+```{r eval=FALSE}
+tracker |> 
+  filter(!is.na(x_lon) & !is.na(y_lat)) |> write_csv(here("data", "tracker_power_bi_export.csv"))
+
+```
 
 
 
@@ -730,82 +735,101 @@ tracker_actors |>
 
 <br><br><br>
 
-## 5. Comparisons to other datasets
+## 5. Disaggregations
 
-<br>
+```{r}
+has_disaggregation_list <- tracker |>
+  filter(!is.na(men_dead) | !is.na(men_injured) | !is.na(men_displaced) | 
+           !is.na(women_dead) | !is.na(women_injured) | !is.na(women_displaced) | 
+           !is.na(total_child_dead) | !is.na(total_child_injured) |
+           !is.na(boy_dead) | !is.na(boy_injured) |  !is.na(boy_displaced) | 
+           !is.na(girl_dead) | !is.na(girl_injured) |  !is.na(girl_displaced) ) |> 
+  pull(id)
+```
 
-Below, we plot the number of incidents reported in the tracker against those reported in ACLED's dataset. Unfortunately, there are just not enough data points to conduct a meaningful comparison or draw any conclusions about patterns. 
+
+```{r fig.height=4}
+tracker |> 
+  mutate(disaggregation = ifelse(id %in% has_disaggregation_list, 
+                                     "has_disaggregation", 
+                                     "no_disaggregation")) |> 
+  pivot_longer(cols = c(total_dead:girl_displaced), 
+               names_to = "disaggregation_type", 
+               values_to = "value") |> 
+  mutate(aggregation = ifelse(disaggregation_type %in% c("total_dead", "total_injured", "total_displaced", 
+                                                         "total_child_dead", "total_child_injured"),  
+                              "aggregation", 
+                              "non_aggregation")) |> 
+  filter(!is.na(value)) |> 
+  filter(disaggregation_type == "total_dead") |> 
+  group_by(disaggregation) |> 
+  summarise(total_dead = sum(value, na.rm = TRUE), 
+            events = n()) |> 
+  pivot_longer(cols = c(total_dead, events)) %>%
+  mutate_at(vars(disaggregation, name), 
+            .funs = ~ str_to_title(str_replace_all(., "\\_", " "))) |> 
+  ggplot(aes(x = value, y = name)) + 
+  geom_col(aes(fill = name)) +  
+  scale_fill_viridis_d(option = "cividis", begin = .3, end = .9) + 
+  facet_wrap( ~ disaggregation) + 
+  geom_text(aes(label = value), hjust = "inward") + 
+  labs(y = "", 
+       title = "11 Events in the conflict tracker have sex-and-age disaggregated data", 
+       fill = "") + 
+  theme(strip.background = element_rect(fill = "black"))
+
+
+```
+<br> 
+
+11 events is an extraordinarily small sample to draw any conclusions from. Here is a table of them, by location and incident description: 
 
 <br>
 
 ```{r}
 tracker |> 
-  filter(start_date >= "2021-01-01" & start_date < "2024-01-01") |>
-  mutate(event_date_floor = floor_date(start_date, unit = "month")) |> 
-  group_by(event_date_floor) |> 
-  summarise(event_count = n()) |> 
-  mutate(source = "Tracker") |> 
-  rbind(
-    acled_png |> 
-      filter(event_date  >= "2021-01-01" & event_date < "2024-01-01" & 
-               admin1 %in% c("Hela", "Southern Highlands")) |> 
-      mutate(event_date_floor = floor_date(event_date, unit = "month")) |>
-      group_by(event_date_floor) |> 
-      summarise(event_count = n()) |> 
-      mutate(source = "ACLED")
-  ) |> 
-  ggplot(aes(x = event_date_floor, 
-             y = event_count)) + 
-  geom_line(aes(colour = source), 
-            size = .8,
-            alpha = .8) + 
-  scale_x_date(date_breaks = "2 months", 
-               date_labels = "%Y-%b") +
-  scale_colour_manual(values = c("Tracker" = "#00204DFF", 
-                                   "ACLED" = "#D3C164FF")) + 
-  theme(axis.text.x = element_text(angle = 40, 
-                                   vjust = 1, 
-                                   hjust = 1, 
-                                   size = 7)) + 
-  labs(title = "Monthly incidents reported in the Highlands Tracker and in ACLED", 
-       subtitle = "2014-2023, Hela and Southern Highlands only", 
-       y = "Number of events", 
-       x = "")
+  mutate(disaggregation = ifelse(id %in% has_disaggregation_list, 
+                                     "has_disaggregation", 
+                                     "no_disaggregation")) |> 
+  filter(disaggregation == "has_disaggregation") |> 
+  count(llg, incident_description) |> 
+  select(-n) |> 
+  kable(caption = "Locations and descriptions of incidents with disaggregation") |> 
+  kable_classic("striped", full_width = FALSE) |> 
+  kable_styling(bootstrap_options = c("hover"))
 ```
 
 <br>
-
-Nevertheless, as touched on in the section on [categorising the data](https://risk-anticipation-hub.github.io/conflict-trends-asia-pacific/png_initial_report.html#categorising-the-data), there does not seem to be much overlap between the Highland Tracker and ACLED: they both do seem to be focused on slightly different things. The Highlands Tracker has a more household, clan or tribal view of things and contains crimes that would not be recorded by ACLED. 
-
-However, the Highlands Tracker is also missing political violence and the movements of state actors (although this absence could also indicate the weakness of the state in Southern Highlands and Hela and its inability to project power over its own territory). To get this added dimension, it should be explored whether the Highlands Tracker should be augmented with ACLED data or with data from UNDSS incident reports. 
-
-Relying on ACLED data in the future, to supplement the tracker, is reasonable. We note that their coverage of Papua New Guinea is increasing, making them a useful source of information in the future: 
-
-<br>
-
+ 
+ This is a breakdown of the casualties: 
 
 ```{r}
-acled_filtered |> filter(country == "Cambodia" | 
-                           country == "Papua New Guinea") |>
-  filter(event_date >= "2021-01-01" & event_date < "2024-01-01") |> 
-  mutate(event_date_floor = floor_date(event_date, unit = "month")) |> 
-  group_by(event_date_floor, country) |> 
-  summarise(count = n()) |> 
-  ggplot(aes(x = event_date_floor, 
-             y = count)) +
-  geom_line(aes(colour = country), 
-            size = .7) + 
-  scale_colour_manual(values = c("#440154FF", "#35B779FF")) + 
-  facet_wrap(~ country) + 
-  labs(x = "date", 
-       y = "Number of events", 
-       title = "Comparing ACLED coverage for Papua New Guinea and Cambodia 2021-2023", 
-       subtitle = "Because Cambodia has a similar population size") + 
-  theme(legend.position = "none", 
-        strip.background = element_rect(fill = "black"))
-
+tracker |> 
+  mutate(disaggregation = ifelse(id %in% has_disaggregation_list, 
+                                     "has_disaggregation", 
+                                     "no_disaggregation")) |> 
+  pivot_longer(cols = c(total_dead:girl_displaced), 
+               names_to = "disaggregation_type", 
+               values_to = "value") |> 
+  mutate(aggregation = ifelse(disaggregation_type %in% c("total_dead", "total_injured", "total_displaced", 
+                                                         "total_child_dead", "total_child_injured"),  
+                              "aggregation", 
+                              "non_aggregation")) |> 
+  filter(!is.na(value)) |> 
+  filter(disaggregation == "has_disaggregation" & aggregation == "non_aggregation") |> 
+  group_by(disaggregation_type) |> 
+  summarise(casualties = sum(value)) |> 
+  arrange(desc(casualties)) |> 
+  kable(caption = "Breakdown of casualties by disaggregation type") |> 
+  kable_classic("striped", full_width = FALSE)|> 
+  kable_styling(bootstrap_options = c("hover"))
 ```
 
+<br>
+
+It should be noted that those without access to police reports and police databases or case data will find it difficult to collect disaggregated data on conflict. Neither ACLED nor UCDP attempt to do so, although ACLED and UCDP do distinguish between civilian and combatant deaths. They do not publish sex-and-age disaggregated data on conflict because such data is sparse. 
+
+But even if one has access to it, publishing it is not advised. Since much of conflict data is geo-located (to differing levels of accuracy), sex-and-age disaggregated data would certainly count as identifying information. Case data should not be mapped in this way. 
 
 <br><br><br>
 
