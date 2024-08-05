@@ -77,6 +77,5 @@ maldives_admin2 |>
   write_csv(here("data", "maldives_admin2_check.csv"))
 
 
-  glimpse()
 ```
 

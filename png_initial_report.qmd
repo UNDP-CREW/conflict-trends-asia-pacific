@@ -795,8 +795,9 @@ tracker |>
   count(llg, incident_description) |> 
   select(-n) |> 
   kable(caption = "Locations and descriptions of incidents with disaggregation") |> 
-  kable_classic("striped", full_width = FALSE) |> 
-  kable_styling(bootstrap_options = c("hover"))
+  kable_classic_2() |> 
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                font_size = 10, full_width = FALSE) 
 ```
 
 <br>
