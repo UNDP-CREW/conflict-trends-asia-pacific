@@ -117,11 +117,23 @@ most_fatalities_list <- acled_filtered |>
   arrange(desc(fatalities)) |> 
   pull(country)
 
+actor_codes_acled <- tribble(
+  ~actor_code, ~description, 
+  1, "State Forces", 
+  2, "Rebel Groups", 
+  3, "Political Militias", 
+  4, "Identity Militias", 
+  5, "Rioters",
+  6, "Protesters", 
+  7, "Civilians", 
+  8, "Other Forces"
+)
+
 ```
 
 
 
-## Compressed data
+### Compressed data
 
 Run this if you don't need the original files. This will read in the data from two .RDS files, which are compressed and also remove the danger of one opening .CSVs in Excel, which would break some of them due to Excel's row limits. 
 
@@ -147,7 +159,7 @@ ged <- ged241 |>
 
 
 
-## Originals 
+### Originals 
 
 The chunk below loads in the original data. I'm thinking that for reproducibility, I can load the filtered datasets in compressed RDS files up to github. And maybe keep the originals in the gitignore folder 
 
@@ -202,17 +214,58 @@ acled_filtered <- acled |>
   mutate(country = ifelse(country == "East Timor", "Timor-Leste", country), 
          country = ifelse(admin1 == "Hong Kong", "Hong Kong", country)) |> 
   filter(country %in% country_list) |> 
-  mutate(fatalities = parse_number(fatalities))
+  mutate(fatalities = parse_number(fatalities)) |> 
+  mutate(inter_type = interaction,
+         inter_type = recode_factor(inter_type,
+                             `10` = "SOLE	MILITARY ACTION",
+                             `11` = "MILITARY VERSUS MILITARY",
+                             `12` = "MILITARY VERSUS REBELS",
+                             `13` = "MILITARY VERSUS POLITICAL MILITIA",
+                             `14` = "MILITARY VERSUS COMMUNAL MILITIA",
+                             `15` = "MILITARY VERSUS RIOTERS",
+                             `16` = "MILITARY VERSUS PROTESTERS",
+                             `17` = "MILITARY VERSUS CIVILIANS",
+                             `18` = "MILITARY VERSUS OTHER",
+                             `20` = "SOLE REBEL ACTION",
+                             `22` = "REBELS VERSUS REBELS",
+                             `23` = "REBELS	VERSUS POLITICAL MILIITA ",
+                             `24` = "REBELS VERSUS COMMUNAL MILITIA",
+                             `25` = "REBELS VERSUS RIOTERS",
+                             `26` = "REBELS VERSUS PROTESTERS ",
+                             `27` = "REBELS VERSUS CIVILIANS",
+                             `28` = "REBELS VERSUS OTHERS",
+                             `30` = "SOLE POLITICAL MILITIA ACTION",
+                             `33` = "POLITICAL MILITIA VERSUS POLITICAL	MILITIA",
+                             `34` = "POLITICAL MILITIA VERSUS COMMUNAL	MILITIA",
+                             `35` = "POLITICAL MILITIA VERSUS RIOTERS",
+                             `36` = "POLITICAL MILITIA VERSUS PROTESTERS",
+                             `37` = "POLITICAL MILITIA VERSUS CIVILIANS",
+                             `38` = "POLITICAL MILITIA VERSUS OTHERS",
+                             `40` = "SOLE COMMUNAL MILITIA ACTION",
+                             `44` = "COMMUNAL MILITIA VERSUS COMMUNAL MILITIA",
+                             `45` = "COMMUNAL MILITIA VERSUS RIOTERS",
+                             `46` = "COMMUNAL	MILITIA	VERSUS PROTESTERS ",
+                             `47` = "COMMUNAL MILITIA VERSUS CIVILIANS",
+                             `48` = "COMMUNAL MILITIA VERSUS OTHER",
+                             `50` = "SOLE RIOTER ACTION",
+                             `55` = "RIOTERS VERSUS RIOTERS",
+                             `56` = "RIOTERS VERSUS PROTESTERS",
+                             `57` = "RIOTERS VERSUS CIVILIANS",
+                             `58` = "RIOTERS VERSUS OTHERS",
+                             `60` = "SOLE PROTESTER ACTION",
+                             `66` = "PROTESTERS VERSUS P<ROTESTERS",
+                             `67` = "PROTESTERS VERSUS CIVILIANS",
+                             `68` = "PROTESTERS VERSUS OTHER",
+                             `78` = "OTHER ACTOR VERSUS CIVILIANS",
+                             `70` = "SOLE CIVILIAN ACTION",
+                             `80` = "SOLE OTHER ACTION"), 
+         inter_type = tolower(str_trim(str_replace_all(inter_type, "[\\r\\n\\t]+", " "))))
 ```
 
 ```{r eval=FALSE}
 acled_filtered |> write_rds(here("data", "acled_filtered.rds"), 
                             compress = c("gz"))
-```
-
-
-
-
+<```
 
 
 
@@ -404,12 +457,17 @@ acled_filtered |>
 
 ```{r}
 event_stream_data <- acled_filtered |> 
-  filter(sub_event_type %out% c("Agreement", "Change to group/activity", "Headquarters or base established")) |> 
+#   filter(sub_event_type %out% c("Agreement", "Change to group/activity",  "Headquarters or base established")) |> 
   mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
   group_by(country, event_type, quarter) |> 
   summarise(events = n_distinct(event_id_cnty), 
             fatalities = sum(fatalities, na.rm = TRUE), 
             .groups = "drop") 
+```
+
+### event_type_streamgraph()
+```{r}
+
 
 event_type_streamgraph <- function(df, column_var) {
   
@@ -429,7 +487,7 @@ event_type_streamgraph <- function(df, column_var) {
     facet_wrap(~ country, scales = "free_y") + 
     labs(fill = "", 
          x = "") +
-    theme(legend.position = c(.4, .1),
+    theme(legend.position = c("top"),
           legend.key.width = unit(.3, "cm"), 
           legend.key.height = unit(.3, "cm"),
           legend.text = element_text(size = 5), 
@@ -455,7 +513,7 @@ event_stream_data |>
   filter(fatalities > 0) |>
   event_type_streamgraph(fatalities) + 
   labs(title = "Number of fatalities by event type over time", 
-       subtitle = "Data from 2014-01-01 to 2024-05-31, but not countries had full coverage during this period",
+       subtitle = "Data from 2014-01-01 to 2024-05-31, but not all countries had full coverage during this period",
        y = "Fatalities by quarter")
 
 ```
@@ -472,9 +530,137 @@ It should be noted that in "stable" countries, the flavour of political conflict
 event_stream_data |> 
   mutate(country = fct_relevel(country, most_events_list)) |>
   event_type_streamgraph(events) + 
-  labs(title = "Number of political incidents by event type over time", 
+  labs(title = "Number of political incidents by event type over time",subtitle = "Data from 2014-01-01 to 2024-05-31, but not all countries had full coverage during this period", 
        y = "Events by quarter")
 ```
+
+
+# Per capita 
+
+```{r}
+event_stream_pc <- event_stream_data |> 
+  mutate(year = year(quarter), 
+         year = ifelse(year == 2024, 2023, year)) |> 
+  left_join(
+    population_estimates, 
+    by = c("country", "year")
+  ) |> 
+  mutate(year = year(quarter)) |> 
+  mutate(events_100k = events / population * 100000, 
+         fatalities_100k = fatalities / population * 100000)
+
+```
+
+```{r}
+event_fatalities_pc <- event_stream_data |> 
+  group_by(country, quarter) |> 
+  summarise(events = sum(events), 
+            fatalities = sum(fatalities), 
+            .groups = "drop") |> 
+  mutate(year = year(quarter), 
+         year = ifelse(year == 2024, 2023, year)) |> 
+  left_join(
+    population_estimates, 
+    by = c("country", "year")
+  ) |> 
+  mutate(year = year(quarter)) |> 
+  mutate(events_100k = events / population * 100000, 
+         fatalities_100k = fatalities / population * 100000) |> 
+  group_by(country) |> 
+  summarise(events_100k = mean(events_100k), 
+            fatalities_100k = mean(fatalities_100k), 
+            events = sum(events), 
+            fatalities = sum(fatalities)) |> 
+  arrange(desc(events_100k))
+
+
+```
+
+```{r}
+df |> 
+  select(-events, -fatalities) |> 
+  ggplot(aes(x = events_100k, y = fatalities_100k)) + 
+  geom_point() + 
+  geom_text(aes(label = country), vjust = "inward") +
+  # ggrepel::geom_text_repel(aes(label = country), vjust = "inward") +
+  scale_x_log10() + 
+  scale_y_log10()
+```
+
+
+```{r fig.height=7}
+event_fatalities_pc |> 
+  ggplot(aes(x = events_100k, y = fatalities_100k)) + 
+  geom_point(aes(size = fatalities, 
+                 colour = events), alpha = .8) + 
+  geom_text(aes(label = country), vjust = "inward") +
+  # ggrepel::geom_text_repel(aes(label = country), size = 3) +
+  scale_x_log10() + 
+  scale_y_log10()
+```
+
+
+
+```{r fig.height = 7}
+event_stream_pc |> 
+  mutate(country = fct_relevel(country, most_fatalities_list)) |>
+  filter(fatalities > 0) |>
+  event_type_streamgraph(fatalities_100k) + 
+  labs(title = "Number of fatalities by event type over time", 
+       subtitle = "Data from 2014-01-01 to 2024-05-31, but not all countries had full coverage during this period",
+       y = "Fatalities per 100k by quarter")
+```
+
+
+```{r}
+
+streamgraph_alternate <- acled_filtered |> 
+  mutate(country = fct_relevel(country, most_events_list)) |>
+  filter(country %out% c("Vanuatu", "Bhutan")) |> 
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
+  group_by(country, event_type, quarter) |> 
+  summarise(events = n_distinct(event_id_cnty), 
+            fatalities = sum(fatalities, na.rm = TRUE), 
+            .groups = "drop") 
+
+
+streamgraph_alternate |> 
+  ggplot(aes(x = quarter, y = events, fill = event_type)) + 
+    geom_stream(aes(fill = event_type)) + 
+    scale_fill_manual(values = c(
+      "Battles" = "#7A0403FF",
+      "Violence against civilians" = "#F05B12FF",
+      "Explosions/Remote violence" = "#E1DD37FF",
+      "Protests" = "#25ECA7FF",
+      "Strategic developments" = "#30123BFF",
+      "Riots" = "#3E9BFEFF"
+    )) +
+    facet_wrap(~ country, scales = "free_y") + 
+    labs(fill = "", 
+         x = "", 
+         y = "Number of events by quarter",
+         title = "Number of political conflict incidents in Asia-Pacific countries, aggregated by quarter",
+         subtitle = "Data from 2014-01-01 to 2024-05-31; not all countries had full coverage during this period. Source: acleddata.com") +
+    theme(legend.position = "top",
+          legend.key.width = unit(1, "cm"), 
+          legend.key.height = unit(1, "cm"),
+          legend.title = element_text(size = 17), 
+          legend.text = element_text(size = 15),
+          axis.title.y = element_text(size = 17), 
+          axis.text.y = element_text(size = 11), 
+          axis.text.x = element_text(size = 11, angle = 30, hjust = 1, vjust = 1), 
+          strip.text = element_text(size = 20), 
+          strip.background = element_rect(fill = "black"), 
+          plot.title = element_text(size = 32), 
+          plot.subtitle = element_text(size = 18)) + 
+    guides(fill = guide_legend(nrow = 1))
+
+
+ggsave(here("plots", "streamgraph_alternate.png"), 
+       dpi = 300, width = 33.1, height = 23.4, units = "in")
+
+```
+
 
 <br>
 
@@ -1234,20 +1420,6 @@ acled_sources |>
 Straight from the codebook
 
 ```{r}
-actor_codes_acled <- tribble(
-  ~actor_code, ~description, 
-  1, "State Forces", 
-  2, "Rebel Groups", 
-  3, "Political Militias", 
-  4, "Identity Militias", 
-  5, "Rioters",
-  6, "Protesters", 
-  7, "Civilians", 
-  8, "Other Forces"
-)
-```
-
-```{r}
 interaction_codes_acled <- tribble(~interaction_code,	~interaction_description,
 10,	"SOLE STATE FORCES ACTION (e.g. base establishment by state forces; remote violence involving state military with no reported casualties; non-violent military operations)",
 11,	"STATE FORCES VERSUS STATE FORCES (e.g. military infighting; battles between a military and mutinous forces; arrests of military officials)",
@@ -1446,30 +1618,7 @@ ged |>
 ```
 
 
-### Comparing actors 
-
-```{r}
-rbind(
-  acled_filtered |>
-    select(actor = actor1, actor_code = inter1, event_id_cnty),
-  
-  acled_filtered |> 
-    select(actor = actor2, actor_code = inter2, event_id_cnty)
-  
-  ) |> 
-  left_join(acled_filtered |> 
-              select(event_id_cnty, interaction, event_date, country), 
-            by = "event_id_cnty",
-            relationship = "many-to-many") |> 
-  mutate(event_date = as.Date(event_date, "%d %B %Y"), 
-         year = year(event_date)) |> 
-  left_join(actor_codes_acled |>
-              rename(actor_description = description), 
-            by = "actor_code", 
-            relationship = "many-to-many")
-
-```
-
+# Actors 
 
 
 The dataset actors are actually very well-cleaned, especially compared to before 
@@ -1479,15 +1628,13 @@ The dataset actors are actually very well-cleaned, especially compared to before
 ```{r}
 acled_actors <- rbind(
   acled_filtered |>
-    select(actor = actor1, actor_code = inter1, id = event_id_cnty),
-  
+    select(actor = actor1, actor_code = inter1, event_id_cnty),
   acled_filtered |> 
-    select(actor = actor2, actor_code = inter2, id = event_id_cnty)
-  
-  ) |> 
+    select(actor = actor2, actor_code = inter2, event_id_cnty)) |> 
+  filter(!is.na(actor)) |> 
   left_join(acled_filtered |> 
-              select(id = event_id_cnty, interaction, event_date, country, fatalities), 
-            by = c("id"),
+              select(event_id_cnty, interaction, event_date, country, fatalities), 
+            by = c("event_id_cnty"),
             relationship = "many-to-many") |> 
   mutate(event_date = as.Date(event_date, "%d %B %Y"), 
          year = year(event_date), 
@@ -1495,9 +1642,81 @@ acled_actors <- rbind(
   left_join(actor_codes_acled |>
               rename(actor_description = description), 
             by = "actor_code", 
-            relationship = "many-to-many") |> 
-  mutate(source = "ACLED")
+            relationship = "many-to-many") 
+```
+
+```{r}
+viridis_pal(option = "turbo")(8) |> show_col()
+```
+
+```{r}
+viridis_pal(option = "turbo")(8)
+```
+
+
+```{r}
+acled_actors |> count(actor_description)
+
+
+```
+
+
+```{r fig.height=7, warning = FALSE}
+
+actor_order_list <- acled_actors |> 
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |>
+  group_by(country, quarter) |> 
+  summarise(actors = n_distinct(actor), .groups = "drop") |> 
+  group_by(country) |> 
+  summarise(actors = mean(actors)) |> 
+  arrange(desc(actors)) |> 
+  pull(country)
+
+
+acled_actors |> 
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
+  group_by(country, actor_description, quarter) |> 
+  summarise(actors = n_distinct(actor), 
+            fatalities = sum(fatalities, na.rm = TRUE), 
+            events = n_distinct(event_id_cnty), 
+            .groups = "drop") |> 
+  mutate(country = fct_relevel(country, actor_order_list)) |> 
+   filter(country %out% c("Maldives", "Solomon Islands", "Timor-Leste", 
+                         "Fiji", "Laos", "Bhutan", "Vanuatu")) |> 
+  ggplot(aes(x = quarter, y = actors, colour = actor_description)) + 
+  geom_smooth(linewidth = .72, alpha = .7, 
+              se = FALSE, 
+              method = "loess") + 
+  scale_colour_manual(
+    values = c(
+      "Civilians" = "#D2E935FF",
+      "State Forces" = "#7A0403FF",
+      "Protesters" = "#62FC6BFF",
+      "Identity Militias" = "#4777EFFF",
+      "Rebel Groups" = "#FE9B2DFF",
+      "Rioters" = "#1BD0D5FF",
+      "Political Militias" = "#DB3A07FF",
+      "Other Forces" = "grey30")) +
+  scale_y_log10() +
+  facet_wrap(~ country, scales = "free_y") + 
+  theme(legend.position = "top",
+          legend.key.width = unit(1, "cm"), 
+          legend.key.height = unit(1, "cm"), 
+          legend.text = element_text(size = 10),
+          axis.title.y = element_text(size = 7), 
+          axis.text.y = element_text(size = 7), 
+          axis.text.x = element_text(size = 7, angle = 30, hjust = 1, vjust = 1), 
+          strip.text = element_text(size = 12), 
+          strip.background = element_rect(fill = "black")) + 
+    guides(colour = guide_legend(nrow = 1, 
+                                 override.aes = 
+                                   list(linewidth = 2))) + 
+  labs(colour = "")
+
+
+ggsave(here("plots", ""))
   
+
 ```
 
 
@@ -1646,6 +1865,97 @@ acled_filtered |>
   count(interaction_lump, year, sort = TRUE) |> 
   ggplot(aes(x = year, y = n)) + 
   geom_col(aes(fill = ))
+```
+
+# Myanmar roads 
+
+```{r}
+road_shape <-  st_read(here("data", 
+                            "mmr_rdsl_mimu_250k", 
+                            "mmr_rdsl_mimu_250k.shp")) |>   
+  st_as_sf()  
+  #filter(Road_Type %in% c("Main"))
+
+```
+
+```{r}
+myanmar_acled <- acled_filtered |> 
+  filter(country == "Myanmar" & event_date >= "2021-02-01" & 
+           sub_event_type != "Peaceful protest") |>
+  filter(inter_type != "sole protester action") |>  
+  mutate(inter_type = fct_lump(inter_type, 6), 
+         inter_type = str_to_title(inter_type),
+         inter_type = str_replace_all(inter_type, "Versus", "versus")) |>
+  mutate(diffdays = as.numeric(difftime(event_date, as.Date("2021-02-01"),
+                                        unit = "days")), 
+         inter_type = fct_relevel(
+           inter_type,
+           c("Military versus Civilians", 
+             "Military versus Political Militia", 
+             "Military versus Rebels", 
+             "Political Militia versus Civilians", 
+             "Sole Military Action", 
+             "Sole Political Militia Action", 
+             "Other")
+         )) |> 
+  arrange(inter_type) 
+
+
+roads_conflict_myanmar_new  <- ggplot() +
+  geom_sf(size = .1, colour = "grey90", fill = "grey95", data = myanmar_adm1) + 
+  geom_sf(data = road_shape, size = 1.5, colour = "lemonchiffon3") +
+  # coord_sf(xlim = c(91.250894, 100.933735), 
+  #           ylim = c(9.550808, 28.998545)) + 
+  geom_point(aes(x = 96.0785, y = 19.7633), size = 5, 
+             colour = "goldenrod", pch = 15, alpha = .8) +
+  geom_point(aes(x = 97.9103, y = 23.9933), size = 5, 
+             colour = "cornflowerblue", pch = 15, alpha = .8) +
+  geom_point(aes(x = 94.3103, y = 24.2199), size = 5, 
+             colour = "cornflowerblue", pch = 15, alpha = .8) +
+  geom_point(aes(x = 99.8989, y = 20.4521), size = 5, 
+             colour = "cornflowerblue", pch = 15, alpha = .8) +
+  geom_point(aes(x = 98.4797285, y = 16.6952072), size = 5, 
+             colour = "cornflowerblue", pch = 15, alpha = .8) +
+  geom_point(aes(x = longitude, y = latitude, 
+              colour = inter_type, size = fatalities),
+             alpha = .4,
+             data = myanmar_acled) + 
+  # geom_point(aes(x = 92.5, y = 13), size = 5, 
+  #            colour = "goldenrod", pch = 15, alpha = .8) +
+  # geom_point(aes(x = 92.5, y = 12.9), size = 5, 
+  #            colour = "cornflowerblue", pch = 15, alpha = .8) +
+  scale_colour_manual(values = c("#E7298A",
+                                 "#D95F02", 
+                                 "#7570B3",
+                                 "#00AFBB",
+                                 "#E6AB02",
+                                 "#1B9E77",
+                                 "#666666")) + 
+  # scale_alpha_continuous(range = c(.1, .3), trans = "reverse") +
+  scale_size_continuous(range = c(.1, 7), breaks = c(0, 10, 50, 100, 150)) +
+  labs(size = "Fatalities", 
+       colour = "Interaction type", 
+       title = "Violent conflict in Myanmar after the 1 February 2021 coup", 
+       subtitle = "From 2021-02-01 to 2024-05-31, acleddata.com. The gold square is Naypyidaw, border crossings are blue, road network in khaki.") +
+  theme(legend.position = c(0.19, 0.12), 
+        plot.title = element_text(size = 28), 
+         plot.subtitle = element_text(size = 18), 
+        legend.text = element_text(size = 14), 
+        legend.title = element_text(size = 17), 
+        legend.key.width = unit(1.5, "cm"),
+        legend.key.height = unit(1, "cm"), 
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank()) + 
+  guides(
+    size = guide_legend(override.aes = list(alpha = 1)), 
+    colour = guide_legend(override.aes = list(alpha = 1, 
+                                              size = 3))
+  )
+
+ggsave(here("plots", "roads_conflict_new.png"), dpi = 300, height = 33.1, width = 17, units = "in")
+
+
+  
 ```
 
 
