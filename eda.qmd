@@ -169,6 +169,10 @@ The chunk below loads in the original data. I'm thinking that for reproducibilit
 ```{r raw-data, include=FALSE, message=FALSE, eval=FALSE}
 
 
+myanmar_raw <- read_csv(here(
+  "raw_data", "2021-02-01-2024-08-18-Myanmar.csv")) |>  
+  mutate(event_date = as.Date(event_date, "%d %B %Y"))
+
 ged241 <- readRDS(here("data", "ged241.rds"))
 
 acled <- rbind(
@@ -183,7 +187,7 @@ acled <- rbind(
   read_csv(here("raw_data", "2013-01-01-2024-05-25-Iran.csv"))
   ) |> 
   # filter(year >= 2014 & year < 2024) |> 
-  mutate(event_date = as.Date(event_date, "%d %B %Y"))
+  
 
 acled_country_list <- acled |>
   count(country, region, iso)
@@ -209,63 +213,84 @@ acled <- acled |>
 This is the process for making the .RDS
 
 ```{r}
+acled_cleaning <- function(tbl) {
+  
+  tbl |> 
+    mutate(event_date = as.Date(event_date, "%d %B %Y")) |> 
+    mutate(fatalities = as.numeric(fatalities)) |> 
+    mutate(
+      inter_type = interaction,
+      inter_type = recode_factor(
+        inter_type,
+        `10` = "SOLE	MILITARY ACTION",
+        `11` = "MILITARY VERSUS MILITARY",
+        `12` = "MILITARY VERSUS REBELS",
+        `13` = "MILITARY VERSUS POLITICAL MILITIA",
+        `14` = "MILITARY VERSUS COMMUNAL MILITIA",
+        `15` = "MILITARY VERSUS RIOTERS",
+        `16` = "MILITARY VERSUS PROTESTERS",
+        `17` = "MILITARY VERSUS CIVILIANS",
+        `18` = "MILITARY VERSUS OTHER",
+        `20` = "SOLE REBEL ACTION",
+        `22` = "REBELS VERSUS REBELS",
+        `23` = "REBELS	VERSUS POLITICAL MILIITA ",
+        `24` = "REBELS VERSUS COMMUNAL MILITIA",
+        `25` = "REBELS VERSUS RIOTERS",
+        `26` = "REBELS VERSUS PROTESTERS ",
+        `27` = "REBELS VERSUS CIVILIANS",
+        `28` = "REBELS VERSUS OTHERS",
+        `30` = "SOLE POLITICAL MILITIA ACTION",
+        `33` = "POLITICAL MILITIA VERSUS POLITICAL	MILITIA",
+        `34` = "POLITICAL MILITIA VERSUS COMMUNAL	MILITIA",
+        `35` = "POLITICAL MILITIA VERSUS RIOTERS",
+        `36` = "POLITICAL MILITIA VERSUS PROTESTERS",
+        `37` = "POLITICAL MILITIA VERSUS CIVILIANS",
+        `38` = "POLITICAL MILITIA VERSUS OTHERS",
+        `40` = "SOLE COMMUNAL MILITIA ACTION",
+        `44` = "COMMUNAL MILITIA VERSUS COMMUNAL MILITIA",
+        `45` = "COMMUNAL MILITIA VERSUS RIOTERS",
+        `46` = "COMMUNAL	MILITIA	VERSUS PROTESTERS ",
+        `47` = "COMMUNAL MILITIA VERSUS CIVILIANS",
+        `48` = "COMMUNAL MILITIA VERSUS OTHER",
+        `50` = "SOLE RIOTER ACTION",
+        `55` = "RIOTERS VERSUS RIOTERS",
+        `56` = "RIOTERS VERSUS PROTESTERS",
+        `57` = "RIOTERS VERSUS CIVILIANS",
+        `58` = "RIOTERS VERSUS OTHERS",
+        `60` = "SOLE PROTESTER ACTION",
+        `66` = "PROTESTERS VERSUS P<ROTESTERS",
+        `67` = "PROTESTERS VERSUS CIVILIANS",
+        `68` = "PROTESTERS VERSUS OTHER",
+        `78` = "OTHER ACTOR VERSUS CIVILIANS",
+        `70` = "SOLE CIVILIAN ACTION",
+        `80` = "SOLE OTHER ACTION"
+      ),
+      inter_type = 
+        tolower(str_trim(str_replace_all(inter_type, "[\\r\\n\\t]+", ""))))
+}
+```
+
+
+```{r eval=FALSE}
 
 acled_filtered <- acled |> 
   mutate(country = ifelse(country == "East Timor", "Timor-Leste", country), 
          country = ifelse(admin1 == "Hong Kong", "Hong Kong", country)) |> 
   filter(country %in% country_list) |> 
-  mutate(fatalities = parse_number(fatalities)) |> 
-  mutate(inter_type = interaction,
-         inter_type = recode_factor(inter_type,
-                             `10` = "SOLE	MILITARY ACTION",
-                             `11` = "MILITARY VERSUS MILITARY",
-                             `12` = "MILITARY VERSUS REBELS",
-                             `13` = "MILITARY VERSUS POLITICAL MILITIA",
-                             `14` = "MILITARY VERSUS COMMUNAL MILITIA",
-                             `15` = "MILITARY VERSUS RIOTERS",
-                             `16` = "MILITARY VERSUS PROTESTERS",
-                             `17` = "MILITARY VERSUS CIVILIANS",
-                             `18` = "MILITARY VERSUS OTHER",
-                             `20` = "SOLE REBEL ACTION",
-                             `22` = "REBELS VERSUS REBELS",
-                             `23` = "REBELS	VERSUS POLITICAL MILIITA ",
-                             `24` = "REBELS VERSUS COMMUNAL MILITIA",
-                             `25` = "REBELS VERSUS RIOTERS",
-                             `26` = "REBELS VERSUS PROTESTERS ",
-                             `27` = "REBELS VERSUS CIVILIANS",
-                             `28` = "REBELS VERSUS OTHERS",
-                             `30` = "SOLE POLITICAL MILITIA ACTION",
-                             `33` = "POLITICAL MILITIA VERSUS POLITICAL	MILITIA",
-                             `34` = "POLITICAL MILITIA VERSUS COMMUNAL	MILITIA",
-                             `35` = "POLITICAL MILITIA VERSUS RIOTERS",
-                             `36` = "POLITICAL MILITIA VERSUS PROTESTERS",
-                             `37` = "POLITICAL MILITIA VERSUS CIVILIANS",
-                             `38` = "POLITICAL MILITIA VERSUS OTHERS",
-                             `40` = "SOLE COMMUNAL MILITIA ACTION",
-                             `44` = "COMMUNAL MILITIA VERSUS COMMUNAL MILITIA",
-                             `45` = "COMMUNAL MILITIA VERSUS RIOTERS",
-                             `46` = "COMMUNAL	MILITIA	VERSUS PROTESTERS ",
-                             `47` = "COMMUNAL MILITIA VERSUS CIVILIANS",
-                             `48` = "COMMUNAL MILITIA VERSUS OTHER",
-                             `50` = "SOLE RIOTER ACTION",
-                             `55` = "RIOTERS VERSUS RIOTERS",
-                             `56` = "RIOTERS VERSUS PROTESTERS",
-                             `57` = "RIOTERS VERSUS CIVILIANS",
-                             `58` = "RIOTERS VERSUS OTHERS",
-                             `60` = "SOLE PROTESTER ACTION",
-                             `66` = "PROTESTERS VERSUS P<ROTESTERS",
-                             `67` = "PROTESTERS VERSUS CIVILIANS",
-                             `68` = "PROTESTERS VERSUS OTHER",
-                             `78` = "OTHER ACTOR VERSUS CIVILIANS",
-                             `70` = "SOLE CIVILIAN ACTION",
-                             `80` = "SOLE OTHER ACTION"), 
-         inter_type = tolower(str_trim(str_replace_all(inter_type, "[\\r\\n\\t]+", " "))))
+  acled_cleaning()
+
+myanmar_civil_war <- myanmar_raw |> 
+  acled_cleaning()
 ```
 
 ```{r eval=FALSE}
 acled_filtered |> write_rds(here("data", "acled_filtered.rds"), 
                             compress = c("gz"))
-<```
+
+myanmar_civil_war |> write_rds(here("data", "myanmar_civil_war.rds"), 
+                               compress = c("gz"))
+
+```
 
 
 
@@ -1870,6 +1895,11 @@ acled_filtered |>
 # Myanmar roads 
 
 ```{r}
+myanmar_civil_war <- readRDS(here("data", "myanmar_civil_war.rds"))
+```
+
+
+```{r}
 road_shape <-  st_read(here("data", 
                             "mmr_rdsl_mimu_250k", 
                             "mmr_rdsl_mimu_250k.shp")) |>   
@@ -1877,18 +1907,34 @@ road_shape <-  st_read(here("data",
   #filter(Road_Type %in% c("Main"))
 
 ```
+```{r}
+roads_conflict_data |> 
+  count(event_type)
+```
+```{r}
+roads_conflict_data |> glimpse()
+```
 
 ```{r}
-myanmar_acled <- acled_filtered |> 
-  filter(country == "Myanmar" & event_date >= "2021-02-01" & 
-           sub_event_type != "Peaceful protest") |>
+ggplot() +
+   geom_sf(data = road_shape |> filter(Road_Type %out% c("Main")), 
+          linewidth = .1, colour = "blue", alpha = .3) +
+  geom_sf(data = road_shape |> filter(Road_Type %in% c("Main")), 
+          linewidth = 1, colour = "blue", alpha = .6)
+ 
+
+road_sh
+```
+
+
+```{r warning = FALSE}
+roads_conflict_data <- myanmar_civil_war |> 
+  filter(sub_event_type != "Peaceful protest") |>
   filter(inter_type != "sole protester action") |>  
   mutate(inter_type = fct_lump(inter_type, 6), 
          inter_type = str_to_title(inter_type),
          inter_type = str_replace_all(inter_type, "Versus", "versus")) |>
-  mutate(diffdays = as.numeric(difftime(event_date, as.Date("2021-02-01"),
-                                        unit = "days")), 
-         inter_type = fct_relevel(
+  mutate(inter_type = fct_relevel(
            inter_type,
            c("Military versus Civilians", 
              "Military versus Political Militia", 
@@ -1898,9 +1944,245 @@ myanmar_acled <- acled_filtered |>
              "Sole Political Militia Action", 
              "Other")
          )) |> 
-  arrange(inter_type) 
+  arrange(inter_type) |> 
+  mutate(year_label = as.character(year))
+
+lashio_captured<- tribble(~x, ~y, ~year,
+                          97.7525, 22.9665, 2024, 
+                          92.6, 28, 2024
+                          )
+
+lashio_captured_text <- tribble(~x, ~y, ~year, ~label,
+                                93.05, 28, 2024, "Captured")
+
+roads_conflict_black_red <- roads_conflict_data |> 
+  ggplot() +
+  geom_sf(size = .1, colour = "grey50", fill = "black", data = myanmar_adm1) + 
+  geom_sf(data = road_shape |> filter(Road_Type %out% c("Main")), 
+          linewidth = .15, colour = "blue", alpha = .73) +
+  geom_sf(data = road_shape |> filter(Road_Type %in% c("Main")), 
+          linewidth = .8, colour = "blue", alpha = .6) +
+  # Naypyitaw
+  geom_point(aes(x = 96.0785, y = 19.7633), size = 4, 
+             colour = "goldenrod2", pch = 18, alpha = .8) +
+  # Mandalay
+  geom_point(aes(x = 96.0891, y = 21.9588), size = 2.5, 
+             colour = "goldenrod2", pch = 15, alpha = .8) +
+  # Yangon
+  geom_point(aes(x = 96.1735, y = 16.8409), size = 2.5,
+             colour = "goldenrod2", pch = 15, alpha = .8) +
+  # Sittwe
+  geom_point(aes(x = 92.8677, y = 20.1528), size = 2.5,
+             colour = "goldenrod2", pch = 15, alpha = .8) +
+  # Lashio
+  geom_point(aes(x = 97.7525, y = 22.9665), size = 2.5,
+             colour = "goldenrod2", pch = 15, alpha = .8) +
+  # Mawlaymine
+  geom_point(aes(x = 97.6440, y = 16.4543), size = 2.5,
+             colour = "goldenrod2", pch = 15, alpha = .8) +
+  # Taungoo
+  geom_point(aes(x = 96.4344, y = 18.9398), size = 2.5,
+             colour = "goldenrod2", pch = 15, alpha = .8) +
+  # Pathein
+  geom_point(aes(x = 94.7381, y = 16.7754), size = 2.5,
+             colour = "goldenrod2", pch = 15, alpha = .8) +
+  # Myitkyina
+  geom_point(aes(x = 97.3939, y = 25.3868), size = 2.5,
+             colour = "goldenrod2", pch = 15, alpha = .8) +
+  # Putao
+  geom_point(aes(x = 97.4057, y = 27.3182), size = 2.5,
+             colour = "goldenrod2", pch = 15, alpha = .8) +
+  # Muse
+  geom_point(aes(x = 97.9103, y = 23.9933), size = 2.5, 
+             colour = "cornflowerblue", pch = 15, alpha = .8) +
+  # Tamu
+  geom_point(aes(x = 94.3103, y = 24.2199), size = 2.5, 
+             colour = "cornflowerblue", pch = 15, alpha = .8) +
+  # Tachileik
+  geom_point(aes(x = 99.8989, y = 20.4521), size = 2.5, 
+             colour = "cornflowerblue", pch = 15, alpha = .8) +
+  # Myawaddy
+  geom_point(aes(x = 98.4797285, y = 16.6952072), size = 2.5, 
+             colour = "cornflowerblue", pch = 15, alpha = .8) +
+  # Lashio captured
+  geom_point(aes(x = x, y = y), size = 2.5, data = lashio_captured,
+             colour = "mediumseagreen", pch = 15) +
+  geom_text(aes(x = x, y = y, label = label), 
+            size = 2, data = lashio_captured_text, 
+             colour = "seashell") +
+  # cities and border crossing legends
+  geom_point(aes(x = 92.6, y = 28.3), size = 2.5, 
+             colour = "goldenrod2", pch = 15, alpha = .8) +
+  geom_point(aes(x = 92.6, y = 28.15), size = 2.5, 
+             colour = "cornflowerblue", pch = 15, alpha = .8) +
+  geom_text(aes(x = 93.096, y = 28.3), size = 2, 
+             colour = "seashell", label = "Military command") +
+  geom_text(aes(x = 93.066, y = 28.15), size = 2, 
+             colour = "seashell", label = "Border crossing") +
+  # plotting the actual data
+  geom_point(aes(x = longitude, y = latitude , size = fatalities),
+             alpha = .2, colour = "red") + 
+  geom_text(aes(label = year_label), size = 9.5, 
+           x = 93.041879, y = 28.735721, colour = "#FFFEEE") + 
+  scale_size_continuous(range = c(.1, 4), breaks = c(0, 10, 50, 100, 150)) +
+  facet_wrap(~year, ncol = 4)  +
+  labs(size = "Fatalities", 
+       colour = "Event type", 
+       title = "Violent conflict in Myanmar since the 1 February 2021 coup, plotted over road network",
+       subtitle = "From 2021-02-01 to 2024-08-18. Road network in blue. Sources: acleddata.com, UN MIMU.") +
+  theme_void() + 
+  theme(plot.background = element_rect(fill = "black", colour = NA),
+        legend.position = c(0.03, 0.13), 
+        plot.title = element_text(size = 30, colour = "goldenrod"), 
+        plot.subtitle = element_text(size = 20, colour = "goldenrod"), 
+        strip.text = element_blank(), 
+        legend.text = element_text(size = 12, colour = "#FFF5EE"), 
+        legend.title = element_text(size = 15, colour = "#FFF5EE"), 
+        legend.key.width = unit(1, "cm"),
+        legend.key.height = unit(.8, "cm"), 
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(), 
+        plot.margin = unit(c(5, 3, 0, 3), "cm")) + 
+  guides(
+    
+    # colour = guide_legend(override.aes = list(alpha = 1, size = 3)),
+    size = guide_legend(override.aes = list(alpha = 1, colour = "grey")) 
+  ) 
+
+# ggsave(here("plots", "roads_conflict_black_red_vertical.png"), dpi = 300,
+# height = 33.1,width = 23.4, units = "in")
+
+ggsave(here("plots", "roads_conflict_black_red.png"), dpi = 300, width = 33.1, 
+       height = 23.4, units = "in")
+
+```
+
+```{r fig.height=1.3, fig.width=8}
+
+fatalities_over_time <- myanmar_civil_war |> 
+  filter(event_date <= "2024-07-31") |> 
+  mutate(month = floor_date(event_date, unit = "month")) |> 
+  group_by(month) |> 
+  summarise(fatalities = sum(fatalities)) |> 
+  ggplot(aes(x = month, y = fatalities)) + 
+  geom_line(colour = "#F85441", alpha = .5) +
+  scale_y_continuous(labels = comma) + 
+  theme_minimal() + 
+  labs(x = "", y = "", 
+       title = "Fatalities by month") + 
+  theme(plot.background = element_rect(fill = "black", colour = NA), 
+        panel.grid = element_line(linewidth = .1, colour = "grey30"),
+        axis.text.y = element_text(size = 8, colour = "#F85441"),
+        axis.text.x = element_text(size = 10, colour = "#F85441"),
+        plot.title = element_text(colour = "#F85441", size = 10))
+  
+```
 
 
+
+```{r warning=FALSE}
+roads_combined <- roads_conflict_black_red + 
+  inset_element(fatalities_over_time, 
+                0.03, 0.805, .38, .87, 
+                align_to = "full")
+
+ggsave(here("plots", "roads_conflict_black_red_combined.png"), dpi = 300, width = 33.1, 
+       height = 23.4, units = "in")
+
+```
+
+
+
+
+```{r warning=FALSE}
+roads_conflict_black_events_alt <- roads_conflict_data |> 
+  ggplot() +
+  geom_sf(size = .1, colour = "grey50", fill = "black", data = myanmar_adm1) + 
+  geom_sf(data = road_shape |> filter(Road_Type %out% c("Main")), 
+          linewidth = .1, colour = "blue", alpha = .6) +
+  geom_sf(data = road_shape |> filter(Road_Type %in% c("Main")), 
+          linewidth = 1, colour = "blue", alpha = .6) +
+  geom_point(aes(x = 96.0785, y = 19.7633), size = 4, 
+             colour = "palegoldenrod", pch = 15, alpha = .8) +
+  geom_point(aes(x = 96.0891, y = 21.9588), size = 4, 
+             colour = "palegoldenrod", pch = 15, alpha = .8) +
+  geom_point(aes(x = 96.1735, y = 16.8409), size = 4,
+             colour = "palegoldenrod", pch = 15, alpha = .8) +
+  geom_point(aes(x = 97.9103, y = 23.9933), size = 4, 
+             colour = "slategray1", pch = 15, alpha = .8) +
+  geom_point(aes(x = 94.3103, y = 24.2199), size = 4, 
+             colour = "slategray1", pch = 15, alpha = .8) +
+  geom_point(aes(x = 99.8989, y = 20.4521), size = 4, 
+             colour = "slategray1", pch = 15, alpha = .8) +
+  geom_point(aes(x = 98.4797285, y = 16.6952072), size = 4, 
+             colour = "slategray1", pch = 15, alpha = .8) +
+  # cities and border crossing legends
+  geom_point(aes(x = 92.6, y = 28.3), size = 2.5, 
+             colour = "palegoldenrod", pch = 15, alpha = .8) +
+  geom_point(aes(x = 92.6, y = 28.15), size = 2.5, 
+             colour = "slategray1", pch = 15, alpha = .8) +
+  geom_text(aes(x = 92.945, y = 28.3), size = 2, 
+             colour = "seashell", label = "Major city") +
+  geom_text(aes(x = 93.066, y = 28.15), size = 2, 
+             colour = "seashell", label = "Border crossing") +
+  # plotting the actual data
+  geom_point(aes(x = longitude, y = latitude , size = fatalities, 
+                 colour = 
+                   fct_relevel(
+                     event_type,
+                     c("Battles", 
+                       "Explosions/Remote violence", 
+                       "Strategic developments", 
+                       "Violence against civilians", 
+                       "Protests", 
+                       "Riots"))),
+             alpha = .5) + 
+  geom_text(aes(label = year_label), size = 9.5, 
+           x = 93.041879, y = 28.735721, colour = "seashell") + 
+  scale_colour_manual(values = c("Violence against civilians" = "#377eb8",
+                                "Battles" = "#e41a1c", 
+                                "Strategic developments" = "#984ea3",
+                                "Riots" = "#00AFBB",
+                                "Explosions/Remote violence" = "#E6AB02",
+                                "Protests" = "#4daf4a")) + 
+  scale_alpha_continuous(range = c(.1, .3), trans = "reverse") +
+  scale_size_continuous(range = c(.1, 4), breaks = c(0, 10, 50, 100, 150)) +
+  facet_wrap(~year, ncol = 4)  +
+  labs(size = "Fatalities", 
+       colour = "Event type", 
+       title = "Violent conflict in Myanmar since the 1 February 2021 coup, plotted over road network",
+       subtitle = "From 2021-02-01 to 2024-08-18, acleddata.com. Road network in blue.") +
+  theme_void() + 
+  theme(plot.background = element_rect(fill = "black", colour = NA),
+        legend.position = c(0.03, 0.13), 
+        plot.title = element_text(size = 30, colour = "slategray2"), 
+        plot.subtitle = element_text(size = 20, colour = "slategray2"), 
+        strip.text = element_blank(), 
+        legend.text = element_text(size = 12, colour = "seashell"), 
+        legend.title = element_text(size = 15, colour = "seashell"), 
+        legend.key.width = unit(1, "cm"),
+        legend.key.height = unit(.8, "cm"), 
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(), 
+        plot.margin = unit(c(5, 3, 0, 3), "cm")) + 
+  guides(
+    
+    colour = guide_legend(override.aes = list(alpha = 1, size = 3)),
+    size = guide_legend(override.aes = list(alpha = 1, colour = "grey")))
+
+
+ggsave(here("plots", "roads_conflict_black_events_alt.png"), dpi = 300, width = 33.1, 
+       height = 23.4, units = "in")
+```
+
+```{r}
+show_col(pal_brewer(palette = "Dark2"))
+
+brewer_pal(palette = 3) |> show_col()
+```
+
+
+```{r}
 roads_conflict_myanmar_new  <- ggplot() +
   geom_sf(size = .1, colour = "grey90", fill = "grey95", data = myanmar_adm1) + 
   geom_sf(data = road_shape, size = 1.5, colour = "lemonchiffon3") +
@@ -1924,13 +2206,15 @@ roads_conflict_myanmar_new  <- ggplot() +
   #            colour = "goldenrod", pch = 15, alpha = .8) +
   # geom_point(aes(x = 92.5, y = 12.9), size = 5, 
   #            colour = "cornflowerblue", pch = 15, alpha = .8) +
-  scale_colour_manual(values = c("#E7298A",
-                                 "#D95F02", 
-                                 "#7570B3",
+  
+  
+  scale_colour_manual(values = c("Military versus Civilians" = "#E7298A",
+                                 "Military versus Political Militia" = "#D95F02", 
+                                 "Military versus Rebels" = "#7570B3",
                                  "#00AFBB",
                                  "#E6AB02",
                                  "#1B9E77",
-                                 "#666666")) + 
+                                 "Other" = "#666666")) + 
   # scale_alpha_continuous(range = c(.1, .3), trans = "reverse") +
   scale_size_continuous(range = c(.1, 7), breaks = c(0, 10, 50, 100, 150)) +
   labs(size = "Fatalities", 
@@ -1950,16 +2234,7 @@ roads_conflict_myanmar_new  <- ggplot() +
     size = guide_legend(override.aes = list(alpha = 1)), 
     colour = guide_legend(override.aes = list(alpha = 1, 
                                               size = 3))
-  )
-
-ggsave(here("plots", "roads_conflict_new.png"), dpi = 300, height = 33.1, width = 17, units = "in")
-
-
-  
 ```
-
-
-
 
 
 
