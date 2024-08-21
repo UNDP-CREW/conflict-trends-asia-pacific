@@ -56,3 +56,19 @@ ged_png |>
 scale_x_date(d
              ate_breaks = "2 years", 
              date_label = "%Y")
+
+lashio_captured<- tribble(~x, ~y, ~year,
+                          97.7525, 22.9665, 2024, 
+                          92.6, 28, 2024
+)
+
+lashio_captured_text <- tribble(~x, ~y, ~year, ~label,
+                                92.9, 28, 2024, "Captured")
+# Lashio captured
+geom_point(aes(x = x, y = y), size = 2.5, data = lashio_captured,
+           colour = "mediumseagreen", pch = 15) +
+  geom_text(aes(x = x, y = y), 
+            label = "Captured",
+            size = 2, data = lashio_captured_text, 
+            face = "bold", 
+            colour = "seashell") +

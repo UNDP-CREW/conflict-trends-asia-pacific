@@ -30,6 +30,7 @@ library(patchwork)
 `%out%` <- Negate(`%in%`)
 options(scipen = 100)
 theme_set(theme_light())
+sf_use_s2(TRUE)
 
 tmap_options(check.and.fix = TRUE)
 
@@ -728,7 +729,6 @@ Thailand seems to have clamped down firmly on unrest. Two clear humps, one in ea
 
 It appears that Philippine civil society has suffered massive setbacks. Is Philippine society returning to "normal"? Are political killings the norm for the Philippines? After all, this is not only the country of the EDSA revolution but also the Marcos dictatorship. 
 
-### Philippines 
 
 Even as the Duterte drug war ceased operation and killings began to drop off sharply, the flavour of political unrest in the Philippines seems deeply changed, with civil society suffering massive setbacks. The streamgraph below is of the past five years in the Philippines: 
 
@@ -830,6 +830,9 @@ bangladesh_admin2 <- acled_filtered |>
   arrange(desc(fatalities)) |> 
   head(20) |> pull(admin2)
 ```
+
+> fatalities per event
+
 
 ### Fatalities by event
 
@@ -933,6 +936,50 @@ afpakir_buffer |> glimpse()
 ```
 
 ```{r}
+acled_filtered |> 
+  filter(longitude <= 100.845844 & longitude >= 90.011490 & 
+           latitude <= 30.202127 & latitude >= 9.351312) |> 
+  mutate()
+```
+
+
+```{r}
+afpak_map <- function(tbl){
+  
+  tbl |> 
+    filter(!is.na(longitude) & !is.na(latitude) & 
+             country %in% c("Afghanistan", "Pakistan")) |> 
+    filter(sub_event_type %out% c("Agreement", 
+                                  "Change to group/activity", 
+                                  "Headquarters or base established", 
+                                  "Non-violent transfer of territory")) |> 
+    mutate(quarter = floor_date(event_date, "quarter")) %>%
+    select(event_id_cnty, event_type, longitude, latitude, event_type, quarter, fatalities) |>
+    ggplot() +
+    geom_sf(data = world_shape, size = .7, colour = "gold", fill = "black") + 
+    geom_sf(data = afpak_buffer, colour = "black", fill = "white", alpha = .09) +
+    coord_sf(xlim = c(60.41, 75.02), 
+             ylim = c(25.04, 39.11)) +
+    geom_point(aes(x = 73.0363, y = 33.6995), colour = "cornflowerblue", pch = 15) +
+    geom_point(aes(x = 69.2075, y = 34.5553), colour = "cornflowerblue", pch = 15) +
+    geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
+    theme(plot.background = element_rect(fill = "black", colour = "black"),
+          panel.background = element_rect(fill = "black", colour = "black"),
+          rect = element_rect(fill = "NA"),
+          legend.text = element_text(colour = "white"), 
+          title = element_text(colour = "white"),
+          legend.title = element_text(face = "bold"),
+          plot.caption = element_text(hjust = 0.2)) + 
+    guides(colour = guide_legend(override.aes = list(alpha = 1)), 
+           size = guide_legend(override.aes = list(alpha = 1, 
+                                                   colour = "grey"))) + 
+    theme_void() + 
+    labs(colour = "", size = "Fatalities")
+}
+```
+
+
+```{r}
 afpakir <- acled_filtered |> 
   filter(country %in% c("Afghanistan", "Pakistan", "Iran")) |> 
   select(event_id_cnty, event_date, country, latitude, longitude, )
@@ -1031,30 +1078,142 @@ tha_shape <- world_shape |>
 lao_shape <- world_shape |> 
   filter(name == "Lao People's Democratic Republic")
 
-afpak_border <- st_intersection(afg_shape, pak_shape, model = "closed")
+chn_shape <- world_shape |> 
+  filter(name == "China")
 
-afir_border <- st_intersection(afg_shape, irn_shape, model = "closed")
+mmr_ind_buffer <- st_intersection(mmr_shape, ind_shape, model = "closed") |> 
+  st_buffer(dist = 100000, endCapStyle = "FLAT")
 
-afir_border |> st_buffer(dist = 100)
+mmr_bng_buffer <- st_intersection(mmr_shape, bng_shape, model = "closed") |> 
+  st_buffer(dist = 100000, endCapStyle = "FLAT")
 
-afir_buffer <- afir_border |> st_buffer(dist = 100000, endCapStyle = "FLAT")
+mmr_tha_buffer <- st_intersection(mmr_shape, tha_shape, model = "closed") |> 
+  st_buffer(dist = 100000, endCapStyle = "FLAT")
 
-afpak_buffer <- afpak_border |> st_buffer(dist = 100000, endCapStyle = "FLAT")
+mmr_lao_buffer <- st_intersection(mmr_shape, lao_shape, model = "closed") |> 
+  st_buffer(dist = 100000, endCapStyle = "FLAT")
 
-afpakir_buffer <- afpak_buffer |> 
-  st_union(afir_buffer) |> 
-  rename(iso_3166_2 = iso_3166_1_.1.1) |> 
-  st_make_valid()
+mmr_chn_buffer <- st_intersection(mmr_shape, chn_shape, model = "closed") |> 
+  st_buffer(dist = 100000, endCapStyle = "FLAT")
 
-st_write(afpakir_buffer, here("data", "afpakir_buffer", "afpakir_buffer.shp"))
-st_write(afpak_buffer, here("data", "afpak_buffer", "afpak_buffer.shp"))
-st_write(afir_buffer, here("data", "afir_buffer", "afir_buffer.shp"))
+mmr_buffer_list <- dplyr::bind_rows(list(mmr_ind_buffer, 
+                                         mmr_chn_buffer,
+                                         mmr_bng_buffer,
+                                         mmr_lao_buffer,
+                                         mmr_tha_buffer))
 
-afpakir_buffer |> glimpse()
+mmr_buffer <- st_union(mmr_buffer_list)
 
-world_shape |> st_drop_geometry() |> filter(str_detect(name, "Lao"))
+st_write(mmr_buffer, here("data", "mmr_buffer", "mmr_buffer.shp"))
+
 ```
 
+
+```{r}
+acled_afpak <- acled_filtered |> 
+  filter(!is.na(longitude) & !is.na(latitude) & 
+             country %in% c("Afghanistan", "Pakistan")) |> 
+  left_join(acled_filtered |>
+              filter(!is.na(longitude) & !is.na(latitude) &
+                       country %in% c("Afghanistan", "Pakistan")) |>
+              st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |>
+              st_intersection(afpak_buffer) |>
+              st_drop_geometry() |>
+              mutate(afpak_border = "Afpak border") |>
+              select(event_id_cnty, afpak_border), 
+            by = "event_id_cnty") |> 
+  mutate(afpak_border = ifelse(is.na(afpak_border), "Non-border", afpak_border))
+```
+
+```{r}
+acled_mmr <- acled_filtered |> 
+  filter(!is.na(longitude) & !is.na(latitude) & 
+             country %in% 
+           c("Myanmar", "China", "Bangladesh", "Laos", "Thailand")) |>
+  left_join(
+    acled_filtered |> 
+      filter(!is.na(longitude) & !is.na(latitude) & 
+             country %in% 
+           c("Myanmar", "China", "Bangladesh", "Laos", "Thailand")) |>
+      st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |>
+              st_intersection(mmr_buffer) |>
+              st_make_valid() |> 
+              st_drop_geometry() |>
+              mutate(mmr_border = "Myanmar border") |>
+              select(event_id_cnty, mmr_border), 
+            by = "event_id_cnty") |> 
+  mutate(mmr_border = ifelse(is.na(mmr_border), "Non-border", mmr_border))
+```
+
+```{r}
+acled_filtered |> 
+      filter(!is.na(longitude) & !is.na(latitude) & 
+             country %in% 
+           c("Myanmar", "China", "Bangladesh", "Laos", "Thailand")) |>
+      st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |>
+              st_intersection(mmr_buffer) |> |> 
+              st_drop_geometry() |>
+              mutate(mmr_border = "Myanmar border") |>
+              select(event_id_cnty, mmr_border)
+
+sf_use_s2(FALSE)
+```
+
+```{r}
+acled_filtered |> count(sub_event_type)
+```
+
+Cross-border violence isn't really a thing in the Myanmar conflict. In fact, all of their neighbours are striving to keep the conflict contained. 
+
+There is, however, the notable exception of 
+
+```{r}
+ggplot() + 
+  geom_point(data = acled_mmr |> 
+               filter(sub_event_type != "Peaceful protest") |> 
+               filter(year %in% c(2021, 2022, 2023, 2024)) |> 
+               filter(country == "Myanmar" | mmr_border == "Myanmar border"),
+             aes(x = longitude, y = latitude, colour = event_type), 
+             size = .5, 
+             alpha = .2) + 
+  geom_sf(data = mmr_shape, colour = "blue", alpha = .7, fill = NA) + 
+  geom_sf(data = mmr_buffer, alpha = .1, fill = "grey", colour = NA)
+```
+
+```{r}
+acled_filtered |> 
+  filter(year > 2013 & year <= 2025) |> 
+  mutate(country = fct_relevel(country, most_events_list), 
+         protests = ifelse(str_detect(sub_event_type, "Protest|protest"), 
+                           "protests", "non-protests"))|> 
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
+  group_by(country, quarter, protests) |> 
+  summarise(events = n(), 
+            fatalities = sum(fatalities), 
+            .groups = "drop") |> 
+  ggplot(aes(x = quarter, y = events, colour = protests)) + 
+  geom_smooth(aes(group = protests), se = FALSE) + 
+  scale_x_date(date_labels = "%Y", 
+               date_breaks = "2 years") + 
+  facet_wrap(~ country, 
+             scales = "free_y") +
+  scale_y_continuous(labels = comma) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1), 
+        strip.background = element_rect(fill = "black")) + 
+  labs(title = "Political incident fatalities by country in descending order, 2014-2023", 
+       subtitle = "Black are the actual events, the trend line is in pink",
+       y = "Annual fatalities", 
+       x = "") +  
+  theme(legend.position = "top")
+```
+
+
+```{r}
+acled_mmr |> 
+  group_by(country, mmr_border) |> 
+  summarise(events = n(), 
+            fatalities = sum(fatalities))
+```
 
 
 ### Protest and non-protest events 
@@ -1947,19 +2106,12 @@ roads_conflict_data <- myanmar_civil_war |>
   arrange(inter_type) |> 
   mutate(year_label = as.character(year))
 
-lashio_captured<- tribble(~x, ~y, ~year,
-                          97.7525, 22.9665, 2024, 
-                          92.6, 28, 2024
-                          )
-
-lashio_captured_text <- tribble(~x, ~y, ~year, ~label,
-                                93.05, 28, 2024, "Captured")
 
 roads_conflict_black_red <- roads_conflict_data |> 
   ggplot() +
   geom_sf(size = .1, colour = "grey50", fill = "black", data = myanmar_adm1) + 
   geom_sf(data = road_shape |> filter(Road_Type %out% c("Main")), 
-          linewidth = .15, colour = "blue", alpha = .73) +
+          linewidth = .12, colour = "blue", alpha = .9) +
   geom_sf(data = road_shape |> filter(Road_Type %in% c("Main")), 
           linewidth = .8, colour = "blue", alpha = .6) +
   # Naypyitaw
@@ -1970,6 +2122,9 @@ roads_conflict_black_red <- roads_conflict_data |>
              colour = "goldenrod2", pch = 15, alpha = .8) +
   # Yangon
   geom_point(aes(x = 96.1735, y = 16.8409), size = 2.5,
+             colour = "goldenrod2", pch = 15, alpha = .8) +
+  # Monywa
+  geom_point(aes(x = 95.1536, y = 22.1216), size = 2.5,
              colour = "goldenrod2", pch = 15, alpha = .8) +
   # Sittwe
   geom_point(aes(x = 92.8677, y = 20.1528), size = 2.5,
@@ -1989,7 +2144,7 @@ roads_conflict_black_red <- roads_conflict_data |>
   # Myitkyina
   geom_point(aes(x = 97.3939, y = 25.3868), size = 2.5,
              colour = "goldenrod2", pch = 15, alpha = .8) +
-  # Putao
+  # Puta-o
   geom_point(aes(x = 97.4057, y = 27.3182), size = 2.5,
              colour = "goldenrod2", pch = 15, alpha = .8) +
   # Muse
@@ -2004,18 +2159,12 @@ roads_conflict_black_red <- roads_conflict_data |>
   # Myawaddy
   geom_point(aes(x = 98.4797285, y = 16.6952072), size = 2.5, 
              colour = "cornflowerblue", pch = 15, alpha = .8) +
-  # Lashio captured
-  geom_point(aes(x = x, y = y), size = 2.5, data = lashio_captured,
-             colour = "mediumseagreen", pch = 15) +
-  geom_text(aes(x = x, y = y, label = label), 
-            size = 2, data = lashio_captured_text, 
-             colour = "seashell") +
-  # cities and border crossing legends
+    # cities and border crossing legends
   geom_point(aes(x = 92.6, y = 28.3), size = 2.5, 
              colour = "goldenrod2", pch = 15, alpha = .8) +
   geom_point(aes(x = 92.6, y = 28.15), size = 2.5, 
              colour = "cornflowerblue", pch = 15, alpha = .8) +
-  geom_text(aes(x = 93.096, y = 28.3), size = 2, 
+  geom_text(aes(x = 93.098, y = 28.3), size = 2, 
              colour = "seashell", label = "Military command") +
   geom_text(aes(x = 93.066, y = 28.15), size = 2, 
              colour = "seashell", label = "Border crossing") +
@@ -2023,7 +2172,7 @@ roads_conflict_black_red <- roads_conflict_data |>
   geom_point(aes(x = longitude, y = latitude , size = fatalities),
              alpha = .2, colour = "red") + 
   geom_text(aes(label = year_label), size = 9.5, 
-           x = 93.041879, y = 28.735721, colour = "#FFFEEE") + 
+           x = 93.041879, y = 28.735721, colour = "#FFF5EE") + 
   scale_size_continuous(range = c(.1, 4), breaks = c(0, 10, 50, 100, 150)) +
   facet_wrap(~year, ncol = 4)  +
   labs(size = "Fatalities", 
@@ -2049,7 +2198,7 @@ roads_conflict_black_red <- roads_conflict_data |>
     size = guide_legend(override.aes = list(alpha = 1, colour = "grey")) 
   ) 
 
-# ggsave(here("plots", "roads_conflict_black_red_vertical.png"), dpi = 300,
+ # ggsave(here("plots", "roads_conflict_black_red_vertical.png"), dpi = 300,
 # height = 33.1,width = 23.4, units = "in")
 
 ggsave(here("plots", "roads_conflict_black_red.png"), dpi = 300, width = 33.1, 

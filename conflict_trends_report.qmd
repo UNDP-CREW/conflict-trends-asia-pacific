@@ -567,10 +567,6 @@ Immediately apparent is how comparable the levels of conflict in and outside of 
 ```{r}
 
 acled_afpak <- acled_filtered |> 
-  filter(sub_event_type %out% c("Agreement", 
-                                  "Change to group/activity", 
-                                  "Headquarters or base established", 
-                                  "Non-violent transfer of territory")) |>
   filter(!is.na(longitude) & !is.na(latitude) & 
              country %in% c("Afghanistan", "Pakistan")) |> 
   left_join(acled_filtered |>
