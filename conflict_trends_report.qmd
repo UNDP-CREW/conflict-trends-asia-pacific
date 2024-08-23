@@ -69,15 +69,13 @@ population <- read_csv(here("data", "wdi_all_countries_population.csv")) |>
            country %out% c("Data from database: World Development Indicators", 
                            "Last Updated: 06/28/2024"))
 
-# population_estimates <- crossing(country = population$country, year = 2000:2023) |> 
-#   left_join(population |> 
-#               select(year, country, population), 
-#             by = c("year", "country")) |> 
-#   group_by(country) %>% 
-#   fill(population, .direction = "updown") 
+population_estimates <- crossing(country = population$country, year = 2000:2024) |> 
+ left_join(population |> 
+             select(year, country, population), 
+           by = c("year", "country")) |> 
+ group_by(country) %>% 
+ fill(population, .direction = "updown") 
 
-
-population_estimates <- read_csv(here("data", "population_estimates.csv"))
 
 world_shape <- st_read(here("data", 
                             "world-administrative-boundaries", 
@@ -129,7 +127,11 @@ afpak_buffer <- st_read(here("data", "afpak_buffer", "afpak_buffer.shp")) |> st_
 
 afir_buffer <- st_read(here("data", "afir_buffer", "afir_buffer.shp")) |> st_as_sf()
 
+mmr_buffer <- st_read(here("data", "mmr_buffer", "mmr_buffer.shp"))
 
+acled_mmr <- readRDS(here("data", "acled_mmr.rds"))
+
+mmr_shape <- world_shape |> filter(str_detect(name, "Myanmar")) 
 
 ```
 
@@ -331,11 +333,45 @@ acled_filtered |>
        x = "")
 ```
 
+
+### Protests vs non-protests 
+
+```{r fig.height=7}
+acled_filtered |> 
+  filter(year > 2013 & year <= 2025 & country != "Singapore") |> 
+  mutate(country = fct_relevel(country, most_events_list), 
+         protests = ifelse(str_detect(sub_event_type, "Protest|protest"), 
+                           "protests", "non-protests"))|> 
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
+  group_by(country, quarter, protests) |> 
+  summarise(events = n(), 
+            fatalities = sum(fatalities), 
+            .groups = "drop") |> 
+  ggplot(aes(x = quarter, y = events, colour = protests)) + 
+  geom_smooth(aes(group = protests), se = FALSE) + 
+  scale_x_date(date_labels = "%Y", 
+               date_breaks = "2 years") + 
+  facet_wrap(~ country, 
+             scales = "free_y") +
+  scale_y_continuous(labels = comma) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1), 
+        strip.background = element_rect(fill = "black")) + 
+  labs(title = "Protests vs all other types of political conflict", 
+       y = "Number of events", 
+       x = "", 
+       colour = "") +  
+  theme(legend.position = "top", 
+        legend.margin=margin(c(1,5,5,5))) + 
+  guides(colour = guide_legend(nrow = 1))
+```
+
+
 <br><br><br>
 
 ## Event type 
 
 ### Streamgraphs
+
 
 ```{r}
 event_stream_data <- acled_filtered |> 
@@ -389,6 +425,8 @@ From the chart below, sorted in order of number of **fatalities** from political
 
 event_stream_data |> 
   mutate(country = fct_relevel(country, most_fatalities_list)) |>
+  filter(country %out% c("Australia", "Japan", "Mongolia", 
+                         "New Zealand", "Vanuatu", "Timor-Leste")) |> 
   filter(fatalities > 0) |>
   event_type_streamgraph(fatalities) + 
   labs(title = "Number of fatalities by event type over time", 
@@ -416,10 +454,14 @@ Political incidents in Bangladesh (as we will explore in later section) had been
 
 <br> 
 
+
+
+
 ```{r fig.height = 6.5}
 
 event_stream_data |> 
   mutate(country = fct_relevel(country, most_events_list)) |>
+  filter(country %out% c("Bhutan")) |> 
   event_type_streamgraph(events) + 
   labs(title = "Number of political incidents by event type over time", 
        y = "Events by quarter")
@@ -459,9 +501,57 @@ With the victory of the Taliban, Afghanistan has seen a 96% reduction on conflic
 
 <br><br><br>
 
-## Cross-border
+## Per Capita
 
-### Afghanistan-Pakistan
+```{r}
+event_fatalities_pc <- event_stream_data |>
+  mutate(year = year(quarter)) |> 
+  group_by(country, year) |> 
+  summarise(events = sum(events), 
+            fatalities = sum(fatalities), 
+            .groups = "drop") |> 
+  left_join(
+    population_estimates, 
+    by = c("country", "year")
+  ) |> 
+  mutate(events_100k = events / population * 100000, 
+         fatalities_100k = fatalities / population * 100000) |> 
+  group_by(country) |> 
+  summarise(events_100k = mean(events_100k), 
+            fatalities_100k = mean(fatalities_100k), 
+            events = sum(events), 
+            fatalities = sum(fatalities)) |> 
+  arrange(desc(events_100k))
+
+
+```
+
+
+```{r}
+event_fatalities_pc |> 
+  ggplot(aes(x = events_100k + 0.01, 
+             y = fatalities_100k + 0.01)) + 
+  geom_point(aes(colour = fatalities, 
+                 size = events), alpha = .8) + 
+  # geom_text(aes(label = country), vjust = "inward") +
+  ggrepel::geom_text_repel(aes(label = country), size = 3, vjust = "inward") +
+  scale_x_log10(breaks=c(0.01, 0.11, 1.01, 2.01, 5.01), labels=\(x) x-0.01) + 
+  scale_y_log10(breaks=c(0.01, 0.11, 1.01, 10.01), labels=\(x) x-0.01) +
+  scale_size_continuous(range = c(.1, 6), trans = "log10") + 
+  scale_colour_viridis_c(option = "magma", direction = -1, end = .85) + 
+  labs(x = "Events per 100k", 
+       y = "Fatalities per 100k", 
+       title = "Events (magnitude) and fatalities (lethality) per 100,000 persons")
+```
+
+<br> 
+
+It makes sense to cluster the data -- there seems to be a "repressive" cluster (China, Laos, North Korea, Singapore, Vietnam). We have "functioning democracies" of various stripes, at the bottom-left corner. We have war-torn countries -- Myanmar and Afghanistan. 
+
+And finally, we have the "main sequence" running diagonally down the middle. 
+
+
+## Afghanistan-Pakistan
 
 The plots below show the past 5 years of conflict data in Afghanistan and Pakistan, with the border area between the two marked in a light grey.
 
@@ -634,7 +724,74 @@ acled_afpak |>
 
 <br><br><br>
 
-### Myanmar-Bangladesh
+## Myanmar
+
+Unlike in Afghanistan and Pakistan, cross-border conflict seems to be largely contained within Myanmar, likely because the militaries of the surrounding countries are much strong than the Tatmadaw as well as the prevalence of ethnic armed organisations in the border areas. 
+
+There are exceptions, firstly, Cox's Bazaar, which seemed to have an elevated level of political violence even before the first military crackdown on the Rohingya. Admittedly, there had been Rohingya refugees in Cox's Bazaar prior to the commencement of ACLED's data collection. 
+
+Also Chiang Rai, though a cursory inspection of the data indicates political violence mostly driven by domestic issues, like the cyclical election violence in Thailand and calls for reform to the monarchy. 
+
+
+
+<br>
+
+
+
+```{r}
+
+acled_mmr |> 
+  mutate(pre_post_coup = case_when(
+    event_date < "2016-10-09" ~ "Pre-Genocide",
+                  event_date >= "2016-10-09" & event_date < "2021-02-01" ~ 
+      "Post-Genocide, pre-Coup", 
+                  event_date >= "2021-02-01" ~ "Post-Coup"), 
+    pre_post_coup = fct_relevel(pre_post_coup, 
+                                c("Pre-Genocide", 
+                                  "Post-Genocide, pre-Coup", 
+                                  "Post-Coup"))) |>
+  filter(event_type != "Peaceful protest") |> 
+  filter(country == "Myanmar" | mmr_border == "Myanmar border") |> 
+  ggplot() + 
+  geom_sf(data = mmr_shape, colour = "blue", alpha = .7, fill = NA) + 
+  geom_sf(data = mmr_buffer, alpha = .1, fill = "grey", colour = NA) + 
+  geom_point(aes(x = longitude, y = latitude, colour = event_type), 
+             size = .5, 
+             alpha = .2) + 
+  facet_wrap(~ pre_post_coup) + 
+  guides(colour = guide_legend(override.aes = list(alpha = 1, size = 2))) + 
+  labs(colour = "Event type") + 
+  theme(strip.background = element_rect(fill = "black"))
+
+ 
+
+```
+
+
+<br>
+
+Within Myanmar itself, with reference to the maps below, the fighting seems to have come to a very strategic juncture. At first glance, the fighting seems to have lessened in 2024, but with reference to the line graph of monthly fatalities, we know that the fighting has instead been concentrated. 
+
+The reasons behind this are various. Firstly, for those not well-versed in the Myanmar civil war, the rebels and the National Unity Government have sought to isolate military garrisons from each other, giving to the very linear pattern of violence as both sides contest for control over the road network. The rebels do this to try and limit the military's ability to project power into rebel-held terrain, with the final intention of pushing towards Naypyitaw, the gold diamond in the middle of the country maps below. 
+
+The plots below are of the Myanmar civil war, with events (red) plotted over the road network (blue). Gold squares are Tatamadaw regional commands and the blue squares are border crossings. 
+
+<br>
+
+
+
+![](./plots/roads_conflict_black_red_combined.png)
+
+
+<br>
+
+In the northeast, Lashio has fallen (and Muse has lost five out of ten border gates with China) and in the southeast Loikaw has fallen (not a major command post, but a city at a critical junction) and so has the crossing with Chiang Mai at Myawady. In the northwest, we see intensification of conflict in Rakhine in preparation for the battle of Sittwe. With the northern garrisons isolated and cut off, the main front moves towards the concurrent invasion of Mandalay.
+
+The military no longer has the ability to push beyond the positions they already hold. If the rebels can defeat the Mandalay garrison, the Tatmadaw will have lost.  
+
+<br><br><br>
+
+## Bangladesh
 
 Conflict in most parts of Bangladesh has been on the decline, with the notable exceptions of Dhaka and Cox's Bazar (where the Rohingya fled). 
 
@@ -702,7 +859,94 @@ genocide_t_test <- bangladesh_summary |>
 
 
 
+## Actors 
+
+```{r fig.height=7, warning = FALSE}
+
+acled_actors <- rbind(
+  acled_filtered |>
+    select(actor = actor1, actor_code = inter1, event_id_cnty),
+  acled_filtered |> 
+    select(actor = actor2, actor_code = inter2, event_id_cnty)) |> 
+  filter(!is.na(actor)) |> 
+  left_join(acled_filtered |> 
+              select(event_id_cnty, interaction, event_date, country, fatalities), 
+            by = c("event_id_cnty"),
+            relationship = "many-to-many") |> 
+  mutate(event_date = as.Date(event_date, "%d %B %Y"), 
+         year = year(event_date), 
+         actor_code = as.double(actor_code)) |> 
+  left_join(actor_codes_acled |>
+              rename(actor_description = description), 
+            by = "actor_code", 
+            relationship = "many-to-many") 
+
+actor_order_list <- acled_actors |> 
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |>
+  group_by(country, quarter) |> 
+  summarise(actors = n_distinct(actor), .groups = "drop") |> 
+  group_by(country) |> 
+  summarise(actors = mean(actors)) |> 
+  arrange(desc(actors)) |> 
+  pull(country)
 
 
+acled_actors |>
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
+  group_by(country, actor_description, quarter) |> 
+  summarise(actors = n_distinct(actor), 
+            fatalities = sum(fatalities, na.rm = TRUE), 
+            events = n_distinct(event_id_cnty), 
+            .groups = "drop") |> 
+  mutate(country = fct_relevel(country, actor_order_list),
+         actor_description = fct_relevel(actor_description, 
+                                         c("Civilians", 
+                                           "State Forces",  
+                                           "Protesters",
+                                           "Identity Militias", 
+                                           "Rebel Groups", 
+                                           "Rioters", 
+                                           "Political Militias", 
+                                           "Other Forces"
+                                           ))) |> 
+  filter(country != "Singapore") |> 
+  ggplot(aes(x = quarter, y = actors, fill = actor_description)) + 
+  # geom_smooth(linewidth = .72, alpha = .7, se = FALSE, method = "loess") + 
+  geom_area() + 
+  scale_fill_manual(
+    values = c(
+      "Civilians" = "#D2E935FF",
+      "State Forces" = "#7A0403FF",
+      "Protesters" = "#4AC16DFF",
+      "Identity Militias" = "#4777EFFF",
+      "Rebel Groups" = "#FE9B2DFF",
+      "Rioters" = "#1BD0D5FF",
+      "Political Militias" = "#D3436EFF",
+      "Other Forces" = "grey30")) +
+  # scale_y_log10() +
+  facet_wrap(~ country, scales = "free_y") + 
+  theme(legend.position = "top",
+          legend.key.width = unit(.5, "cm"), 
+          legend.key.height = unit(.5, "cm"), 
+          legend.text = element_text(size = 7),
+          axis.title.y = element_text(size = 7), 
+          axis.text.y = element_text(size = 7), 
+          axis.text.x = element_text(size = 7, angle = 30, hjust = 1, vjust = 1), 
+          strip.text = element_text(size = 12), 
+          strip.background = element_rect(fill = "black")) + 
+    guides(fill = guide_legend(nrow = 1, 
+                                 override.aes = 
+                                   list(linewidth = 2))) + 
+  labs(fill = "", 
+       title = "Number of active conflict actors by type", 
+       y = "")
+
+
+
+```
+
+<br><br><br>
+
+## Words 
 
 

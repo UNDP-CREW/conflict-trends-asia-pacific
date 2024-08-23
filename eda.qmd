@@ -45,13 +45,12 @@ tmap_options(check.and.fix = TRUE)
 From UNDP 
 
 ```{r}
-country_list <- c("Afghanistan", "Bangladesh", "Bhutan", "Cambodia", 
-                  "China", "Fiji", "Hong Kong", "India", "Indonesia", 
-                  "Iran", "North Korea", "South Korea", "Laos", 
-                  "Malaysia", "Maldives", "Mongolia", "Myanmar", 
-                  "Nepal", "Pakistan", "Papua New Guinea", "Philippines", 
-                  "Solomon Islands", "Sri Lanka", "Thailand", "Timor-Leste", 
-                  "Vanuatu", "Vietnam")
+country_list <- c("Australia", "Afghanistan", "Bangladesh", "Bhutan", "Cambodia", 
+                  "China", "Fiji", "Hong Kong", "Japan", "India", "Indonesia", 
+                  "Iran",  "Laos", "Malaysia", "Maldives", "Mongolia", "Myanmar", 
+                  "Nepal", "New Zealand",  "North Korea", "Pakistan", "Papua New Guinea",
+                  "Philippines", "Singapore", "Solomon Islands", "South Korea", 
+                  "Sri Lanka", "Thailand", "Timor-Leste", "Vanuatu", "Vietnam")
 
 population <- read_csv(here("data", "wdi_all_countries_population.csv")) |> 
   janitor::clean_names()  %>%
@@ -85,7 +84,12 @@ population <- read_csv(here("data", "wdi_all_countries_population.csv")) |>
 #   fill(population, .direction = "updown") 
 
 
-population_estimates <- read_csv(here("data", "population_estimates.csv"))
+population_estimates <- crossing(country = population$country, year = 2000:2023) |> 
+  left_join(population |> 
+              select(year, country, population), 
+            by = c("year", "country")) |> 
+  group_by(country) %>% 
+  fill(population, .direction = "updown")
 
 world_shape <- st_read(here("data", 
                             "world-administrative-boundaries", 
@@ -105,7 +109,6 @@ country_iso3 <- world_shape |>
 acled_filtered <- readRDS(here("data", "acled_filtered.rds"))
 
 most_events_list <- acled_filtered |> 
-  filter(event_type != "Protest") |> 
   group_by(country) |> 
   summarise(events = n()) |> 
   arrange(desc(events)) |> 
@@ -129,6 +132,7 @@ actor_codes_acled <- tribble(
   7, "Civilians", 
   8, "Other Forces"
 )
+
 
 ```
 
@@ -186,7 +190,7 @@ acled <- rbind(
   # Countries outside of the above regions but still in UNDP region
   read_csv(here("raw_data", "2013-01-01-2024-05-25-Afghanistan.csv")),
   read_csv(here("raw_data", "2013-01-01-2024-05-25-Iran.csv"))
-  ) |> 
+  )
   # filter(year >= 2014 & year < 2024) |> 
   
 
@@ -278,11 +282,18 @@ acled_filtered <- acled |>
   mutate(country = ifelse(country == "East Timor", "Timor-Leste", country), 
          country = ifelse(admin1 == "Hong Kong", "Hong Kong", country)) |> 
   filter(country %in% country_list) |> 
-  acled_cleaning()
+  acled_cleaning() |> 
+  filter(!is.na(fatalities))
 
+```
+
+
+```{r eval=FALSE}
 myanmar_civil_war <- myanmar_raw |> 
   acled_cleaning()
 ```
+
+
 
 ```{r eval=FALSE}
 acled_filtered |> write_rds(here("data", "acled_filtered.rds"), 
@@ -306,7 +317,7 @@ myanmar_civil_war |> write_rds(here("data", "myanmar_civil_war.rds"),
 
 ```{r warning = FALSE}
 acled_filtered |> 
-  filter(year > 2013 & <= 2025) |> 
+  filter(year > 2013 & year <= 2025) |> 
   filter(country %in% most_fatalities_list) |>  
   group_by(country, year) |> 
   summarise(fatalities = sum(fatalities, na.rm = TRUE), 
@@ -331,7 +342,11 @@ acled_filtered |>
        x = "")
 
 acled_filtered |> glimpse()
+
+
 ```
+
+
 ```{r}
 acled_filtered |> count(event_date)
 ```
@@ -411,7 +426,9 @@ acled_filtered |>
 current
 
 ```{r}
-acled_filtered |> 
+acled_filtered |>
+  mutate(is_protest = ifelse(str_detect(sub_event_type, "protest|Protest"),
+                             "yes", "no")) |> 
   filter(is_protest == "no") |> 
   group_by(country, year) |> 
   summarise(count = n(), .groups = "drop") |>
@@ -536,7 +553,9 @@ From the chart below, sorted in order of number of fatalities from political inc
 
 event_stream_data |> 
   mutate(country = fct_relevel(country, most_fatalities_list)) |>
-  filter(fatalities > 0) |>
+  filter(fatalities > 0 & country %out% 
+           c("Australia", "Japan", "Mongolia", 
+             "New Zealand", "Vanuatu", "Timor-Leste")) |>
   event_type_streamgraph(fatalities) + 
   labs(title = "Number of fatalities by event type over time", 
        subtitle = "Data from 2014-01-01 to 2024-05-31, but not all countries had full coverage during this period",
@@ -583,8 +602,6 @@ event_fatalities_pc <- event_stream_data |>
   summarise(events = sum(events), 
             fatalities = sum(fatalities), 
             .groups = "drop") |> 
-  mutate(year = year(quarter), 
-         year = ifelse(year == 2024, 2023, year)) |> 
   left_join(
     population_estimates, 
     by = c("country", "year")
@@ -602,28 +619,22 @@ event_fatalities_pc <- event_stream_data |>
 
 ```
 
+
 ```{r}
-df |> 
-  select(-events, -fatalities) |> 
-  ggplot(aes(x = events_100k, y = fatalities_100k)) + 
-  geom_point() + 
-  geom_text(aes(label = country), vjust = "inward") +
-  # ggrepel::geom_text_repel(aes(label = country), vjust = "inward") +
-  scale_x_log10() + 
-  scale_y_log10()
-```
-
-
-```{r fig.height=7}
 event_fatalities_pc |> 
-  ggplot(aes(x = events_100k, y = fatalities_100k)) + 
-  geom_point(aes(size = fatalities, 
-                 colour = events), alpha = .8) + 
-  geom_text(aes(label = country), vjust = "inward") +
-  # ggrepel::geom_text_repel(aes(label = country), size = 3) +
-  scale_x_log10() + 
-  scale_y_log10()
+  ggplot(aes(x = events_100k + 0.01, 
+             y = fatalities_100k + 0.01)) + 
+  geom_point(aes(colour = fatalities, 
+                 size = events), alpha = .8) + 
+  # geom_text(aes(label = country), vjust = "inward") +
+  ggrepel::geom_text_repel(aes(label = country), size = 3, vjust = "inward") +
+  scale_x_log10(breaks=c(0.01, 0.11, 1.01, 2.01, 5.01), labels=\(x) x-0.01) + 
+  scale_y_log10(breaks=c(0.01, 0.11, 1.01, 10.01), labels=\(x) x-0.01) +
+  scale_size_continuous(range = c(.1, 6), trans = "log10") + 
+  scale_colour_viridis_c(option = "magma", direction = -1, end = .85)
 ```
+
+> Try clustering the data. 
 
 
 
@@ -1060,6 +1071,25 @@ tm_shape(afpak_buffer) +
               alpha = .5)
 ```
 
+#### ACLED Afpakir
+
+```{r}
+acled_afpak <- acled_filtered |> 
+  filter(!is.na(longitude) & !is.na(latitude) & 
+             country %in% c("Afghanistan", "Pakistan")) |> 
+  left_join(acled_filtered |>
+              filter(!is.na(longitude) & !is.na(latitude) &
+                       country %in% c("Afghanistan", "Pakistan")) |>
+              st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |>
+              st_intersection(afpak_buffer) |>
+              st_drop_geometry() |>
+              mutate(afpak_border = "Afpak border") |>
+              select(event_id_cnty, afpak_border), 
+            by = "event_id_cnty") |> 
+  mutate(afpak_border = ifelse(is.na(afpak_border), "Non-border", afpak_border))
+```
+
+
 ### MMR-BNG-THA-IND
 
 ```{r}
@@ -1109,23 +1139,15 @@ st_write(mmr_buffer, here("data", "mmr_buffer", "mmr_buffer.shp"))
 ```
 
 
-```{r}
-acled_afpak <- acled_filtered |> 
-  filter(!is.na(longitude) & !is.na(latitude) & 
-             country %in% c("Afghanistan", "Pakistan")) |> 
-  left_join(acled_filtered |>
-              filter(!is.na(longitude) & !is.na(latitude) &
-                       country %in% c("Afghanistan", "Pakistan")) |>
-              st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |>
-              st_intersection(afpak_buffer) |>
-              st_drop_geometry() |>
-              mutate(afpak_border = "Afpak border") |>
-              select(event_id_cnty, afpak_border), 
-            by = "event_id_cnty") |> 
-  mutate(afpak_border = ifelse(is.na(afpak_border), "Non-border", afpak_border))
-```
+
+#### ACLED MMR
 
 ```{r}
+
+mmr_buffer <- st_read(here("data", "mmr_buffer", "mmr_buffer.shp"))
+
+sf_use_s2(FALSE)
+
 acled_mmr <- acled_filtered |> 
   filter(!is.na(longitude) & !is.na(latitude) & 
              country %in% 
@@ -1143,6 +1165,9 @@ acled_mmr <- acled_filtered |>
               select(event_id_cnty, mmr_border), 
             by = "event_id_cnty") |> 
   mutate(mmr_border = ifelse(is.na(mmr_border), "Non-border", mmr_border))
+
+acled_mmr |> write_rds(here("data", "acled_mmr.rds"), 
+                       compress = c("gz"))
 ```
 
 ```{r}
@@ -1171,7 +1196,6 @@ There is, however, the notable exception of
 ggplot() + 
   geom_point(data = acled_mmr |> 
                filter(sub_event_type != "Peaceful protest") |> 
-               filter(year %in% c(2021, 2022, 2023, 2024)) |> 
                filter(country == "Myanmar" | mmr_border == "Myanmar border"),
              aes(x = longitude, y = latitude, colour = event_type), 
              size = .5, 
@@ -1180,9 +1204,12 @@ ggplot() +
   geom_sf(data = mmr_buffer, alpha = .1, fill = "grey", colour = NA)
 ```
 
+### Protest and non-protest events 
+
+
 ```{r}
 acled_filtered |> 
-  filter(year > 2013 & year <= 2025) |> 
+  filter(year > 2013 & year <= 2025 & country != "Bhutan") |> 
   mutate(country = fct_relevel(country, most_events_list), 
          protests = ifelse(str_detect(sub_event_type, "Protest|protest"), 
                            "protests", "non-protests"))|> 
@@ -1200,11 +1227,13 @@ acled_filtered |>
   scale_y_continuous(labels = comma) +
   theme(axis.text.x = element_text(angle = 60, hjust = 1), 
         strip.background = element_rect(fill = "black")) + 
-  labs(title = "Political incident fatalities by country in descending order, 2014-2023", 
-       subtitle = "Black are the actual events, the trend line is in pink",
-       y = "Annual fatalities", 
-       x = "") +  
-  theme(legend.position = "top")
+  labs(title = "Protests vs all other types of political conflict", 
+       y = "Number of events", 
+       x = "", 
+       colour = "") +  
+  theme(legend.position = "top", 
+        legend.margin=margin(c(1,5,5,5))) + 
+  guides(colour = guide_legend(nrow = 1))
 ```
 
 
@@ -1216,7 +1245,7 @@ acled_mmr |>
 ```
 
 
-### Protest and non-protest events 
+
 
 Maybe have two, one for protest events and one for non-protest events
 And then have the axes be fatalities per capita and events per capita, with the sizes indicating fatalities 
@@ -1230,7 +1259,8 @@ acled_filtered |>
 
 ```{r fig.height=7}
 acled_filtered |> 
-  filter(is_protest == "no") |> 
+  mutate(is_protest = ifelse(str_detect(sub_event_type, "protest|Protest"),
+                             "yes", "no")) |> 
   group_by(country, is_protest, year) |> 
   summarise(fatalities = sum(fatalities, na.rm = TRUE),
             events = n(), 
@@ -1263,7 +1293,8 @@ acled_filtered |>
 
 ```{r fig.height=7}
 acled_filtered |> 
-  filter(is_protest == "yes") |> 
+  mutate(is_protest = ifelse(str_detect(sub_event_type, "protest|Protest"),
+                             "yes", "no")) |> 
   group_by(country, is_protest, year) |> 
   summarise(fatalities = sum(fatalities, na.rm = TRUE),
             events = n(), 
@@ -1830,11 +1861,11 @@ acled_actors <- rbind(
 ```
 
 ```{r}
-viridis_pal(option = "turbo")(8) |> show_col()
+viridis_pal(option = "magma")(8) |> show_col()
 ```
 
 ```{r}
-viridis_pal(option = "turbo")(8)
+viridis_pal(option = "magma")(8)
 ```
 
 
@@ -1846,6 +1877,24 @@ acled_actors |> count(actor_description)
 
 
 ```{r fig.height=7, warning = FALSE}
+
+acled_actors <- rbind(
+  acled_filtered |>
+    select(actor = actor1, actor_code = inter1, event_id_cnty),
+  acled_filtered |> 
+    select(actor = actor2, actor_code = inter2, event_id_cnty)) |> 
+  filter(!is.na(actor)) |> 
+  left_join(acled_filtered |> 
+              select(event_id_cnty, interaction, event_date, country, fatalities), 
+            by = c("event_id_cnty"),
+            relationship = "many-to-many") |> 
+  mutate(event_date = as.Date(event_date, "%d %B %Y"), 
+         year = year(event_date), 
+         actor_code = as.double(actor_code)) |> 
+  left_join(actor_codes_acled |>
+              rename(actor_description = description), 
+            by = "actor_code", 
+            relationship = "many-to-many") 
 
 actor_order_list <- acled_actors |> 
   mutate(quarter = floor_date(event_date, unit = "quarter")) |>
@@ -2054,40 +2103,15 @@ acled_filtered |>
 # Myanmar roads 
 
 ```{r}
-myanmar_civil_war <- readRDS(here("data", "myanmar_civil_war.rds"))
-```
+# myanmar_civil_war <- readRDS(here("data", "myanmar_civil_war.rds"))
 
-
-```{r}
 road_shape <-  st_read(here("data", 
                             "mmr_rdsl_mimu_250k", 
                             "mmr_rdsl_mimu_250k.shp")) |>   
   st_as_sf()  
   #filter(Road_Type %in% c("Main"))
 
-```
-```{r}
-roads_conflict_data |> 
-  count(event_type)
-```
-```{r}
-roads_conflict_data |> glimpse()
-```
-
-```{r}
-ggplot() +
-   geom_sf(data = road_shape |> filter(Road_Type %out% c("Main")), 
-          linewidth = .1, colour = "blue", alpha = .3) +
-  geom_sf(data = road_shape |> filter(Road_Type %in% c("Main")), 
-          linewidth = 1, colour = "blue", alpha = .6)
- 
-
-road_sh
-```
-
-
-```{r warning = FALSE}
-roads_conflict_data <- myanmar_civil_war |> 
+roads_conflict_data <- readRDS(here("data", "myanmar_civil_war.rds")) |> 
   filter(sub_event_type != "Peaceful protest") |>
   filter(inter_type != "sole protester action") |>  
   mutate(inter_type = fct_lump(inter_type, 6), 
@@ -2106,10 +2130,25 @@ roads_conflict_data <- myanmar_civil_war |>
   arrange(inter_type) |> 
   mutate(year_label = as.character(year))
 
+myanmar_adm1 <- st_read(here("data", 
+                             "mmr_polbnda2_adm1_mimu_250k", 
+                             "mmr_polbnda2_adm1_mimu_250k.shp"), 
+                        quiet = TRUE) |> 
+  rename(state = ST, 
+        admin1_pcode = ST_PCODE) |> st_as_sf()
+
+```
+
+
+
+
+```{r warning = FALSE}
+
+
 
 roads_conflict_black_red <- roads_conflict_data |> 
   ggplot() +
-  geom_sf(size = .1, colour = "grey50", fill = "black", data = myanmar_adm1) + 
+  geom_sf(size = .1, colour = "grey30", fill = "", data = myanmar_adm1) + 
   geom_sf(data = road_shape |> filter(Road_Type %out% c("Main")), 
           linewidth = .12, colour = "blue", alpha = .9) +
   geom_sf(data = road_shape |> filter(Road_Type %in% c("Main")), 
@@ -2170,17 +2209,17 @@ roads_conflict_black_red <- roads_conflict_data |>
              colour = "seashell", label = "Border crossing") +
   # plotting the actual data
   geom_point(aes(x = longitude, y = latitude , size = fatalities),
-             alpha = .2, colour = "red") + 
+             alpha = .5, colour = "red") + 
   geom_text(aes(label = year_label), size = 9.5, 
            x = 93.041879, y = 28.735721, colour = "#FFF5EE") + 
-  scale_size_continuous(range = c(.1, 4), breaks = c(0, 10, 50, 100, 150)) +
+  scale_size_continuous(range = c(.1, 6), breaks = c(0, 10, 50, 100, 150)) +
   facet_wrap(~year, ncol = 4)  +
   labs(size = "Fatalities", 
        colour = "Event type", 
        title = "Violent conflict in Myanmar since the 1 February 2021 coup, plotted over road network",
        subtitle = "From 2021-02-01 to 2024-08-18. Road network in blue. Sources: acleddata.com, UN MIMU.") +
   theme_void() + 
-  theme(plot.background = element_rect(fill = "black", colour = NA),
+  theme(plot.background = element_rect(fill = "grey60", colour = NA),
         legend.position = c(0.03, 0.13), 
         plot.title = element_text(size = 30, colour = "goldenrod"), 
         plot.subtitle = element_text(size = 20, colour = "goldenrod"), 
@@ -2201,7 +2240,7 @@ roads_conflict_black_red <- roads_conflict_data |>
  # ggsave(here("plots", "roads_conflict_black_red_vertical.png"), dpi = 300,
 # height = 33.1,width = 23.4, units = "in")
 
-ggsave(here("plots", "roads_conflict_black_red.png"), dpi = 300, width = 33.1, 
+ggsave(here("plots", "roads_conflict_grey_red.png"), dpi = 300, width = 35.8268, 
        height = 23.4, units = "in")
 
 ```
@@ -2384,6 +2423,9 @@ roads_conflict_myanmar_new  <- ggplot() +
     colour = guide_legend(override.aes = list(alpha = 1, 
                                               size = 3))
 ```
+
+# Words
+
 
 
 
