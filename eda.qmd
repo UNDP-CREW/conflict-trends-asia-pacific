@@ -26,6 +26,13 @@ library(tmap)
 library(ggstream)
 library(ggnewscale)
 library(patchwork)
+library(kableExtra)
+library(ggrepel)
+library(ggcorrplot)
+library(tidytext)
+library(ggtext)
+library(widyr)
+library(ggraph)
 
 `%out%` <- Negate(`%in%`)
 options(scipen = 100)
@@ -227,7 +234,7 @@ acled_cleaning <- function(tbl) {
       inter_type = interaction,
       inter_type = recode_factor(
         inter_type,
-        `10` = "SOLE	MILITARY ACTION",
+        `10` = "SOLE MILITARY ACTION",
         `11` = "MILITARY VERSUS MILITARY",
         `12` = "MILITARY VERSUS REBELS",
         `13` = "MILITARY VERSUS POLITICAL MILITIA",
@@ -238,14 +245,14 @@ acled_cleaning <- function(tbl) {
         `18` = "MILITARY VERSUS OTHER",
         `20` = "SOLE REBEL ACTION",
         `22` = "REBELS VERSUS REBELS",
-        `23` = "REBELS	VERSUS POLITICAL MILIITA ",
+        `23` = "REBELS VERSUS POLITICAL MILIITA ",
         `24` = "REBELS VERSUS COMMUNAL MILITIA",
         `25` = "REBELS VERSUS RIOTERS",
         `26` = "REBELS VERSUS PROTESTERS ",
         `27` = "REBELS VERSUS CIVILIANS",
         `28` = "REBELS VERSUS OTHERS",
         `30` = "SOLE POLITICAL MILITIA ACTION",
-        `33` = "POLITICAL MILITIA VERSUS POLITICAL	MILITIA",
+        `33` = "POLITICAL MILITIA VERSUS POLITICAL MILITIA",
         `34` = "POLITICAL MILITIA VERSUS COMMUNAL	MILITIA",
         `35` = "POLITICAL MILITIA VERSUS RIOTERS",
         `36` = "POLITICAL MILITIA VERSUS PROTESTERS",
@@ -254,7 +261,7 @@ acled_cleaning <- function(tbl) {
         `40` = "SOLE COMMUNAL MILITIA ACTION",
         `44` = "COMMUNAL MILITIA VERSUS COMMUNAL MILITIA",
         `45` = "COMMUNAL MILITIA VERSUS RIOTERS",
-        `46` = "COMMUNAL	MILITIA	VERSUS PROTESTERS ",
+        `46` = "COMMUNAL MILITIA VERSUS PROTESTERS ",
         `47` = "COMMUNAL MILITIA VERSUS CIVILIANS",
         `48` = "COMMUNAL MILITIA VERSUS OTHER",
         `50` = "SOLE RIOTER ACTION",
@@ -263,7 +270,7 @@ acled_cleaning <- function(tbl) {
         `57` = "RIOTERS VERSUS CIVILIANS",
         `58` = "RIOTERS VERSUS OTHERS",
         `60` = "SOLE PROTESTER ACTION",
-        `66` = "PROTESTERS VERSUS P<ROTESTERS",
+        `66` = "PROTESTERS VERSUS PROTESTERS",
         `67` = "PROTESTERS VERSUS CIVILIANS",
         `68` = "PROTESTERS VERSUS OTHER",
         `78` = "OTHER ACTOR VERSUS CIVILIANS",
@@ -2421,7 +2428,7 @@ roads_conflict_myanmar_new  <- ggplot() +
   guides(
     size = guide_legend(override.aes = list(alpha = 1)), 
     colour = guide_legend(override.aes = list(alpha = 1, 
-                                              size = 3))
+                                              size = 3)))
 ```
 
 # Words
@@ -2430,6 +2437,240 @@ roads_conflict_myanmar_new  <- ggplot() +
 
 
 
+# Protests 
 
+```{r}
+acled_filtered |> 
+  filter(year > 2013 & year <= 2025) |> 
+  mutate(protests = ifelse(str_detect(sub_event_type, "Protest|protest"), 
+                           "protests", "non-protests"))|> 
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
+  mutate(covid = ifelse(event_date >= "2020-03-11", "post-covid", "pre-covid"), 
+         covid = fct_relevel(covid, c("pre-covid", "post-covid"))) |> 
+  group_by(quarter, protests, covid) |> 
+  summarise(events = n(), 
+            fatalities = sum(fatalities), 
+            .groups = "drop") |> 
+  ggplot(aes(x = quarter, y = events, colour = protests)) +
+  geom_vline(xintercept = as.numeric(as.Date("2020-03-11")), lwd = .5, 
+             linetype = "dashed") + 
+  geom_smooth(aes(group = protests), se = FALSE) + 
+  scale_x_date(date_labels = "%Y", 
+               date_breaks = "2 years") + 
+  scale_y_continuous(labels = comma) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1), 
+        strip.background = element_rect(fill = "black")) + 
+  labs(title = "Protests vs all other types of political conflict", 
+       y = "Number of events", 
+       x = "", 
+       colour = "") +  
+  theme(legend.position = "top", 
+        legend.margin=margin(c(1,5,5,5))) + 
+  guides(colour = guide_legend(nrow = 1))
+```
+
+
+```{r}
+
+admin2_list <- acled_filtered |> 
+  filter(!is.na(admin2)) |> 
+  distinct(admin2) |> 
+  mutate(admin2 = str_to_lower(admin2), 
+         admin1 = str_replace_all(admin2, 
+                                  "city|special|south |north |west |east|-north|\\-", 
+                                  ""), 
+         admin1 = str_trim(admin2)) |> 
+  filter(!is.na(admin2))
+  pull(admin2)
+
+admin1_list <- acled_filtered |> 
+  filter(!is.na(admin1)) |> 
+  distinct(admin1) |> 
+  mutate(admin1 = str_to_lower(admin1), 
+         admin1 = str_replace_all(admin1, 
+                                  "city|special|south |north |west |east|-north|\\-", 
+                                  ""), 
+         admin1 = str_trim(admin1)) |> 
+  pull(admin1)
+
+
+acled_protests <- acled_filtered |> 
+  filter(event_type == "Protests") |> 
+  mutate(covid = ifelse(event_date >= "2020-03-11", "post-covid", "pre-covid")) |> 
+  select(event_id_cnty, notes, covid) |> 
+  unnest_tokens(word, notes) |> 
+  anti_join(stop_words, by = "word") |> 
+  filter(str_detect(word, "[a-z]")) |> 
+  filter(word %out% c("township", "district", "city", "village", 
+                      "region", "town", "coded", "province", "county", 
+                      "pradesh", "prefecture", "regency", 
+                      "barangay", "upazila", "hong", "kong", "phnom", "penh", 
+                      "january", "february", "march", "april", "may",
+                        "june", "july", "august", "september", "october",
+                        "november", "december", 
+                        "report") & 
+           word %out% admin2_list & 
+           word %out% admin1_list) |> 
+  mutate(stem = SnowballC::wordStem(word, language = "porter")) 
+  
+```
+
+```{r}
+swc <- paste(c("township", "district", "city", "village", 
+                      "region", "town", "coded", "province", "county", 
+                      "pradesh", "prefecture", "regency", 
+                      "barangay", "upazila", "hong", "kong", "phnom", "penh", 
+                      "january", "february", "march", "april", "may",
+                        "june", "july", "august", "september", "october",
+                        "november", "december", 
+                        "report"), 
+             collapse = "|")
+
+
+acled_protests_bigrams <- acled_filtered |> 
+  filter(event_type == "Protests") |> 
+  mutate(covid = ifelse(event_date >= "2020-03-11", "post-covid", "pre-covid")) |> 
+  select(event_id_cnty, notes, covid) |> 
+  unnest_tokens(bigram, notes, token = "ngrams", n = 2) |> 
+  filter(str_detect(bigram, "[a-z]")) |>
+  filter(!str_detect(bigram, swc))
+
+
+```
+
+```{r}
+
+set.seed(233)
+
+protest_network_graph <- acled_protests |>
+  filter(covid == "post-covid") |> 
+  distinct(event_id_cnty, word) |> 
+  add_count(word) |> 
+  filter(n >= 400) |> 
+  pairwise_cor(word, event_id_cnty, sort = TRUE) |> 
+  filter(correlation >= .2) |> 
+  igraph::graph_from_data_frame() %>% 
+  ggraph(layout = "kk") + 
+  geom_edge_link(aes(alpha = correlation), colour = "blue", check_overlap = TRUE) + 
+  scale_alpha_continuous(range = c(0.05, 0.2)) +
+  geom_node_point(colour = "blue", alpha = 0.3, size = .5) +
+  geom_node_text(aes(label = name), size = 1.5) + 
+  theme(legend.position = "none")
+
+protest_network_graph <- acled_protests |>
+  filter(covid == "post-covid") |> 
+  distinct(event_id_cnty, word) |> 
+  add_count(word) |> 
+  filter(n >= 450) |>  
+  pairwise_cor(word, event_id_cnty, sort = TRUE) |> 
+  filter(correlation >= .2) |> 
+  left_join(
+    acled_protests |> 
+      filter(covid == "post-covid") |> 
+      distinct(event_id_cnty, word) |> 
+      add_count(word) |> 
+      filter(n >= 450) |> 
+      pairwise_count(word, event_id_cnty, sort = TRUE), 
+    by = c("item1", "item2")
+  ) |> 
+  igraph::graph_from_data_frame() %>% 
+  ggraph(layout = "fr") + 
+  geom_edge_link(aes(alpha = correlation, 
+                     edge_width = n), colour = "blue", check_overlap = TRUE) + 
+  scale_edge_width_continuous(range = c(.1, 3), trans = "log10") +
+  scale_alpha_continuous(range = c(0.01, 0.1)) +
+  geom_node_point(colour = "blue", alpha = 0.2, size = .5) +
+  geom_node_text(aes(label = name), size = 1.6) + 
+  theme(legend.position = "none")
+  
+
+ggsave(here("plots", "protest_network_graph.png"), 
+       width = 42.0, height = 29.7, units = "cm", dpi = 300)
+```
+
+
+```{r}
+protest_network_graph <- acled_protests |>
+  filter(covid == "pre-covid") |> 
+  distinct(event_id_cnty, word) |> 
+  add_count(word) |> 
+  filter(n >= 300) |>  
+  pairwise_cor(word, event_id_cnty, sort = TRUE) |> 
+  filter(correlation >= .15) |> 
+  left_join(
+    acled_protests |> 
+      filter(covid == "pre-covid") |> 
+      distinct(event_id_cnty, word) |> 
+      add_count(word) |> 
+      filter(n >= 300) |> 
+      pairwise_count(word, event_id_cnty, sort = TRUE), 
+    by = c("item1", "item2")
+  ) |> 
+  igraph::graph_from_data_frame() %>% 
+  ggraph(layout = "fr") + 
+  geom_edge_link(aes(alpha = correlation, 
+                     edge_width = n), colour = "blue", check_overlap = TRUE) + 
+  scale_edge_width_continuous(range = c(.1, 3), trans = "log10") +
+  scale_alpha_continuous(range = c(0.01, 0.1)) +
+  geom_node_point(colour = "blue", alpha = 0.2, size = .5) +
+  geom_node_text(aes(label = name), size = 1.6) + 
+  theme(legend.position = "none")
+  
+
+ggsave(here("plots", "protest_network_graph_pre_covid.png"), 
+       width = 42.0, height = 29.7, units = "cm", dpi = 300)
+```
+
+```{r}
+acled_protests_bigrams |> 
+  filter(covid == "post-covid") |> 
+  distinct(event_id)
+```
+
+
+
+
+
+
+```{r}
+acled_country_words <- acled_filtered |> 
+  select(event_id_cnty, country, notes) |> 
+  unnest_tokens(word, notes) |>
+  anti_join(stop_words, by = "word") |> 
+  filter(str_detect(word, "[a-z]")) |> 
+  filter(word %out% c("township", "district", "city", "village", 
+                      "region", "town", "coded", "province", "county", 
+                      "pradesh", "prefecture", "regency", 
+                      "barangay", "upazila", "hong", "kong", "phnom", "penh") & 
+           word %out% c("january", "february", "march", "april", "may", 
+         "june", "july", "august", "september", "october", 
+         "november", "december")) |> 
+  mutate(stem = SnowballC::wordStem(word, language = "porter")) %>% 
+  count(stem, country, sort = TRUE) 
+
+```
+
+```{r fig.height=7.5}
+
+
+acled_country_words |> 
+  filter(word %out% c(admin1_list, admin2_list)) |> 
+  bind_tf_idf(country, stem, n) |> 
+  tidylo::bind_log_odds(country, stem, n) |> 
+  arrange(desc(log_odds_weighted)) |> 
+  
+  group_by(country) |> 
+  slice(1:20) |> 
+  ggplot(aes(x = log_odds_weighted, y = reorder_within(stem, log_odds_weighted, country))) + 
+  geom_col() + 
+  scale_y_reordered() + 
+  facet_wrap(~ country, scales = "free") + 
+  theme(axis.text.y = element_text(size = 5))
+```
+
+
+```{r}
+acled_filtered |> count(country)
+```
 
 
