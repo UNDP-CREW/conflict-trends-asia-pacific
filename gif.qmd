@@ -41,42 +41,52 @@ show_col(viridis_pal(option = "cividis")(8))
 # Data
 
 ```{r data}
-country_list <- c("Afghanistan", "Bangladesh", "Bhutan", "Cambodia", 
-                  "China", "Fiji", "Hong Kong", "India", "Indonesia", 
-                  "Iran", "North Korea", "South Korea", "Laos", 
-                  "Malaysia", "Maldives", "Mongolia", "Myanmar", 
-                  "Nepal", "Pakistan", "Papua New Guinea", "Philippines", 
-                  "Solomon Islands", "Sri Lanka", "Thailand", "Timor-Leste", 
-                  "Vanuatu", "Vietnam") 
+country_list <- c("Australia", "Afghanistan", "Bangladesh", "Bhutan", "Cambodia", 
+                  "China", "Fiji", "Hong Kong", "Japan", "India", "Indonesia", 
+                  "Iran",  "Laos", "Malaysia", "Maldives", "Mongolia", "Myanmar", 
+                  "Nepal", "New Zealand",  "North Korea", "Pakistan", "Papua New Guinea",
+                  "Philippines", "Singapore", "Solomon Islands", "South Korea", 
+                  "Sri Lanka", "Thailand", "Timor-Leste", "Vanuatu", "Vietnam")
+
+population <- read_csv(here("data", "wdi_all_countries_population.csv")) |> 
+  janitor::clean_names()  %>%
+  mutate(across(matches("_yr"), ~ as.numeric(.))) |> 
+  pivot_longer(cols = x2000_yr2000:x2023_yr2023, 
+               names_to = "year", 
+               values_to = "population") |>
+  mutate(year = str_sub(year, start = -4, end = -1), 
+         year = as.double(year)) |> 
+  rename(country = country_name) |> 
+  mutate(country = 
+           case_when(str_detect(country, "Korea, Rep.") ~ "South Korea",
+                             str_detect(country, "Korea, Dem. People's Rep.") ~ "North Korea", 
+                             str_detect(country, "Hong Kong SAR, China") ~ "Hong Kong", 
+                             str_detect(country, "Iran, Islamic Rep.") ~ "Iran", 
+                             str_detect(country, "Lao PDR") ~ "Laos", 
+                             country == "Viet Nam" ~ "Vietnam", 
+                             TRUE ~ country), 
+         country_iso = countrycode::countrycode(country,
+                                   origin = "country.name", 
+                                   destination = "iso3c")) |> 
+  filter(!is.na(country) & 
+           country %out% c("Data from database: World Development Indicators", 
+                           "Last Updated: 06/28/2024"))
+
+# population_estimates <- crossing(country = population$country, year = 2000:2023) |> 
+#   left_join(population |> 
+#               select(year, country, population), 
+#             by = c("year", "country")) |> 
+#   group_by(country) %>% 
+#   fill(population, .direction = "updown") 
 
 
-actor_codes_acled <- tribble(
-  ~actor_code, ~description, 
-  1, "State Forces", 
-  2, "Rebel Groups", 
-  3, "Political Militias", 
-  4, "Identity Militias", 
-  5, "Rioters",
-  6, "Protesters", 
-  7, "Civilians", 
-  8, "Other Forces"
-)
+population_estimates <- crossing(country = population$country, year = 2000:2023) |> 
+  left_join(population |> 
+              select(year, country, population), 
+            by = c("year", "country")) |> 
+  group_by(country) %>% 
+  fill(population, .direction = "updown")
 
-
-asia_pacific_shape <- st_read(here("data", 
-                                   "world-administrative-boundaries", 
-                                   "world-administrative-boundaries.shp"), 
-                              quiet = TRUE) |> 
-  mutate(country = case_when(
-    name == "Iran (Islamic Republic of)" ~ "Iran", 
-    name == "Republic of Korea" ~ "South Korea", 
-    name == "Democratic People's Republic of Korea" ~ "North Korea", 
-    name == "Lao People's Democratic Republic" ~ "Laos", 
-    TRUE ~ name
-  )) |> 
-  filter(country %in% country_list)
-
-acled_filtered <- read_rds(here("data", "acled_filtered.rds"))
 
 world_shape <- st_read(here("data", 
                             "world-administrative-boundaries", 
@@ -91,9 +101,33 @@ world_shape <- st_read(here("data",
   )) 
 
 asia_pacific_shape <- world_shape  |> 
-  filter(country %in% country_list) 
+  filter(country %in% country_list | 
+           country %in% c("Arunachal Pradesh", "Jammu-Kashmir", "Aksai Chin"))
 
-interaction_codes_acled <- read_csv(here("data", "interaction_codes_acled.csv"))
+myanmar_adm1 <- st_read(here("data", 
+                             "mmr_polbnda2_adm1_mimu_250k", 
+                             "mmr_polbnda2_adm1_mimu_250k.shp"), 
+                        quiet = TRUE) |> 
+  rename(state = ST, 
+        admin1_pcode = ST_PCODE) |> st_as_sf()
+
+country_iso3 <- world_shape |> 
+  distinct(name, iso3)
+
+acled_filtered <- readRDS(here("data", "acled_filtered.rds"))
+
+most_events_list <- acled_filtered |> 
+  group_by(country) |> 
+  summarise(events = n()) |> 
+  arrange(desc(events)) |> 
+  pull(country)
+
+most_fatalities_list <- acled_filtered |> 
+  group_by(country) |> 
+  mutate(fatalities = as.numeric(fatalities)) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE)) |> 
+  arrange(desc(fatalities)) |> 
+  pull(country)
 
 actor_codes_acled <- tribble(
   ~actor_code, ~description, 
@@ -124,6 +158,72 @@ For Afghanhistan, basically, create a line approximating the border, then
 
 ```{r}
 asia_pacific_event_types <- acled_filtered |>  
+  # filter(sub_event_type %out% c("Agreement", 
+  #                               "Change to group/activity", 
+  #                               "Headquarters or base established", 
+  #                               "Non-violent transfer of territory")) |> 
+  mutate(quarter = floor_date(event_date, "quarter")) %>%
+  select(event_id_cnty, event_type, longitude, latitude, event_type, quarter, fatalities) %>%
+  mutate(quarter = map(quarter, ~seq.Date(as.Date(.), as.Date("2024-05-15"), by = "quarter"))) |> 
+  unnest(quarter) |> 
+  mutate(quarter = format_ISO8601(quarter, precision = "ym")) %>%
+  ggplot() + 
+  geom_sf(data = asia_pacific_shape, size = .5, colour = "grey", fill = "grey90") + 
+  geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .15) + 
+  
+  coord_sf(xlim = c(44, 180), 
+           ylim = c(-44, 52)) + 
+  scale_colour_manual(
+    values = c("Battles" = "#7A0403FF", 
+      "Explosions/Remote violence" = "#FABA39FF", 
+      "Protests" = "#72FE5EFF", 
+      "Riots" = "#36AAF9FF", 
+      "Strategic developments" = "#30123BFF", 
+      "Violence against civilians" = "#FCFDBFFF")
+  ) + 
+  scale_size_continuous(range = c(.1, 6), breaks = c(0, 10, 50, 100, 150)) +
+  theme_void() +
+  guides(colour = guide_legend(override.aes = list(alpha = 1, size = 2.7)), 
+         size = guide_legend(override.aes = list(alpha = 1, 
+                                                 colour = "grey"))) +
+  theme(plot.background = element_rect(fill = NA, colour = NA), 
+        rect = element_rect(fill = NA, colour = NA), 
+        legend.title = element_text(face = "bold"),
+        legend.position = c(0.06, 0.15), 
+        legend.box.background = element_blank(),
+        legend.key = element_rect(colour = NA, fill = NA), 
+        plot.caption = element_text(hjust = 0.2)) + 
+  gganimate::transition_manual(quarter) + 
+  labs(title = "Asia-Pacific conflict events in { current_frame }", 
+       subtitle = "Excludes non-violent strategic developments", 
+       caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com",
+       colour = "Event type")
+
+
+gganimate::animate(asia_pacific_event_types, width = 3240, height = 2160, res = 150, duration = 60, 
+                   renderer = gifski_renderer())
+
+
+
+gganimate::anim_save(here("plots", "asia_pacific_event_types_grey.gif"))
+
+
+
+```
+
+```{r}
+world_shape |> st_drop_geometry() |> count(country)
+
+"Arunachal Pradesh"
+"Jammu-Kashmir"
+```
+
+
+
+
+
+```{r}
+asia_pacific_event_types <- acled_filtered |>  
   filter(sub_event_type %out% c("Agreement", 
                                 "Change to group/activity", 
                                 "Headquarters or base established", 
@@ -134,7 +234,7 @@ asia_pacific_event_types <- acled_filtered |>
   unnest(quarter) |> 
   mutate(quarter = format_ISO8601(quarter, precision = "ym")) %>%
   ggplot() + 
-  geom_sf(data = asia_pacific_shape, size = .5, colour = "grey", fill = "black") + 
+  geom_sf(data = asia_pacific_shape, size = .5, colour = "grey", fill = "black") +
   geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .15) + 
   
   theme_void() +
@@ -165,6 +265,11 @@ world_shape |>
   geom_sf() + 
   coord_sf(xlim = c(44, 155), 
            ylim = c(-15, 52))
+
+ggplot() + 
+  geom_sf(data = asia_pacific_shape) + 
+  coord_sf(xlim = c(44, 180), 
+           ylim = c(-44, 52))
 ```
 
 

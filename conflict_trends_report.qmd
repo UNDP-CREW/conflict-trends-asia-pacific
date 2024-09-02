@@ -1,7 +1,7 @@
 ---
-title: "Initial exploratory data analysis of Asia-Pacific conflict trends"
+title: "Exploratory data analysis of Asia-Pacific conflict trends"
 author: "Sean Ng"
-date: "30 July 2024"
+date: "30 August 2024"
 toc: true
 toc-location: left
 toc-depth: 4
@@ -160,15 +160,28 @@ mmr_shape <- world_shape |> filter(str_detect(name, "Myanmar"))
 
 ## Introduction
 
-Coolor websites 
-all white
+This document is intended as an overview of observed conflict trends in the Asia-Pacific region in the past ten years. Conflict, including political unrest, in the region has become more multifarious and interconnected. 
+
+The sections of this report are: 
+
+* A review of conflict by event type 
+
+* An analysis of events and fatalities per capita
+
+* An overview of conflict in Myanmar and its spillover in the region 
+
+* An overview of cross-border violence between Afghanistan and Pakistan 
+
+* Conflict actors 
+
+* Text mining of protest descriptions
 
 
 Conflict (including political unrest) in the Asia-Pacific is multifarious and interconnected. The gif below displays cumulative conflict events tracked by ACLED for the past 10 years. 
 
 Making sense of this data will require a deeper examination of the various contexts in this region and the ways in which they interact. Three major foci are observed -- one around Afghanistan and Pakistan, one in the Philippines, and one in Myanmar and its border regions. 
 
-![](./plots/asia_pacific_event_types.gif)
+![](./plots/asia_pacific_event_types_grey.gif)
 
 Below is a table comparing the the number of political conflict events and fatalities in the countries that ACLED has been monitoring since 2014. Conflict has decreased across these countries since 2014, with the notable exception of Myanmar.
 
@@ -361,7 +374,9 @@ acled_filtered |>
 ```
 
 
-### Protests vs non-protests 
+### Protests vs non-protests
+
+move to references 
 
 ```{r fig.height=7}
 acled_filtered |> 
@@ -715,16 +730,16 @@ afpak_map <- function(tbl){
     mutate(quarter = floor_date(event_date, "quarter")) %>%
     select(event_id_cnty, event_type, longitude, latitude, event_type, quarter, fatalities) |>
     ggplot() +
-    geom_sf(data = world_shape, size = .7, colour = "gold", fill = "black") + 
-    geom_sf(data = afpak_buffer, colour = "black", fill = "white", alpha = .09) +
+    geom_sf(data = world_shape, size = .7, colour = "gold", fill = "grey95") + 
+    geom_sf(data = afpak_buffer, colour = "grey90", fill = "white", alpha = .09) +
     coord_sf(xlim = c(60.41, 75.02), 
              ylim = c(25.04, 39.11)) +
     geom_point(aes(x = 73.0363, y = 33.6995), colour = "cornflowerblue", pch = 15) +
     geom_point(aes(x = 69.2075, y = 34.5553), colour = "cornflowerblue", pch = 15) +
     geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
-    theme(plot.background = element_rect(fill = "black", colour = "black"),
-          panel.background = element_rect(fill = "black", colour = "black"),
-          rect = element_rect(fill = "NA"),
+    theme(plot.background = element_rect(fill = NA, colour = NA),
+          panel.background = element_rect(fill = NA, colour = NA),
+          rect = element_rect(fill = NA, colour = NA),
           legend.text = element_text(colour = "white"), 
           title = element_text(colour = "white"),
           legend.title = element_text(face = "bold"),
@@ -735,6 +750,8 @@ afpak_map <- function(tbl){
     theme_void() + 
     labs(colour = "", size = "Fatalities")
 }
+
+
 ```
 
 
@@ -925,13 +942,96 @@ The rebels and the National Unity Government have sought to isolate military gar
 
 This has given rise to the very linear pattern of violence as both sides contest for control over the road network. For the rebels, they have stated that "all roads lead to Naypyitaw" (the gold diamond in the middle of the country) are have been trying to enclose the military and limit its movements. 
 
-In the northeast, Lashio has fallen (and Muse has lost five out of its ten border gates with China) and in the southeast Loikaw has fallen (not a major command post, but a city at major arterial intersection in the road network) and so has the crossing with Chiang Mai at Myawaddy. In the northwest, we see intensification of conflict in Rakhine in preparation for the battle of Sittwe. With the northern garrisons isolated and cut off, rebels hold much of Monywa town itself, isolating the garrison there as the main front prepares for the invasion of Mandalay. 
+In the northeast, Lashio has fallen, drastically lowering the amount of conflict in the area. And Muse has lost five out of its ten border gates with China. In the southeast Loikaw has fallen (not a major command post, but a city at major arterial intersection in the road network) and so has the crossing with Chiang Mai at Myawaddy. 
+
+In the northwest, India has closed the border crossing at Tamu (in line with the Tatmadaw's wishes since they no longer control it); and we also see intensification of conflict in Rakhine in preparation for the battle of Sittwe. With the northern garrisons isolated and cut off, rebels hold much of Monywa town itself, isolating the garrison there as the main front encircles and prepares to invade Mandalay. 
 
 The military no longer has the ability to push beyond the positions they already hold. If the rebels can defeat the Mandalay garrison, the Tatmadaw will have lost.
 
 <br><br><br>
 
-### Spillover 
+### Spillover and most lethal actors 
+
+#### Most lethal actors 
+
+
+
+```{r fig.height=10}
+
+actors_conf_int <- acled_actors |>
+  group_by(country) |> 
+  add_count(actor) |> 
+  ungroup() |>
+  filter(n > 20) %>% 
+  nest(-actor) %>% 
+  mutate(model = map(data, ~ t.test(.$fatalities))) |> 
+  unnest_legacy(map(model,tidy))
+
+actors_conf_int %>% 
+  left_join(acled_actors %>% 
+              group_by(actor, actor_description, country) %>% 
+              summarise(fatalities = sum(fatalities), .groups = "drop"), 
+            by = "actor") %>%
+  mutate(actor = fct_reorder(actor, estimate), 
+         actor = str_replace_all(actor, "Forces of ", ""), 
+         actor = str_replace_all(actor, "People's Defense Force", "PDF"),
+         actor = str_replace_all(actor, "the Philippines", "Philippines"),
+         actor = str_sub(actor, start = 1L, end = 40L), 
+         country = fct_relevel(country, most_fatalities_list), 
+         sort = (estimate / sum(estimate)) + (fatalities / sum(fatalities))) %>% 
+  mutate(actor = ifelse(str_detect(actor, "Myanmar|Arakan|Kachin") | 
+                          country == "Myanmar", 
+                        paste0("<span style='color:#FF0000'>", actor, "</span>"),
+                        actor)) |> 
+  arrange(desc(sort)) |> 
+  group_by(country) |> 
+  slice(1:10) |> 
+  ungroup() |> 
+  filter(country %out% c("Bhutan", "Fiji", "Timor-Leste")) |> 
+  mutate(actor_description = fct_relevel(actor_description,
+                                         c(
+                                           "Civilians", "State Forces", 
+                                           "Protesters", "Identity Militias", 
+                                           "Rebel Groups", "Rioters", 
+                                           "Political Militias", "Other Forces")))  |> 
+  ggplot(aes(x = estimate, y = reorder_within(actor, estimate, country), colour = actor_description)) + 
+  geom_point(aes(size = fatalities)) + 
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0.15) + 
+  scale_x_continuous(trans = "log10") +
+  scale_size_continuous(range = c(1, 5)) + 
+  scale_colour_manual(
+    values = c(
+      "Civilians" = "#FCFFA4FF",
+      "State Forces" = "#000004FF",
+      "Protesters" = "#FAC127FF",
+      "Identity Militias" = "#9F2A63FF",
+      "Rebel Groups" = "#F57D15FF",
+      "Rioters" = "#65156EFF",
+      "Political Militias" = "#D44842FF",
+      "Other Forces" = "#280B54FF")) +
+  # scale_colour_brewer(palette = "Dark2") + 
+  scale_y_reordered() + 
+  facet_wrap(~country, scales = "free", ncol = 4) +
+  labs(x = "Mean fatalities per conflict event (log scale)",
+      y = "", 
+      title = "Top 10 most lethal actors per country in order of fatalities per event, 2014-2023", 
+      subtitle = "Only actors involved more than 20 conflict events. Size indicates number of fatalities associated with actor. Red actors are from Myanmar.", 
+      caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com",
+      colour = "", size = "") + 
+  guides(size = "none") + 
+  theme(plot.caption = element_text(hjust = 0.5), 
+        legend.text = element_text(size = 6), 
+        legend.position = "top",
+        axis.text = element_text(size = 4), 
+        axis.text.y = element_markdown()) +
+  guides(colour = guide_legend(nrow = 1))
+```
+
+<br>
+
+What does it say that the Philippine police is more lethal than anti-drug vigilantes. Similarly, in China, civilians seem to be involved in more fatalities per event than even the police, or rioters, indicating problems with violence against civilians (as fatalities from an incident where one party were civilians and the other combatants). 
+
+South Korea as a counterpoint to the Philippines, Vietnam and China, especially in terms of the lethality of state actors. The South Korean state doesn't seem to kill many people. 
 
 no pink, re-do the 
 
@@ -1084,86 +1184,7 @@ acled_actors |>
 
 <br><br><br>
 
-### Most lethal actors 
 
-
-
-```{r fig.height=10}
-
-actors_conf_int <- acled_actors |>
-  group_by(country) |> 
-  add_count(actor) |> 
-  ungroup() |>
-  filter(n > 20) %>% 
-  nest(-actor) %>% 
-  mutate(model = map(data, ~ t.test(.$fatalities))) |> 
-  unnest_legacy(map(model,tidy))
-
-actors_conf_int %>% 
-  left_join(acled_actors %>% 
-              group_by(actor, actor_description, country) %>% 
-              summarise(fatalities = sum(fatalities), .groups = "drop"), 
-            by = "actor") %>%
-  mutate(actor = fct_reorder(actor, estimate), 
-         actor = str_replace_all(actor, "Forces of ", ""), 
-         actor = str_replace_all(actor, "People's Defense Force", "PDF"),
-         actor = str_replace_all(actor, "the Philippines", "Philippines"),
-         actor = str_sub(actor, start = 1L, end = 40L), 
-         country = fct_relevel(country, most_fatalities_list), 
-         sort = (estimate / sum(estimate)) + (fatalities / sum(fatalities))) %>% 
-  mutate(actor = ifelse(str_detect(actor, "Myanmar") | 
-                          country == "Myanmar", 
-                        paste0("<span style='color:#FF0000'>", actor, "</span>"),
-                        actor)) |> 
-  arrange(desc(sort)) |> 
-  group_by(country) |> 
-  slice(1:10) |> 
-  ungroup() |> 
-  filter(country %out% c("Bhutan", "Fiji", "Timor-Leste")) |> 
-  mutate(actor_description = fct_relevel(actor_description,
-                                         c(
-                                           "Civilians", "State Forces", 
-                                           "Protesters", "Identity Militias", 
-                                           "Rebel Groups", "Rioters", 
-                                           "Political Militias", "Other Forces")))  |> 
-  ggplot(aes(x = estimate, y = reorder_within(actor, estimate, country), colour = actor_description)) + 
-  geom_point(aes(size = fatalities)) + 
-  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0.15) + 
-  scale_x_continuous(trans = "log10") +
-  scale_size_continuous(range = c(1, 5)) + 
-  scale_colour_manual(
-    values = c(
-      "Civilians" = "#FCFFA4FF",
-      "State Forces" = "#000004FF",
-      "Protesters" = "#FAC127FF",
-      "Identity Militias" = "#9F2A63FF",
-      "Rebel Groups" = "#F57D15FF",
-      "Rioters" = "#65156EFF",
-      "Political Militias" = "#D44842FF",
-      "Other Forces" = "#280B54FF")) +
-  # scale_colour_brewer(palette = "Dark2") + 
-  scale_y_reordered() + 
-  facet_wrap(~country, scales = "free", ncol = 4) +
-  labs(x = "Mean fatalities per conflict event (log scale)",
-      y = "", 
-      title = "Top 10 most lethal actors per country in order of fatalities per event, 2014-2023", 
-      subtitle = "Only actors involved more than 20 conflict events. Size indicates number of fatalities associated with actor. Red actors are from Myanmar.", 
-      caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com",
-      colour = "", size = "") + 
-  guides(size = "none") + 
-  theme(plot.caption = element_text(hjust = 0.5), 
-        legend.text = element_text(size = 6), 
-        legend.position = "top",
-        axis.text = element_text(size = 4), 
-        axis.text.y = element_markdown()) +
-  guides(colour = guide_legend(nrow = 1))
-```
-
-<br>
-
-What does it say that the Philippine police is more lethal than anti-drug vigilantes. Similarly, in China, civilians seem to be involved in more fatalities per event than even the police, or rioters, indicating problems with violence against civilians (as fatalities from an incident where one party were civilians and the other combatants). 
-
-South Korea as a counterpoint to the Philippines, Vietnam and China, especially in terms of the lethality of state actors. The South Korean state doesn't seem to kill many people. 
 
 Chinese military is untested, at least recently. 
 

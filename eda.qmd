@@ -33,6 +33,8 @@ library(tidytext)
 library(ggtext)
 library(widyr)
 library(ggraph)
+library(gifski)
+library(gganimate)
 
 `%out%` <- Negate(`%in%`)
 options(scipen = 100)
@@ -98,10 +100,21 @@ population_estimates <- crossing(country = population$country, year = 2000:2023)
   group_by(country) %>% 
   fill(population, .direction = "updown")
 
+
 world_shape <- st_read(here("data", 
                             "world-administrative-boundaries", 
                             "world-administrative-boundaries.shp"), 
-                       quiet = TRUE)
+                       quiet = TRUE) |> 
+  mutate(country = case_when(
+    name == "Iran (Islamic Republic of)" ~ "Iran", 
+    name == "Republic of Korea" ~ "South Korea", 
+    name == "Democratic People's Republic of Korea" ~ "North Korea", 
+    name == "Lao People's Democratic Republic" ~ "Laos", 
+    TRUE ~ name
+  )) 
+
+asia_pacific_shape <- world_shape  |> 
+  filter(country %in% country_list)
 
 myanmar_adm1 <- st_read(here("data", 
                              "mmr_polbnda2_adm1_mimu_250k", 
@@ -316,6 +329,74 @@ myanmar_civil_war |> write_rds(here("data", "myanmar_civil_war.rds"),
 # ACLED
 
 
+## Asia-Pacific Gif
+
+
+
+```{r}
+asia_pacific_event_types <- acled_filtered |>  
+  # filter(sub_event_type %out% c("Agreement", 
+  #                               "Change to group/activity", 
+  #                               "Headquarters or base established", 
+  #                               "Non-violent transfer of territory")) |> 
+  mutate(quarter = floor_date(event_date, "quarter")) %>%
+  select(event_id_cnty, event_type, longitude, latitude, event_type, quarter, fatalities) %>%
+  mutate(quarter = map(quarter, ~seq.Date(as.Date(.), as.Date("2024-05-15"), by = "quarter"))) |> 
+  unnest(quarter) |> 
+  mutate(quarter = format_ISO8601(quarter, precision = "ym")) %>%
+  ggplot() + 
+  geom_sf(data = asia_pacific_shape, size = .5, colour = "grey", fill = "grey90") + 
+  geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .15) + 
+  
+  coord_sf(xlim = c(44, 180), 
+           ylim = c(-44, 52)) + 
+  scale_colour_manual(
+    values = c("Battles" = "#7A0403FF", 
+      "Explosions/Remote violence" = "#FABA39FF", 
+      "Protests" = "#72FE5EFF", 
+      "Riots" = "#36AAF9FF", 
+      "Strategic developments" = "#30123BFF", 
+      "Violence against civilians" = "#FCFDBFFF")
+  ) + 
+  scale_size_continuous(range = c(.1, 6), breaks = c(0, 10, 50, 100, 150)) +
+  theme_void() +
+  guides(colour = guide_legend(override.aes = list(alpha = 1)), 
+         size = guide_legend(override.aes = list(alpha = 1, 
+                                                 colour = "grey"))) +
+  theme(plot.background = element_rect(fill = NA, colour = NA),
+        legend.background = element_rect(colour = NA, fill = NA), 
+        rect = element_rect(fill = NA, colour = NA), 
+        legend.title = element_text(face = "bold"),
+        legend.position = c(0.05, 0.14), 
+        legend.box.background = element_blank(),
+        legend.key = element_rect(colour = NA, fill = NA), 
+        plot.caption = element_text(hjust = 0.2)) + 
+  gganimate::transition_manual(quarter) + 
+  labs(title = "Asia-Pacific conflict events in { current_frame }", 
+       subtitle = "Excludes non-violent strategic developments", 
+       caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com",
+       colour = "Event type")
+
+
+gganimate::animate(asia_pacific_event_types, width = 3240, height = 1748, res = 150, duration = 60, 
+                   renderer = gifski_renderer())
+
+
+
+gganimate::anim_save(here("plots", "asia_pacific_event_types_grey.gif"))
+```
+
+```{r}
+viridis_pal(option = "magma")(10)
+```
+
+
+
+```{r}
+viridis_pal(option = "turbo")(10) |> show_col()
+
+
+```
 
 
 ## Plots by frequency
@@ -917,6 +998,16 @@ data(land, World)
 
 
 ## Cross-border
+
+### India-Pakistan
+
+```{r}
+
+ind_shape <- world_shape |> filter(name == "India")
+
+pak_shape <- world_shape |> filter(name == "Pakistan")
+```
+
 
 ### Afpakir 
 
@@ -2153,72 +2244,88 @@ myanmar_adm1 <- st_read(here("data",
 
 
 
-roads_conflict_black_red <- roads_conflict_data |> 
+roads_conflict_black_grey <- roads_conflict_data |> 
   ggplot() +
-  geom_sf(size = .1, colour = "grey30", fill = "", data = myanmar_adm1) + 
+  geom_sf(size = .1, colour = "grey60", fill = "grey90", data = myanmar_adm1) + 
   geom_sf(data = road_shape |> filter(Road_Type %out% c("Main")), 
           linewidth = .12, colour = "blue", alpha = .9) +
   geom_sf(data = road_shape |> filter(Road_Type %in% c("Main")), 
           linewidth = .8, colour = "blue", alpha = .6) +
   # Naypyitaw
-  geom_point(aes(x = 96.0785, y = 19.7633), size = 4, 
+  geom_point(aes(x = 96.0785, y = 19.7633), size = 4.5, 
              colour = "goldenrod2", pch = 18, alpha = .8) +
+  geom_text(aes(x = 96.0785, y = 19.7633), size = 2, label = "Naypyitaw") +
   # Mandalay
-  geom_point(aes(x = 96.0891, y = 21.9588), size = 2.5, 
+  geom_point(aes(x = 96.0891, y = 21.9588), size = 3, 
              colour = "goldenrod2", pch = 15, alpha = .8) +
+  geom_text(aes(x = 96.0891, y = 21.9588), size = 2, label = "Mandalay") +
   # Yangon
-  geom_point(aes(x = 96.1735, y = 16.8409), size = 2.5,
+  geom_point(aes(x = 96.1735, y = 16.8409), size = 3,
              colour = "goldenrod2", pch = 15, alpha = .8) +
+  geom_text(aes(x = 96.1735, y = 16.8409), size = 2, label = "Yangon") +
   # Monywa
-  geom_point(aes(x = 95.1536, y = 22.1216), size = 2.5,
+  geom_point(aes(x = 95.1536, y = 22.1216), size = 3,
              colour = "goldenrod2", pch = 15, alpha = .8) +
+  geom_text(aes(x = 95.1536, y = 22.1216), size = 2, label = "Monywa") +
   # Sittwe
-  geom_point(aes(x = 92.8677, y = 20.1528), size = 2.5,
+  geom_point(aes(x = 92.8677, y = 20.1528), size = 3,
              colour = "goldenrod2", pch = 15, alpha = .8) +
+    geom_text(aes(x = 92.8677, y = 20.1528), size = 2, label = "Sittwe") +
   # Lashio
-  geom_point(aes(x = 97.7525, y = 22.9665), size = 2.5,
+  geom_point(aes(x = 97.7525, y = 22.9665), size = 3,
              colour = "goldenrod2", pch = 15, alpha = .8) +
+  geom_text(aes(x = 97.7525, y = 22.9665), size = 2, label = "Lashio") +
   # Mawlaymine
-  geom_point(aes(x = 97.6440, y = 16.4543), size = 2.5,
+  geom_point(aes(x = 97.6440, y = 16.4543), size = 3,
              colour = "goldenrod2", pch = 15, alpha = .8) +
+  geom_text(aes(x = 97.6440, y = 16.4543), size = 2, label = "Mawlaymine") +
   # Taungoo
-  geom_point(aes(x = 96.4344, y = 18.9398), size = 2.5,
+  geom_point(aes(x = 96.4344, y = 18.9398), size = 3,
              colour = "goldenrod2", pch = 15, alpha = .8) +
+  geom_text(aes(x = 96.4344, y = 18.9398), size = 2, label = "Taungoo") +
   # Pathein
-  geom_point(aes(x = 94.7381, y = 16.7754), size = 2.5,
+  geom_point(aes(x = 94.7381, y = 16.7754), size = 3,
              colour = "goldenrod2", pch = 15, alpha = .8) +
+  geom_text(aes(x = 94.7381, y = 16.7754), size = 2, label = "Pathein") +
   # Myitkyina
-  geom_point(aes(x = 97.3939, y = 25.3868), size = 2.5,
+  geom_point(aes(x = 97.3939, y = 25.3868), size = 3,
              colour = "goldenrod2", pch = 15, alpha = .8) +
+  geom_text(aes(x = 97.3939, y = 25.3868), size = 2, label = "Myitkyina") +
   # Puta-o
-  geom_point(aes(x = 97.4057, y = 27.3182), size = 2.5,
+  geom_point(aes(x = 97.4057, y = 27.3182), size = 3,
              colour = "goldenrod2", pch = 15, alpha = .8) +
+  geom_text(aes(x = 97.4057, y = 27.3182), size = 2, label = "Puta-O") +
   # Muse
-  geom_point(aes(x = 97.9103, y = 23.9933), size = 2.5, 
+  geom_point(aes(x = 97.9103, y = 23.9933), size = 3, 
              colour = "cornflowerblue", pch = 15, alpha = .8) +
+  geom_text(aes(x = 97.9103, y = 23.9933), size = 2, label = "Muse") +
   # Tamu
-  geom_point(aes(x = 94.3103, y = 24.2199), size = 2.5, 
+  geom_point(aes(x = 94.3103, y = 24.2199), size = 3, 
              colour = "cornflowerblue", pch = 15, alpha = .8) +
+  geom_text(aes(x = 94.3103, y = 24.2199), size = 2, label = "Tamu") +
   # Tachileik
-  geom_point(aes(x = 99.8989, y = 20.4521), size = 2.5, 
+  geom_point(aes(x = 99.8989, y = 20.4521), size = 3, 
              colour = "cornflowerblue", pch = 15, alpha = .8) +
+  geom_text(aes(x = 99.8989, y = 20.4521), size = 2, label = "Tachileik") +
   # Myawaddy
-  geom_point(aes(x = 98.4797285, y = 16.6952072), size = 2.5, 
+  geom_point(aes(x = 98.4797285, y = 16.6952072), size = 3, 
              colour = "cornflowerblue", pch = 15, alpha = .8) +
+  geom_text(aes(x = 98.4797285, y = 16.6952072), size = 2, label = "Myawaddy") +
+  geom_text(aes(x = 97.2114, y = 19.6740), size = 2, label = "Loikaw") +
     # cities and border crossing legends
   geom_point(aes(x = 92.6, y = 28.3), size = 2.5, 
              colour = "goldenrod2", pch = 15, alpha = .8) +
   geom_point(aes(x = 92.6, y = 28.15), size = 2.5, 
              colour = "cornflowerblue", pch = 15, alpha = .8) +
   geom_text(aes(x = 93.098, y = 28.3), size = 2, 
-             colour = "seashell", label = "Military command") +
+             colour = "grey30", label = "Military command") +
   geom_text(aes(x = 93.066, y = 28.15), size = 2, 
-             colour = "seashell", label = "Border crossing") +
+             colour = "grey30", label = "Border crossing") +
   # plotting the actual data
   geom_point(aes(x = longitude, y = latitude , size = fatalities),
              alpha = .5, colour = "red") + 
   geom_text(aes(label = year_label), size = 9.5, 
-           x = 93.041879, y = 28.735721, colour = "#FFF5EE") + 
+           x = 93.041879, y = 28.735721, colour = "grey30") + 
   scale_size_continuous(range = c(.1, 6), breaks = c(0, 10, 50, 100, 150)) +
   facet_wrap(~year, ncol = 4)  +
   labs(size = "Fatalities", 
@@ -2226,13 +2333,13 @@ roads_conflict_black_red <- roads_conflict_data |>
        title = "Violent conflict in Myanmar since the 1 February 2021 coup, plotted over road network",
        subtitle = "From 2021-02-01 to 2024-08-18. Road network in blue. Sources: acleddata.com, UN MIMU.") +
   theme_void() + 
-  theme(plot.background = element_rect(fill = "grey60", colour = NA),
+  theme(plot.background = element_rect(fill = "grey95", colour = NA),
         legend.position = c(0.03, 0.13), 
         plot.title = element_text(size = 30, colour = "goldenrod"), 
         plot.subtitle = element_text(size = 20, colour = "goldenrod"), 
         strip.text = element_blank(), 
-        legend.text = element_text(size = 12, colour = "#FFF5EE"), 
-        legend.title = element_text(size = 15, colour = "#FFF5EE"), 
+        legend.text = element_text(size = 12, colour = "grey30"), 
+        legend.title = element_text(size = 15, colour = "grey30"), 
         legend.key.width = unit(1, "cm"),
         legend.key.height = unit(.8, "cm"), 
         axis.title.x = element_blank(), 
@@ -2254,18 +2361,18 @@ ggsave(here("plots", "roads_conflict_grey_red.png"), dpi = 300, width = 35.8268,
 
 ```{r fig.height=1.3, fig.width=8}
 
-fatalities_over_time <- myanmar_civil_war |> 
+fatalities_over_time <- readRDS(here("data", "myanmar_civil_war.rds")) |> 
   filter(event_date <= "2024-07-31") |> 
   mutate(month = floor_date(event_date, unit = "month")) |> 
   group_by(month) |> 
   summarise(fatalities = sum(fatalities)) |> 
   ggplot(aes(x = month, y = fatalities)) + 
-  geom_line(colour = "#F85441", alpha = .5) +
+  geom_line(colour = "#F85441") +
   scale_y_continuous(labels = comma) + 
   theme_minimal() + 
   labs(x = "", y = "", 
        title = "Fatalities by month") + 
-  theme(plot.background = element_rect(fill = "black", colour = NA), 
+  theme(plot.background = element_rect(fill = "grey95", colour = NA), 
         panel.grid = element_line(linewidth = .1, colour = "grey30"),
         axis.text.y = element_text(size = 8, colour = "#F85441"),
         axis.text.x = element_text(size = 10, colour = "#F85441"),
@@ -2276,7 +2383,7 @@ fatalities_over_time <- myanmar_civil_war |>
 
 
 ```{r warning=FALSE}
-roads_combined <- roads_conflict_black_red + 
+roads_combined <- roads_conflict_black_grey + 
   inset_element(fatalities_over_time, 
                 0.03, 0.805, .38, .87, 
                 align_to = "full")
@@ -2438,6 +2545,151 @@ roads_conflict_myanmar_new  <- ggplot() +
 
 
 # Protests 
+
+```{r fig.height=8}
+protests_non_protests <- acled_filtered |> 
+  mutate(covid = ifelse(event_date >= "2020-03-11", "post-covid", "pre-covid"), 
+         covid = fct_relevel(covid, c("pre-covid", "post-covid"))) |>
+  filter(year > 2013 & year <= 2025 & country != "Singapore") |> 
+  mutate(country = fct_relevel(country, most_events_list), 
+         protests = ifelse(str_detect(sub_event_type, "Protest|protest"), 
+                           "protests", "non_protests"))|> 
+  group_by(country, protests, year) |> 
+  summarise(events = n(), 
+            .groups = "drop") |>
+  left_join(
+    population_estimates |>
+      filter(country %in% country_list) |>
+      filter(year > 2013 & year < 2025), 
+    by = c("country", "year")
+  ) |>
+  fill(population) |> 
+  mutate(covid = ifelse(year < 2020, "pre_covid", "post_covid"), 
+         covid = fct_relevel(covid, c("pre_covid", "post_covid")), 
+         protests = fct_relevel(protests, c("protests", "non_protests"))) 
+
+protests_non_protests |> 
+  filter(protests == "protests") |>
+  group_by(country, protests, covid) |> 
+  summarise(events = sum(events), 
+            population = sum(population), 
+            .groups = "drop") |> 
+  mutate(events_100k = events / population * 100000) |> 
+  ggplot(aes(x = events, y = events_100k, colour = protests)) + 
+  geom_point(colour = "turquoise") + 
+  geom_text(aes(label = country), 
+            show.legend = FALSE, 
+            size = 4, 
+            colour = "turquoise") + 
+  scale_x_log10(label = comma) +
+  scale_y_log10() + 
+  facet_wrap(~ covid) + 
+  labs(title = "Protest events", 
+       x = "") + 
+
+protests_non_protests |> 
+  filter(protests == "non_protests") |> 
+  group_by(country, protests, covid) |> 
+  summarise(events = sum(events), 
+            population = sum(population), 
+            .groups = "drop") |> 
+  mutate(events_100k = events / population * 100000) |> 
+  ggplot(aes(x = events, y = events_100k, colour = protests)) + 
+  geom_point(colour = "salmon") + 
+  geom_text(aes(label = country), 
+            show.legend = FALSE, 
+            size = 4,
+            colour = "salmon") + 
+  scale_x_log10(label = comma) +
+  scale_y_log10() + 
+  facet_wrap(~ covid) +
+  labs(title = "Non-protests events") + 
+  
+  plot_layout(nrow = 2)
+
+```
+
+
+```{r}
+acled_filtered |> 
+  filter(year > 2013 & year <= 2025 & country != "Singapore") |> 
+  mutate(country = fct_relevel(country, most_events_list), 
+         protests = ifelse(str_detect(sub_event_type, "Protest|protest"), 
+                           "protests", "non_protests"))|> 
+  group_by(country, protests) |> 
+  summarise(events = n(), 
+            .groups = "drop") |> 
+  pivot_wider(names_from = protests, 
+              values_from = events) |> 
+  ggplot(aes(x = protests, y = non_protests)) + 
+  geom_point() + 
+  geom_text(aes(label = country)) + 
+  scale_x_log10() + 
+  scale_y_log10()
+
+
+
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
+  group_by(country, quarter, protests) |> 
+  summarise(events = n(), 
+            fatalities = sum(fatalities), 
+            .groups = "drop") |> 
+  ggplot(aes(x = quarter, y = events, colour = protests)) + 
+  geom_vline(xintercept = as.numeric(as.Date("2020-03-11")), lwd = .5, 
+             colour = "grey30", 
+             linetype = "dashed") + 
+  geom_smooth(aes(group = protests), se = FALSE) + 
+  scale_x_date(date_labels = "%Y", 
+               date_breaks = "2 years") + 
+  facet_wrap(~ country, 
+             scales = "free_y") +
+  scale_y_continuous(labels = comma) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1), 
+        strip.background = element_rect(fill = "black")) + 
+  labs(title = "Protests vs all other types of political conflict", 
+       subtitle = "Dotted line is the WHO declaration of the COVID pandemic",
+       y = "Number of events", 
+       x = "", 
+       colour = "") +  
+  theme(legend.position = "top", 
+        legend.margin=margin(c(1,5,5,5))) + 
+  guides(colour = guide_legend(nrow = 1), 
+         linetype = guide_legend(nrow = 1))
+
+```
+
+```{r}
+protests_non_protests |>
+  filter(covid == "pre_covid") |> 
+  group_by(country, protests) |> 
+  summarise(events = sum(events), 
+            population = sum(population), .groups = "drop") |> 
+  mutate(events_100k = events / population * 100000) |> 
+  ggplot(aes(x = events, y = events_100k)) + 
+  geom_point() + 
+  geom_text_repel(aes(label = country), 
+            size = 2) + 
+  scale_x_log10(label = comma) + 
+  scale_y_log10() + 
+  facet_wrap(~protests)
+```
+
+```{r}
+protests_non_protests |>
+  #filter(covid == "post_covid") |> 
+  group_by(country, protests) |> 
+  summarise(events = sum(events), 
+            population = sum(population), .groups = "drop") |> 
+  mutate(events_100k = events / population * 100000) |> 
+  ggplot(aes(x = events, y = events_100k)) + 
+  geom_point() + 
+  geom_text_repel(aes(label = country), 
+            size = 2) + 
+  scale_x_log10(label = comma) + 
+  scale_y_log10() + 
+  facet_wrap(~protests)
+```
+
 
 ```{r}
 acled_filtered |> 
