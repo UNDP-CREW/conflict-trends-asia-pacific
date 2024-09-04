@@ -1006,6 +1006,13 @@ data(land, World)
 ind_shape <- world_shape |> filter(name == "India")
 
 pak_shape <- world_shape |> filter(name == "Pakistan")
+
+ind_pak_border <- st_intersection(ind_shape, pak_shape, model = "cloded")
+
+ind_pak_buffer <- ind_pak_border |> st_buffer(dist = 100000, endCapStyle = "FLAT")
+
+st_write(afpakir_buffer, here("data", "ind_pak_buffer", "ind_pak_buffer.shp"))
+
 ```
 
 
@@ -2540,7 +2547,75 @@ roads_conflict_myanmar_new  <- ggplot() +
 
 # Words
 
+Not sure how well the bigrams work
 
+```{r}
+acled_protests <- acled_filtered |> 
+  filter(event_type == "Protests") |> 
+  mutate(covid = ifelse(event_date >= "2020-03-11", "post-covid", "pre-covid")) |> 
+  select(event_id_cnty, notes, covid) |> 
+  unnest_tokens(word, notes) |> 
+  anti_join(stop_words, by = "word") |> 
+  filter(str_detect(word, "[a-z]")) |> 
+  filter(word %out% c("township", "district", "city", "village", 
+                      "region", "town", "coded", "province", "county", 
+                      "pradesh", "prefecture", "regency", 
+                      "barangay", "upazila", "hong", "kong", "phnom", "penh") & 
+           word %out% c("january", "february", "march", "april", "may",
+                        "june", "july", "august", "september", "october",
+                        "november", "december", 
+                        "report"))
+  
+```
+
+```{r}
+swc <- paste(c(stop_words$word, 
+             c("january", "february", "march", "april", "may",
+                        "june", "july", "august", "september", "october",
+                        "november", "december", 
+                        "report"),
+             c("township", "district", "city", "village", 
+                      "region", "town", "coded", "province", "county", 
+                      "pradesh", "prefecture", "regency", 
+                      "barangay", "upazila", "hong", "kong", "phnom", "penh")), 
+             collapse = "|")
+
+
+acled_protests_bigrams <- acled_filtered |> 
+  filter(event_type == "Protests") |> 
+  mutate(covid = ifelse(event_date >= "2020-03-11", "post-covid", "pre-covid")) |> 
+  select(event_id_cnty, notes, covid) |> 
+  unnest_tokens(bigram, notes, token = "ngrams", n = 2) |> 
+  filter(str_detect(bigram, "[a-z]")) |>
+  filter(!str_detect(bigram, stop_words$word))
+
+
+```
+
+
+```{r}
+
+set.seed(233)
+
+protest_network_graph <- acled_protests_bigrams |>
+  filter(covid == "post-covid") |> 
+  distinct(event_id_cnty, bigram) |> 
+  add_count(bigram) |> 
+  filter(n >= 300) |> 
+  pairwise_cor(bigram, event_id_cnty, sort = TRUE) |> 
+  filter(correlation >= .25) |> 
+  igraph::graph_from_data_frame() %>% 
+  ggraph(layout = "fr") + 
+  geom_edge_link(aes(alpha = correlation), colour = "blue", check_overlap = TRUE) + 
+  scale_alpha_continuous(range = c(0.1, 0.4)) +
+  geom_node_point(colour = "blue", alpha = 0.3, size = .9) +
+  geom_node_text(aes(label = name), size = 1) + 
+  theme(legend.position = "none")
+  
+
+ggsave(here("plots", "protest_network_graph.png"), 
+       width = 42.0, height = 29.7, units = "cm", dpi = 300)
+```
 
 
 
@@ -2793,21 +2868,6 @@ acled_protests_bigrams <- acled_filtered |>
 ```{r}
 
 set.seed(233)
-
-protest_network_graph <- acled_protests |>
-  filter(covid == "post-covid") |> 
-  distinct(event_id_cnty, word) |> 
-  add_count(word) |> 
-  filter(n >= 400) |> 
-  pairwise_cor(word, event_id_cnty, sort = TRUE) |> 
-  filter(correlation >= .2) |> 
-  igraph::graph_from_data_frame() %>% 
-  ggraph(layout = "kk") + 
-  geom_edge_link(aes(alpha = correlation), colour = "blue", check_overlap = TRUE) + 
-  scale_alpha_continuous(range = c(0.05, 0.2)) +
-  geom_node_point(colour = "blue", alpha = 0.3, size = .5) +
-  geom_node_text(aes(label = name), size = 1.5) + 
-  theme(legend.position = "none")
 
 protest_network_graph <- acled_protests |>
   filter(covid == "post-covid") |> 

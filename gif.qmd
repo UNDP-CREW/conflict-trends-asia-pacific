@@ -186,13 +186,13 @@ asia_pacific_event_types <- acled_filtered |>
   guides(colour = guide_legend(override.aes = list(alpha = 1, size = 2.7)), 
          size = guide_legend(override.aes = list(alpha = 1, 
                                                  colour = "grey"))) +
-  theme(plot.background = element_rect(fill = NA, colour = NA), 
+  theme(plot.background = element_rect(fill = "grey99", colour = "grey99"), 
         rect = element_rect(fill = NA, colour = NA), 
-        legend.title = element_text(face = "bold"),
-        legend.position = c(0.06, 0.15), 
+        legend.title = element_text(face = "bold", size = 16),
+        legend.position = c(0.07, 0.2), 
         legend.box.background = element_blank(),
         legend.key = element_rect(colour = NA, fill = NA), 
-        plot.caption = element_text(hjust = 0.2)) + 
+        plot.caption = element_text(hjust = 0.5)) + 
   gganimate::transition_manual(quarter) + 
   labs(title = "Asia-Pacific conflict events in { current_frame }", 
        subtitle = "Excludes non-violent strategic developments", 
@@ -205,7 +205,7 @@ gganimate::animate(asia_pacific_event_types, width = 3240, height = 2160, res = 
 
 
 
-gganimate::anim_save(here("plots", "asia_pacific_event_types_grey.gif"))
+ gganimate::anim_save(here("plots", "asia_pacific_event_types_grey.gif"))
 
 
 

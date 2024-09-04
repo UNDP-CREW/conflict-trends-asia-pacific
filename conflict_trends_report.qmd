@@ -162,15 +162,17 @@ mmr_shape <- world_shape |> filter(str_detect(name, "Myanmar"))
 
 This document is intended as an overview of observed conflict trends in the Asia-Pacific region in the past ten years. Conflict, including political unrest, in the region has become more multifarious and interconnected. 
 
-The sections of this report are: 
+Making sense of this data will require a deeper examination of the various contexts in this region. The gif below displays cumulative conflict events collected by ACLED, over the past 10 years. This shows us how political conflict has been concentrated over the past 10 years, and which populations and regions have been particularly restive. 
 
-* A review of conflict by event type 
+Though in no way is this document intended to be an exhaustive analysis of conflict in the region, in our exploratory analysis of the data, we have found the following topics/sections to provide an reasonable overview of conflict trends in the region: 
+
+* A review of conflict by event type: 5-year and 10-year summary charts and graphs. 
 
 * An analysis of events and fatalities per capita
 
-* An overview of conflict in Myanmar and its spillover in the region 
+* An overview of conflict in Myanmar and its spillover in the region: one of the major foci of conflict. Includes overview of most lethal conflict actors.   
 
-* An overview of cross-border violence between Afghanistan and Pakistan 
+* An overview of cross-border violence between Afghanistan and Pakistan and Pakistan and India.
 
 * Conflict actors 
 
@@ -254,7 +256,8 @@ summary_stats |>
   arrange(desc(event_diff_pc)) |> 
   select(country, events_2014, events_2023, `events_diff%` = event_diff_pc, 
          fatalities_2014, fatalities_2023, `fatalities_diff%` = fatalities_diff_pc) |> 
-  kable(caption = "10 years of conflict: comparison 2014 and 2023") |> 
+  kable(booktabs = TRUE, 
+        caption = "10 years of conflict: comparison 2014 and 2023") |> 
   kable_classic_2("striped", full_width = TRUE) |>
   column_spec(4, color = "grey50", background = 
                 spec_color(event_diff_spec_2014$event_diff_pc[1:8], direction = -1, end = .9, 
@@ -374,11 +377,7 @@ acled_filtered |>
 ```
 
 
-### Protests vs non-protests
-
-move to references 
-
-```{r fig.height=7}
+```{r}
 acled_filtered |> 
   filter(year > 2013 & year <= 2025 & country != "Singapore") |> 
   mutate(country = fct_relevel(country, most_events_list), 
@@ -410,9 +409,11 @@ acled_filtered |>
         legend.margin=margin(c(1,5,5,5))) + 
   guides(colour = guide_legend(nrow = 1), 
          linetype = guide_legend(nrow = 1))
-
-
 ```
+
+
+
+
 
 scatterplot protests, non-protests
 
@@ -661,8 +662,10 @@ acled_cor |>
 
 ## Per Capita
 
+
+
 ```{r}
-event_fatalities_pc <- event_stream_data |>
+event_stream_data |>
   mutate(year = year(quarter)) |> 
   group_by(country, year) |> 
   summarise(events = sum(events), 
@@ -675,20 +678,15 @@ event_fatalities_pc <- event_stream_data |>
   mutate(events_100k = events / population * 100000, 
          fatalities_100k = fatalities / population * 100000) |> 
   group_by(country) |> 
-  summarise(events_100k = mean(events_100k), 
-            fatalities_100k = mean(fatalities_100k), 
+  summarise(events_100k = mean(events_100k, na.rm = TRUE), 
+            fatalities_100k = mean(fatalities_100k, na.rm = TRUE), 
             events = sum(events), 
             fatalities = sum(fatalities)) |> 
-  arrange(desc(events_100k))
-
-
-```
-
-
-```{r}
-event_fatalities_pc |> 
+  arrange(desc(events_100k)) |> 
   ggplot(aes(x = events_100k + 0.01, 
              y = fatalities_100k + 0.01)) + 
+  geom_hline(yintercept = 0.01, lwd = .2, linetype = "dashed", alpha = .5) + 
+  geom_vline(xintercept = 0.01, lwd = .2, linetype = "dashed", alpha = .5) + 
   geom_point(aes(colour = fatalities, 
                  size = events), alpha = .8) + 
   # geom_text(aes(label = country), vjust = "inward") +
@@ -699,7 +697,12 @@ event_fatalities_pc |>
   scale_colour_viridis_c(option = "magma", direction = -1, end = .85) + 
   labs(x = "Events per 100k", 
        y = "Fatalities per 100k", 
-       title = "Events (magnitude) and fatalities (lethality) per 100,000 persons")
+       title = "Events (magnitude) and fatalities (lethality) per 100,000 persons", 
+       size = "No. Events", 
+       colour = "Fatalities")
+
+
+
 ```
 
 <br> 
@@ -948,6 +951,14 @@ In the northwest, India has closed the border crossing at Tamu (in line with the
 
 The military no longer has the ability to push beyond the positions they already hold. If the rebels can defeat the Mandalay garrison, the Tatmadaw will have lost.
 
+However, with reference to MIMU's excellent ethnolinguistic map of Myanmar, if the rebels do defeat the Tatmadaw, governing Myanmar's various ethnic groups will prove to be challenging. 
+
+
+<br>
+
+![](./plots/Ethnologue_Map_Main_Spoken_Languages_of_MyanmarNeighbour_MIMU1300v03_7Jan2019_A1_1.png)
+
+
 <br><br><br>
 
 ### Spillover and most lethal actors 
@@ -1103,16 +1114,15 @@ genocide_t_test <- bangladesh_summary |>
 ```
 
 
-
-
 ## Actors 
 
-```{r}
-acled_actors |> count(sub_event_type)
-```
 
 
-```{r fig.height=7, warning = FALSE}
+The plot below shows the activity (events per 100,000 persons) and lethality (fatalities per 100,000 persons) of the various conflict actor types in each country. The total size of each country's ISO code indicates the total amount of fatalities from events where each actor type was involved. 
+
+<br>
+
+```{r fig.height=6, warning = FALSE}
 
 
 actor_order_list <- acled_actors |> 
@@ -1124,17 +1134,14 @@ actor_order_list <- acled_actors |>
   arrange(desc(actors)) |> 
   pull(country)
 
-
 acled_actors |>
-  filter(sub_event_type != "Peaceful protest") |> 
-  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
-  group_by(country, actor_description, quarter) |> 
-  summarise(actors = n_distinct(actor), 
+  mutate(covid = ifelse(event_date >= "2020-03-11", "Post-covid", "Pre-covid"), 
+         covid = fct_relevel(covid, "Pre-covid", "Post-covid")) |>
+  group_by(actor_description, country, covid) |> 
+  summarise(events = n_distinct(event_id_cnty), 
             fatalities = sum(fatalities, na.rm = TRUE), 
-            events = n_distinct(event_id_cnty), 
             .groups = "drop") |> 
-  mutate(country = fct_relevel(country, actor_order_list),
-         actor_description = fct_relevel(actor_description, 
+  mutate(actor_description = fct_relevel(actor_description, 
                                          c("Civilians", 
                                            "State Forces",  
                                            "Protesters",
@@ -1143,15 +1150,39 @@ acled_actors |>
                                            "Rioters", 
                                            "Political Militias", 
                                            "Other Forces"
-                                           ))) |> 
-  filter(country %out% c("South Korea", "Maldives", "Fiji", 
-                         "Bhutan", "Singapore", "Vanuatu")) |> 
-  ggplot(aes(x = quarter, y = fatalities, fill = actor_description)) + 
-  # geom_smooth(linewidth = .72, alpha = .7, se = FALSE, method = "loess") + 
-  geom_area() + 
-  scale_fill_manual(
-    values = c(
-      "Civilians" = "#D2E935FF",
+                                           ))) |>
+  left_join(
+    population_estimates |>
+      mutate(covid = ifelse(year >= 2020, "Post-covid", "Pre-covid")) |>
+      group_by(country, covid) |>
+      summarise(population = mean(population, na.rm = TRUE),
+                .groups = "drop"), 
+    by = c("country", "covid")
+  ) |> 
+  mutate(
+    events_100k = events / population * 100000, 
+    fatalities_100k = fatalities / population * 100000, 
+    covid = fct_relevel(covid, c("Pre-covid", "Post-covid"))
+  ) |>
+
+  left_join(country_iso3, by = c("country" = "name")) |> 
+  ggplot(aes(x = events_100k + 0.0001, y = fatalities_100k + 0.0001)) + 
+  geom_hline(yintercept = 0.0001, lwd = .2, linetype = "dashed", alpha = .5) + 
+  geom_vline(xintercept = 0.0001, lwd = .2, linetype = "dashed", alpha = .5) + 
+  geom_point(alpha = 0, aes(size = fatalities, colour = actor_description)) + 
+  geom_text_repel(aes(label = iso3,  size = fatalities, colour = actor_description), 
+                  show.legend = FALSE, max.overlaps = 17, 
+                  box.padding = .1, 
+                  label.padding = .1, 
+                  label.r = .1, 
+                  force = .5,
+                  force_pull = .5, 
+                  vjust = "inward") + 
+  facet_wrap(~ covid) + 
+  scale_x_log10() +
+  scale_y_log10() + 
+  scale_color_manual(values = c(
+      "Civilians" = "#fde725ff",
       "State Forces" = "#7A0403FF",
       "Protesters" = "#4AC16DFF",
       "Identity Militias" = "#4777EFFF",
@@ -1159,28 +1190,52 @@ acled_actors |>
       "Rioters" = "#1BD0D5FF",
       "Political Militias" = "#D3436EFF",
       "Other Forces" = "grey30")) +
-  # scale_y_log10() +
-  facet_wrap(~ country, scales = "free_y") + 
-  theme(legend.position = "top",
-          legend.key.width = unit(.5, "cm"), 
-          legend.key.height = unit(.5, "cm"), 
-          legend.text = element_text(size = 7),
-          axis.title.y = element_text(size = 7), 
-          axis.text.y = element_text(size = 7), 
-          axis.text.x = element_text(size = 7, angle = 30, hjust = 1, vjust = 1), 
-          strip.text = element_text(size = 12), 
-          strip.background = element_rect(fill = "black")) + 
-    guides(fill = guide_legend(nrow = 1, 
-                                 override.aes = 
-                                   list(linewidth = 2))) + 
-  labs(fill = "", 
-       title = "Number of active conflict actors by type",
-       subtitle = "Excludes peaceful protests", 
-       y = "")
-
-
+  scale_size_continuous(range = c(1, 5)) +
+  guides(colour = guide_legend(override.aes = list(alpha = 1, 
+                                                   size = 1.8)), 
+         size = guide_legend(override.aes = list(alpha = 1, 
+                                                 colour = "grey"))) + 
+ labs(x = "No. of Events per 100k", 
+      y = "No. of Fatalities per 100k",
+      title = "Conflict actor types by number of events and fatalities", 
+      size = "Fatalities", 
+      colour = "Actor type", 
+      caption = "Source: www.acleddata.com") + 
+ theme(plot.caption = element_text(hjust = .5), 
+       strip.background = element_rect(fill = "black"), 
+       strip.text = element_text(face = "bold"), 
+       legend.text = element_text(size = 6), 
+       legend.title = element_text(size = 7)) 
 
 ```
+
+<br>
+
+Judging by the frequency of protest events in countries not at war, pre-covid, the countries and territories with the most dissatisfied populations were Nepal, Hong Kong, Pakistan, Sri Lanka, Cambodia and Bangladesh (with its predominance of riots). Post-covid, populations in Pakistan and Sri Lanka are still voicing their dissatisfaction. For the most part, protests seem to be less lethal after covid.  
+
+Protests have increased in India and Indonesia, though riots are still at the roughly the same levels as before. Maldivians (at the bottom right) are protesting at greater levels than even pre-covid Hong Kong.  
+Maldives post-covid what's going on? 
+
+Post-covid, there has been a notable increase in riots across the Asia-Pacific. 
+
+Pakistani protesters had almost as high a fatality rate as protesters in Myanmar. 
+
+Pre-covid, Afghanistan, Pakistan and Myanmar were clearly involved in open warfare, given the high activity and lethality experienced amongst state forces, rebel groups, political militias and civilians (any event involving a combatant and a civilian ends predictably). Bangladeshi and Thai actors border these most prolific actors, indicating significant instability and unrest in those countries. 
+
+Post-covid, we see a rapid increase of deaths in Afghanistan and Myanmar, whereas conflict actors in Pakistan and Philippines were less violent, but still 
+
+Papua New Guinea, where data collection began in `r acled_filtered |> filter(country == "Papua New Guinea")  %>% {min(.$event_date)}`, has showed itself to be one of the 
+
+Pre-covid, it would appear that, just from the chart, Afghanistan, Pakistan, Philippines, India and Myanmar were involved in either civil wars or insurgencies. States with significant violence against civilians and collateral damage (any event involving a combatant actor and a civilian actor ends predictably) were Philippines, Pakistan, Indonesia,  
+
+Before covid, it was Indonesian protesters who died the most. Afghanistan had the most prolific conflict actors prior to and after covid; this is particularly worrisome considering ACLED only began data collection there on `r acled_filtered |> filter(country == "Afghanistan")  %>% {min(.$event_date)}`. Additionally, as unstable that Bangladesh appears in hindsight, Indonesia has also had similar levels of activity amongst rioters and political militias. 
+
+It would appear that during the drug war, 
+
+
+
+
+
 
 <br><br><br>
 
@@ -1229,78 +1284,9 @@ scale_fill_manual(
 
 <br><br><br>
 
+
+
 ## Protests 
-
-```{r}
-acled_protests <- acled_filtered |> 
-  filter(event_type == "Protests") |> 
-  mutate(covid = ifelse(event_date >= "2020-03-11", "post-covid", "pre-covid")) |> 
-  select(event_id_cnty, notes, covid) |> 
-  unnest_tokens(word, notes) |> 
-  anti_join(stop_words, by = "word") |> 
-  filter(str_detect(word, "[a-z]")) |> 
-  filter(word %out% c("township", "district", "city", "village", 
-                      "region", "town", "coded", "province", "county", 
-                      "pradesh", "prefecture", "regency", 
-                      "barangay", "upazila", "hong", "kong", "phnom", "penh") & 
-           word %out% c("january", "february", "march", "april", "may",
-                        "june", "july", "august", "september", "october",
-                        "november", "december", 
-                        "report"))
-  
-```
-
-```{r}
-swc <- paste(c(stop_words$word, 
-             c("january", "february", "march", "april", "may",
-                        "june", "july", "august", "september", "october",
-                        "november", "december", 
-                        "report"),
-             c("township", "district", "city", "village", 
-                      "region", "town", "coded", "province", "county", 
-                      "pradesh", "prefecture", "regency", 
-                      "barangay", "upazila", "hong", "kong", "phnom", "penh")), 
-             collapse = "|")
-
-
-acled_protests_bigrams <- acled_filtered |> 
-  filter(event_type == "Protests") |> 
-  mutate(covid = ifelse(event_date >= "2020-03-11", "post-covid", "pre-covid")) |> 
-  select(event_id_cnty, notes, covid) |> 
-  unnest_tokens(bigram, notes, token = "ngrams", n = 2) |> 
-  filter(str_detect(bigram, "[a-z]")) |>
-  filter(!str_detect(bigram, stop_words$word))
-
-
-```
-
-
-```{r}
-
-set.seed(233)
-
-protest_network_graph <- acled_protests_bigrams |>
-  filter(covid == "post-covid") |> 
-  distinct(event_id_cnty, bigram) |> 
-  add_count(bigram) |> 
-  filter(n >= 300) |> 
-  pairwise_cor(bigram, event_id_cnty, sort = TRUE) |> 
-  filter(correlation >= .25) |> 
-  igraph::graph_from_data_frame() %>% 
-  ggraph(layout = "fr") + 
-  geom_edge_link(aes(alpha = correlation), colour = "blue", check_overlap = TRUE) + 
-  scale_alpha_continuous(range = c(0.1, 0.4)) +
-  geom_node_point(colour = "blue", alpha = 0.3, size = .9) +
-  geom_node_text(aes(label = name), size = 1) + 
-  theme(legend.position = "none")
-  
-
-ggsave(here("plots", "protest_network_graph.png"), 
-       width = 42.0, height = 29.7, units = "cm", dpi = 300)
-```
-
-
-
 
 
 
@@ -1315,7 +1301,7 @@ protest_country_words <- acled_filtered |>
   filter(word %out% c("township", "district", "city", "village", 
                       "region", "town", "coded", "province", "county", 
                       "pradesh", "prefecture", "regency", 
-                      "barangay", "upazila", "hong", "kong", "phnom", "penh") & 
+                      "barangay", "upazila") & 
            word %out% c("january", "february", "march", "april", "may", 
          "june", "july", "august", "september", "october", 
          "november", "december")) |> 
@@ -1323,16 +1309,143 @@ protest_country_words <- acled_filtered |>
 
 ```
 
+
+```{r}
+protest_country_words |>
+  # filter(covid == "post-covid") |> 
+  distinct(event_id_cnty, word, covid) |> 
+  add_count(word) |> 
+  pivot_wider(names_from = covid, values_from = n, values_fill = 0) |> 
+  janitor::clean_names() |> 
+  mutate(n = post_covid + pre_covid) |> 
+  arrange(desc(n))
+
+acled_protests <- acled_filtered |> 
+  filter(event_type == "Protests") |> 
+  mutate(covid = ifelse(event_date >= "2020-03-11", "post-covid", "pre-covid")) |> 
+  select(event_id_cnty, notes, covid) |> 
+  unnest_tokens(word, notes) |> 
+  anti_join(stop_words, by = "word") |> 
+  filter(str_detect(word, "[a-z]")) |> 
+  filter(word %out% c("township", "district", "city", "village", 
+                      "region", "town", "coded", "province", "county", 
+                      "pradesh", "prefecture", "regency", 
+                      "barangay", "upazila", "hong", "kong", "phnom", "penh", 
+                      "january", "february", "march", "april", "may",
+                        "june", "july", "august", "september", "october",
+                        "november", "december", 
+                        "report")) |> 
+  mutate(stem = SnowballC::wordStem(word, language = "porter")) 
+```
+
+
+```{r eval=FALSE}
+
+set.seed(234)
+
+protest_network_graph <- acled_protests |>
+  # filter(covid == "post-covid") |> 
+  distinct(event_id_cnty, word) |> 
+  add_count(word) |> 
+  filter(n >= 425) |> 
+  pairwise_cor(word, event_id_cnty, sort = TRUE) |> 
+  filter(correlation >= .205) |> 
+  left_join(
+    acled_protests |> 
+      distinct(event_id_cnty, word) |> 
+      add_count(word) |> 
+      filter(n >= 425) |> 
+      pairwise_count(word, event_id_cnty, sort = TRUE), 
+    by = c("item1", "item2")
+  ) |> 
+  igraph::graph_from_data_frame() %>% 
+  ggraph(layout = "fr") + 
+  geom_edge_link(aes(alpha = correlation, edge_width = n), colour = "cornflowerblue", check_overlap = TRUE) +
+  scale_edge_width_continuous(range = c(.1, 2.5), trans = "log10") +
+  scale_alpha_continuous(range = c(0.01, 0.08)) +
+  geom_node_point(colour = "cornflowerblue", alpha = 0.2, size = .5) +
+  geom_node_text(aes(label = ifelse(name %in% 
+                                        c("myanmar", "laundering", "coronavirus",
+                                          "citizenship", "union", "load", "farm", 
+                                          "prices", "arrears", "palestine", "kashmir", 
+                                          "pension", "fukushima", "majeste",
+                                          "arrest", "oli", "manipur", "korea"),
+                                      str_to_title(name),
+                                      "")), 
+                 size = 4.3, 
+                 alpha = .7, 
+                 colour = "goldenrod2") + 
+  geom_node_text(aes(label = name), size = 1.5) + 
+  theme(legend.position = "none", 
+        plot.caption = element_text(hjust = .5)) + 
+  labs(title = "Network graph of post-covid protest descriptions", 
+       subtitle = "Line thickness indicates number of events involving those words, line transparency indicates the correlation between words. Selected words highlighted.", 
+       caption = "Source: www.acleddata.com")
+  
+
+ggsave(here("plots", "protest_network_graph.png"), 
+       width = 42.0, height = 29.7, units = "cm", dpi = 300)
+
+```
+
 ```{r}
 acled_filtered |> 
-  filter(country %out% c("Myanmar", "Thailand")) |> 
-  filter(str_detect(notes, "coup") & !str_detect(notes, "couple")) |> 
+  filter(str_detect(notes, "Meitei")) |> 
   sample_n(5) |> 
   pull(notes)
 ```
 
 
-```{r fig.height=7.5}
+<br>
+
+![](./plots/protest_network_graph.png)
+
+
+
+<br>
+
+A few clusters of protest descriptions: Myanmar, Palestine, Korea and unions, Meitei, Kashmir, citizenship amendment, Fukushima and several around economic concerns (arrears, pensions, retirees, social security)
+
+```{r eval=FALSE}
+set.seed(233)
+
+protest_network_graph <- acled_protests |>
+  filter(str_detect(event_id_cnty, "IDN")) |> 
+  distinct(event_id_cnty, word) |> 
+  add_count(word) |> 
+  filter(n >= 100) |> 
+  pairwise_cor(word, event_id_cnty, sort = TRUE) |> 
+  filter(correlation >= .2) |> 
+  left_join(
+    acled_protests |> 
+      filter(str_detect(event_id_cnty, "IDN")) |> 
+      distinct(event_id_cnty, word) |> 
+      add_count(word) |> 
+      filter(n >= 100) |> 
+      pairwise_count(word, event_id_cnty, sort = TRUE), 
+    by = c("item1", "item2")
+  ) |> 
+  igraph::graph_from_data_frame() %>% 
+  ggraph(layout = "fr") + 
+  geom_edge_link(aes(alpha = correlation, edge_width = n), colour = "cornflowerblue", check_overlap = TRUE) + 
+  scale_edge_width_continuous(range = c(.1, 2.5), trans = "log10") +
+  scale_alpha_continuous(range = c(0.01, 0.08)) +
+  geom_node_point(colour = "cornflowerblue", alpha = 0.2, size = .5) +
+  geom_node_text(aes(label = name), size = 1.6) + 
+  theme(legend.position = "none", 
+        plot.caption = element_text(hjust = .5)) + 
+  labs(title = "Network graph of post-covid Indonesian protest descriptions", 
+       subtitle = "Line thickness indicates number of events involving those words, line transparency indicates the correlation between words", 
+       caption = "Source: www.acleddata.com")
+  
+
+ggsave(here("plots", "protest_network_graph_indonesia.png"), 
+       width = 42.0, height = 29.7, units = "cm", dpi = 300)
+```
+
+
+
+```{r fig.height=8}
 admin2_list <- acled_filtered |> 
   filter(!is.na(admin2)) |> 
   distinct(admin2) |> 
@@ -1354,29 +1467,186 @@ admin1_list <- acled_filtered |>
          admin1 = str_trim(admin1)) |> 
   pull(admin1)
 
+protest_order <- protest_country_words |> 
+  group_by(country) |> 
+  summarise(count = n_distinct(event_id_cnty)) |> 
+  arrange(desc(count)) |> 
+  pull(country)
+
+protest_country_words |> 
+  filter(covid == "post-covid") |> 
+  filter(word %out% c(admin1_list, admin2_list) & 
+           word %out% c("protest", "staged", "demonstration", "held", "couple", 
+                        "demonstrators", "urged", "banners", "slogan", "slogans", 
+                        "banner", "coordinating", "opposed", "condemned", 
+                        "demanded", "demonstrate", "rally", "demands") & 
+           stem %out% c("protest")) |>
+  count(word, country, sort = TRUE) |>  
+  bind_tf_idf(country, word, n) |> 
+  tidylo::bind_log_odds(country, word, n) |> 
+  filter(n > 4) |> 
+  mutate(country = fct_relevel(country, protest_order)) |> 
+  mutate(
+    word_group = case_when(
+      str_detect(
+        word,
+        "worker|arrear|wage|factori|union|kctu|picket|pension|affili|retire|commod|labor|price|cpi|employer|economic|financial|strike|owe|increase|inflation|company|salary|liveli|compensation")
+      ~ "economic",
+      str_detect(word, "tamil|hindu|nadu|indian") ~ "ethnic",
+      str_detect(word, "bjp") & country != "Bangladesh" ~ "ethnic", 
+      str_detect(word, "corona|lockdown|restrict|home|pandem") ~ "covid",
+      str_detect(word, "omni|congress|articl|law|legco")  ~ "legislation",
+      str_detect(word, "provin|local|farmer|skm|bku|regen|farm|tribal") ~ "rural",
+      str_detect(word, "myanmar|kachin|arakan") ~ "myanmar",
+      str_detect(word, "kashmir|jammu") ~ "kashmir",
+      str_detect(word, "press|editor|media") ~ "press",
+      str_detect(word, 
+                 "military|coup|lese|maj|president|government|monarchy|police|arrest|release|oli") 
+      ~ "state", 
+      str_detect(word, "student|university|youth|teacher|education|school") ~ "student", 
+     TRUE ~ "other"),
+    word_group = fct_relevel(word_group, 
+                             c("economic", "disobedience", "ethnic",   
+                               "legislation", "rural", "covid", "kashmir", 
+                               "press", "student", "state", "other"))
+  ) |>
+  filter(word %out% c("front", "conference", "demanding", 
+                      "including", "support", "demand")) |> 
+  arrange(desc(log_odds_weighted)) |> 
+  group_by(country) |> 
+  slice(1:20) |> 
+  ungroup() |>
+  ggplot(aes(x = log_odds_weighted, 
+             y = reorder_within(str_sub(word, 1, 25), 
+                                log_odds_weighted, 
+                                country))) + 
+  geom_col(aes(fill = word_group)) + 
+  scale_fill_manual(values = c(
+    "economic" = "#f8766d",
+    "ethnic" = "#00bf7d",
+    "covid" = "#d89000",
+    "legislation" = "#9590ff",
+    "rural" = "#39b600",
+    "kashmir" = "#e76bf3",
+    "press" = "#00bfc4",
+    "state" = "#7A0403FF",
+    "student" = "#fde725ff",
+    "other" = "grey50"
+  )) +
+  scale_y_reordered() + 
+  facet_wrap(~ country, scales = "free") + 
+  theme(axis.text.y = element_text(size = 5), 
+        axis.text.x = element_text(size = 5), 
+        legend.text = element_text(size = 7)) + 
+  labs(x = "Log odds weighted", 
+       y = "", 
+       fill = "Topic")
+
+  
+
+```
+
+
+<br>
+
+Place names indicate widespread protests. 
+
+
+```{r}
+acled_filtered |> 
+  filter(str_detect(notes, "padlocking") & country == "Nepal") |> 
+  sample_n(5) |> 
+  pull(notes)
+```
+
+
+```{r}
+
 protest_country_words |> 
   filter(covid == "post-covid") |> 
   filter(word %out% c(admin1_list, admin2_list) & 
            word %out% c("protest", "staged", "demonstration", "held", "couple") & 
            stem %out% c("protest", "guangzhou", "shenzhen", "zhengzhou")) |>
-  count(stem, country, sort = TRUE) |>  
-  bind_tf_idf(country, stem, n) |> 
-  tidylo::bind_log_odds(country, stem, n) |> 
+  count(word, country, sort = TRUE) |>  
+  bind_tf_idf(country, word, n) |> 
+  tidylo::bind_log_odds(country, word, n) |> 
+  filter(n > 2) |> 
+  mutate(country = fct_relevel(country, protest_order)) |> 
+  mutate(
+    word_group = case_when(
+      str_detect(
+        word,
+        "worker|arrear|wage|factori|union|kctu|picket|pension|syndic|retire|commod|labor|price|cpi|employer|economic|financial|strike|owe")
+      ~ "economic",
+      str_detect(word, "tamil|hindu|bjp|nadu|indian") ~ "indian nat.",
+      str_detect(word, "civi|disobed") ~ "disobedience",
+      str_detect(word, "corona|lockdown|restrict|home|pandem") ~ "covid",
+      str_detect(word, "omni|congress|articl")  ~ "legislation",
+      str_detect(word, "provin|local|farmer|skm|bku|regen") ~ "rural",
+      str_detect(word, "myanmar|kachin|arakan") ~ "myanmar",
+      str_detect(word, "kashmir|jammu") ~ "kashmir",
+      str_detect(word, "press|editor") ~ "press",
+      str_detect(word, "student|university|youth") ~ "student", 
+     TRUE ~ "other"),
+    word_group = fct_relevel(word_group, 
+                             c("economic", "indian", "disobedience", "covid", 
+                               "legislation", "rural", "myanmar", "kashmir", 
+                               "press", "student", "other"))
+  ) |>
+  filter(word %out% c("front", "conference", "demanding", 
+                      "including", "support", "demand")) |> 
   arrange(desc(log_odds_weighted)) |> 
   group_by(country) |> 
   slice(1:20) |> 
-  ungroup() |>
-  mutate()
-  ggplot(aes(x = log_odds_weighted, 
-             y = reorder_within(stem, log_odds_weighted, country))) + 
-  geom_col() + 
-  scale_y_reordered() + 
-  facet_wrap(~ country, scales = "free") + 
-  theme(axis.text.y = element_text(size = 5))
+  ungroup()
 ```
 
 
-```{r}
-acled_filtered |> count(country)
-```
 
+<br><br><br>
+
+
+
+## Annexes
+
+### Supplementary charts
+
+#### Protests vs non-protests
+
+move to references 
+
+```{r fig.height=7}
+acled_filtered |> 
+  filter(year > 2013 & year <= 2025 & country != "Singapore") |> 
+  mutate(country = fct_relevel(country, most_events_list), 
+         protests = ifelse(str_detect(sub_event_type, "Protest|protest"), 
+                           "protests", "non-protests"))|> 
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
+  group_by(country, quarter, protests) |> 
+  summarise(events = n(), 
+            fatalities = sum(fatalities), 
+            .groups = "drop") |> 
+  ggplot(aes(x = quarter, y = events, colour = protests)) + 
+  geom_vline(xintercept = as.numeric(as.Date("2020-03-11")), lwd = .5, 
+             colour = "grey30", 
+             linetype = "dashed") + 
+  geom_smooth(aes(group = protests), se = FALSE) + 
+  scale_x_date(date_labels = "%Y", 
+               date_breaks = "2 years") + 
+  facet_wrap(~ country, 
+             scales = "free_y") +
+  scale_y_continuous(labels = comma) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1), 
+        strip.background = element_rect(fill = "black")) + 
+  labs(title = "Protests vs all other types of political conflict", 
+       subtitle = "Dotted line is the WHO declaration of the COVID pandemic",
+       y = "Number of events", 
+       x = "", 
+       colour = "") +  
+  theme(legend.position = "top", 
+        legend.margin=margin(c(1,5,5,5))) + 
+  guides(colour = guide_legend(nrow = 1), 
+         linetype = guide_legend(nrow = 1))
+
+
+```
