@@ -71,4 +71,181 @@ geom_point(aes(x = x, y = y), size = 2.5, data = lashio_captured,
             label = "Captured",
             size = 2, data = lashio_captured_text, 
             face = "bold", 
-            colour = "seashell") +
+            colour = "seashell")
+  
+  
+  protest_country_words |>
+  # filter(covid == "post-covid") |> 
+  distinct(event_id_cnty, word, covid) |> 
+  add_count(word) |> 
+  pivot_wider(names_from = covid, values_from = n, values_fill = 0) |> 
+  janitor::clean_names() |> 
+  mutate(n = post_covid + pre_covid) |> 
+  arrange(desc(n))
+
+  acled_actors_indonesia |>
+    mutate(covid = ifelse(event_date >= "2020-03-11", "Post-covid", "Pre-covid"), 
+           covid = fct_relevel(covid, "Pre-covid", "Post-covid")) |>
+    group_by(actor_description, admin1, admin1_label, covid) |> 
+    summarise(events = n_distinct(event_id_cnty), 
+              fatalities = sum(fatalities, na.rm = TRUE), 
+              .groups = "drop") |> 
+    mutate(actor_description = fct_relevel(actor_description, 
+                                           c("Civilians", 
+                                             "State Forces",  
+                                             "Protesters",
+                                             "Identity Militias", 
+                                             "Rebel Groups", 
+                                             "Rioters", 
+                                             "Political Militias", 
+                                             "Other Forces"
+                                           ))) |> 
+    left_join(
+      indo_adm1_pop |>  
+        mutate(
+          adm1_en = str_trim(adm1_en), 
+          adm1_en = case_when(
+            str_detect(adm1_en, "Jakarta") ~ "Jakarta", 
+            str_detect(adm1_en, "Yogyakarta") ~ "Yogyakarta",
+            TRUE ~ adm1_en)),
+      by = c("admin1" = "adm1_en")
+    ) |> 
+    mutate(
+      events_100k = events / population * 100000, 
+      fatalities_100k = fatalities / population * 100000, 
+      covid = fct_relevel(covid, c("Pre-covid", "Post-covid"))
+    ) |>
+    ggplot(aes(x = events_100k + 0.0001, y = fatalities_100k + 0.0001)) + 
+    geom_hline(yintercept = 0.0001, lwd = .2, linetype = "dashed", alpha = .5) + 
+    geom_vline(xintercept = 0.0001, lwd = .2, linetype = "dashed", alpha = .5) + 
+    geom_point(alpha = 0, aes(size = fatalities, colour = actor_description)) + 
+    geom_text_repel(aes(label = admin1_label,  size = fatalities, colour = actor_description), 
+                    show.legend = FALSE, max.overlaps = 20, 
+                    box.padding = .1, 
+                    label.padding = .1, 
+                    label.r = .1, 
+                    force = .5,
+                    force_pull = .5, 
+                    vjust = "inward") + 
+    facet_wrap(~ covid) + 
+    scale_x_log10() +
+    scale_y_log10() + 
+    scale_color_manual(values = c(
+      "Civilians" = "#fde725ff",
+      "State Forces" = "#7A0403FF",
+      "Protesters" = "#4AC16DFF",
+      "Identity Militias" = "#4777EFFF",
+      "Rebel Groups" = "#FE9B2DFF",
+      "Rioters" = "#1BD0D5FF",
+      "Political Militias" = "#D3436EFF",
+      "Other Forces" = "grey30")) +
+    scale_size_continuous(range = c(1, 5)) +
+    guides(colour = guide_legend(override.aes = list(alpha = 1, 
+                                                     size = 1.8)), 
+           size = guide_legend(override.aes = list(alpha = 1, 
+                                                   colour = "grey"))) + 
+    labs(x = "No. of Events per 100k", 
+         y = "No. of Fatalities per 100k",
+         title = "Conflict actor types in Indonesia by number of events and fatalities (2014-2024)", 
+         size = "Fatalities", 
+         colour = "Actor type", 
+         caption = "Source: www.acleddata.com") + 
+    theme(plot.caption = element_text(hjust = .5), 
+          strip.background = element_rect(fill = "black"), 
+          strip.text = element_text(face = "bold"), 
+          legend.text = element_text(size = 6), 
+          legend.title = element_text(size = 7)) 
+  
+  ggsave(here("plots", "conflict_actors_indonesia.png"), dpi = 300, 
+         height = 7, width = 11, units = "in")
+  
+  
+  
+  acled_filtered |> 
+    group_by(country, event_type, sub_event_type) |> 
+    summarise(events = n(), 
+              fatalities = sum(fatalities), .groups = "drop") |>
+    filter(country %in% top_10_annual_fatalities) |>
+    mutate(country = fct_relevel(country, top_10_annual_fatalities)) |> 
+    ggplot(aes(x = events + 0.01, 
+               y = fatalities + 0.01)) + 
+    geom_hline(yintercept = .01, alpha = .5, linetype = "dashed", linewidth = .5) +
+    geom_vline(xintercept = .01, alpha = .5, linetype = "dashed", linewidth = .5) +
+    geom_point(aes(colour = event_type)) + 
+    geom_text_repel(aes(label = sub_event_type), 
+                    size = 1.5, 
+                    max.overlaps = 16) + 
+    facet_wrap(~ country, scales = "free", ncol = 3) +
+    scale_x_log10(breaks = c(1, 10, 100, 1000, 10000, 60000)) + 
+    scale_y_log10(breaks = c(1, 10, 100, 1000, 10000, 60000)) + 
+    theme(strip.background = element_rect(fill = "black"))
+  
+  
+  acled_actors_indonesia <- acled_actors |> 
+    filter(country == "Indonesia") |> 
+    left_join(
+      acled_filtered |> 
+        filter(country == "Indonesia") |> 
+        select(event_id_cnty, admin1), 
+      by = "event_id_cnty"
+    ) |> 
+    # This matches the ACLED and location gazette and pcode datasets
+    mutate(admin1 = ifelse(
+      str_detect(admin1, "West|East|South|North|Southeast|Southwest|Central|Highland") & 
+        !str_detect(admin1, "Nusa"), 
+      paste0(stringr::word(admin1, 2), " ", stringr::word(admin1, 1)), 
+      admin1
+    )) |> ungroup() |> 
+    mutate(admin1 = case_when(
+      str_detect(admin1, "Southwest") ~ str_replace(admin1, "Southwest", "Barat Daya"), 
+      str_detect(admin1, "Southeast") ~ str_replace(admin1, "Southeast", "Tenggara"), 
+      str_detect(admin1, "North") ~ str_replace(admin1, "North", "Utara"), 
+      str_detect(admin1, "South") ~ str_replace(admin1, "South", "Selatan"), 
+      str_detect(admin1, "East") ~ str_replace(admin1, "East", "Timur"), 
+      str_detect(admin1, "West") ~ str_replace(admin1, "West", "Barat"), 
+      str_detect(admin1, "Central") ~ str_replace(admin1, "Central", "Tengah"), 
+      str_detect(admin1, "Highland") ~ str_replace(admin1, "Highland", "Pegunungan"),
+      TRUE ~ admin1
+    )) |> 
+    mutate(
+      admin1 = case_when(
+        str_detect(admin1, "Java") ~ str_replace_all(admin1, "Java", "Jawa"), 
+        admin1 == "Barat Nusa Tenggara" ~ "Nusa Tenggara Barat", 
+        admin1 == "Timur Nusa Tenggara" ~ "Nusa Tenggara Timur",
+        str_detect(admin1, "Bangka") ~ "Kepulauan Bangka Belitung", 
+        str_detect(admin1, "Sumatra") ~ str_replace(admin1, "Sumatra", "Sumatera"), 
+        admin1 == "Riau Islands" ~ "Kepulauan Riau", 
+        str_detect(admin1, "Jakarta") ~ "Jakarta",
+        str_detect(admin1, "Yogyakarta") ~ "Yogyakarta",
+        admin1 == "Papua Tengah" ~ "Papua", 
+        admin1 == "Papua Selatan" ~ "Papua", 
+        admin1 == "Papua Pegunungan" ~ "Papua", 
+        admin1 == "Papua Barat Daya" ~ "Papua Barat", 
+        TRUE ~ admin1),
+      admin1 = str_trim(admin1)) |> 
+    left_join(
+      indo_adm1_pop |>  
+        mutate(
+          adm1_en = str_trim(adm1_en), 
+          adm1_en = case_when(
+            str_detect(adm1_en, "Jakarta") ~ "Jakarta", 
+            str_detect(adm1_en, "Yogyakarta") ~ "Yogyakarta",
+            TRUE ~ adm1_en)),
+      by = c("admin1" = "adm1_en")
+    ) |> 
+    mutate(admin1_label = str_replace_all(admin1, 
+                                          c("Timur" = "Ti", 
+                                            "Barat" = "B", 
+                                            "Tengah" = "Tgh", 
+                                            "Tenggara" = "Tgg", 
+                                            "Utata" = "U", 
+                                            "Selatan" = "S")))  
+  
+  actor_list_indonesia <- acled_actors_indonesia |>   
+    mutate(quarter = floor_date(event_date, unit = "quarter")) |>
+    group_by(admin1, quarter) |> 
+    summarise(actors = n_distinct(actor), .groups = "drop") |> 
+    group_by(admin1) |> 
+    summarise(actors = mean(actors)) |> 
+    arrange(desc(actors)) |> 
+    pull(admin1)

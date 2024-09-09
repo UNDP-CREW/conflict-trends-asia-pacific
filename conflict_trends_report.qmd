@@ -33,12 +33,12 @@ library(tidytext)
 library(ggtext)
 library(widyr)
 library(ggraph)
+library(janitor)
 
 `%out%` <- Negate(`%in%`)
 options(scipen = 100)
 theme_set(theme_light())
 
-show_col(viridis_pal(option = "cividis")(8))
 
 ```
 
@@ -152,17 +152,42 @@ afir_buffer <- st_read(here("data", "afir_buffer", "afir_buffer.shp")) |> st_as_
 
 mmr_buffer <- st_read(here("data", "mmr_buffer", "mmr_buffer.shp"))
 
+kash_buffer <- st_read(here("data", "kash_buffer", "kash_buffer.shp"))
+
 acled_mmr <- readRDS(here("data", "acled_mmr.rds"))
 
 mmr_shape <- world_shape |> filter(str_detect(name, "Myanmar")) 
+
+
+indo_adm1_pop <- read_csv(here("data", "idn_admpop_adm1_2020_v2.csv")) |>
+  janitor::clean_names() |>
+  select(adm1_pcode, population = t_tl) |>
+  left_join(
+    readxl::read_excel(here(
+      "data", "idn_adminboundaries_tabulardata.xlsx"
+    ), sheet = 2) |>
+      clean_names() |>
+      select(adm1_pcode, adm1_en, area_sqkm),
+    by = "adm1_pcode"
+  )
 
 ```
 
 ## Introduction
 
-This document is intended as an overview of observed conflict trends in the Asia-Pacific region in the past ten years. Conflict, including political unrest, in the region has become more multifarious and interconnected. 
+This document is intended as an overview of observed conflict trends in the Asia-Pacific region in the past ten years. Conflict, including political unrest, in the region is multifarious and interconnected. 
 
-Making sense of this data will require a deeper examination of the various contexts in this region. The gif below displays cumulative conflict events collected by ACLED, over the past 10 years. This shows us how political conflict has been concentrated over the past 10 years, and which populations and regions have been particularly restive. 
+Making sense of this data will require a deeper examination of the various contexts in this region. We have endeavoured to produce, rather than a template, more of a demonstration of what types of conflict analysis are possible, using ACLED data from the Asia-Pacific. 
+
+The gif below displays cumulative conflict events collected by ACLED, over the past 10 years. This shows us how political conflict has been concentrated over the past 10 years, and which populations and regions have been particularly restive.
+
+<br>
+
+![](./plots/asia_pacific_event_types_grey.gif)
+
+<br>
+
+Protests are a non-violent form of political conflict which manifest when all legal and administrative avenues have been exhausted. Their existence indicates that people are able to express their support for or dissatisfaction with a given issue. But it also indicates a "hole" in governance which was previously unaddressed (and very might might continue to go unaddressed). 
 
 Though in no way is this document intended to be an exhaustive analysis of conflict in the region, in our exploratory analysis of the data, we have found the following topics/sections to provide an reasonable overview of conflict trends in the region: 
 
@@ -179,16 +204,23 @@ Though in no way is this document intended to be an exhaustive analysis of confl
 * Text mining of protest descriptions
 
 
-Conflict (including political unrest) in the Asia-Pacific is multifarious and interconnected. The gif below displays cumulative conflict events tracked by ACLED for the past 10 years. 
+Any analysis is limited by the knowledge of the subject matter expert and the time available. This means that there is much to be gained from both going larger (comparing regions, forms of government or economic blocs) and smaller (country-level or subnational) with this analysis. There are many definitely many avenues of exploration which I am not even aware of, given the vastness of the Asia-Pacific region and the contexts within it. This product doesn't supplant reports from in-country analysts -- who would be more accurate sources of information anyway -- as they can convey the "feel" of the situation on the ground, something necessary in conflict analysis, given how diverse political conflict can be. 
 
-Making sense of this data will require a deeper examination of the various contexts in this region and the ways in which they interact. Three major foci are observed -- one around Afghanistan and Pakistan, one in the Philippines, and one in Myanmar and its border regions. 
+Nevertheless, with this report, we are, at least, contributing original analysis, with relatively few overlaps with ACLED's current output: ACLED has [regional overviews](https://acleddata.com/2024/09/06/asia-pacific-overview-august-2024/) but they tend to be more punctual, bird's eye and monthly products intended for different purposes. ACLED also adds value through its in-depth reports, such as this one on [Hindu nationalism](https://acleddata.com/2024/04/28/india-votes-2024-a-resurgent-hindu-nationalism-sets-the-stage-for-the-upcoming-elections-driving-communal-violence/) and, as mentioned, country-level analysis tends to be very specific: 
 
-![](./plots/asia_pacific_event_types_grey.gif)
+<br>
 
-Below is a table comparing the the number of political conflict events and fatalities in the countries that ACLED has been monitoring since 2014. Conflict has decreased across these countries since 2014, with the notable exception of Myanmar.
+![](./plots/hindu_muslim_violence.png)
 
-Note that the following event sub-types have been filtered out for the data in this report: `Agreement`, `Change to group/activity`, `Headquarters or base established`. 
+<br>
 
+This is ultimately a living document and we seek feedback on its utility. I personally don't feel that it is "sharp" enough to be considered an aid for decision-making. It is more of a primer on conflict in the region.  
+
+<br><br><br>
+
+### Summary tables and trends
+
+Below is a table comparing the the number of political conflict events and fatalities in the countries that ACLED has been monitoring since 2014. Fatalities have decreased across most countries since 2014, with the exceptions of Myanmar and Nepal. Myanmar is in a civil war and Nepal experienced severe political instability.  
 
 <br>
 
@@ -272,6 +304,8 @@ summary_stats |>
 
 As ACLED expanded the number of countries it monitored, a more comprehensive comparison is possible for the five-year horizon: 
 
+Myanmar, Indonesia, Iran and Bangladesh have all experienced a significant increase in unrest in the past five years. Though unrest in these countries is less bloody than before (with the exception of Myanmar). The lethality of conflict in Pakistan has increased significantly. 
+
 <br>
 
 ```{r}
@@ -342,9 +376,11 @@ summary_stats |>
 
 <br>
 
-Similar to the 10-year comparisons, most countries in the region have seen decreases in both the number of events and the number of conflict-related fatalities. Of note are Myanmar and Pakistan for their increased fatalities and Indonesia, Iran and Bangladesh for their increase in political incidents. 
+The increase in the number of events -- especially if it was due primarily to protests -- is not an immediate cause for concern. South Koreans have managed to enact several changes through their protests (like the removal of President Park Geun-hye), as have Malaysians and Nepalese. Though these changes have also had varying levels of success. 
 
-The decreases in violence are apparent in most countries, as can be seen from the trendlines below; however, as we will explore in the next few sections, much more can be gained from country-based analyses. 
+Likewise, a reduction in events only indicates stabilisation -- whether that has come about through addressing core issues or state crackdowns has to be determined on a country-by-country level. 
+
+On the whole, however, conflict events have decreased in more than half of Asia-Pacific countries and conflict fatalities are down for almost all countries, as can also be seen from the trendlines below:  
 
 <br>
 
@@ -377,66 +413,95 @@ acled_filtered |>
 ```
 
 
-```{r}
-acled_filtered |> 
-  filter(year > 2013 & year <= 2025 & country != "Singapore") |> 
-  mutate(country = fct_relevel(country, most_events_list), 
-         protests = ifelse(str_detect(sub_event_type, "Protest|protest"), 
-                           "protests", "non-protests"))|> 
-  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
-  group_by(country, quarter, protests) |> 
-  summarise(events = n(), 
-            fatalities = sum(fatalities), 
-            .groups = "drop") |> 
-  ggplot(aes(x = quarter, y = events, colour = protests)) + 
-  geom_vline(xintercept = as.numeric(as.Date("2020-03-11")), lwd = .5, 
-             colour = "grey30", 
-             linetype = "dashed") + 
-  geom_smooth(aes(group = protests), se = FALSE) + 
-  scale_x_date(date_labels = "%Y", 
-               date_breaks = "2 years") + 
-  facet_wrap(~ country, 
-             scales = "free_y") +
-  scale_y_continuous(labels = comma) +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1), 
-        strip.background = element_rect(fill = "black")) + 
-  labs(title = "Protests vs all other types of political conflict", 
-       subtitle = "Dotted line is the WHO declaration of the COVID pandemic",
-       y = "Number of events", 
-       x = "", 
-       colour = "") +  
-  theme(legend.position = "top", 
-        legend.margin=margin(c(1,5,5,5))) + 
-  guides(colour = guide_legend(nrow = 1), 
-         linetype = guide_legend(nrow = 1))
-```
-
-
-
-
-
-scatterplot protests, non-protests
-
-```{r}
-
-acled_filtered |> 
-  mutate(country = fct_relevel(country, most_events_list), 
-         protests = ifelse(str_detect(sub_event_type, "Protest|protest"), 
-                           "protests", "non-protests"))|> 
-  ggplot(aes(x))
-```
 
 
 <br><br><br>
 
-## Event type 
+### Per Capita
+
+
+Both the magnitude (number of events) and the severity (number of events per 100,000 persons) provide important perspectives on conflict: India may have a very large number of conflict events, but as can be seen from the graph below, on a per-capita basis, it sits fairly in the middle of the pack.
+
+The plot below is of the number of events per 100,000 pe
+
+<br>
+
+```{r fig.height=6.5}
+acled_filtered |>
+  filter(year < 2024 & year > 2013) |> 
+  group_by(country, year) |> 
+  summarise(events = n_distinct(event_id_cnty), 
+            fatalities = sum(fatalities, na.rm = TRUE), 
+            .groups = "drop") |> 
+  left_join(
+    population_estimates, 
+    by = c("country", "year")
+  ) |> 
+  mutate(events_100k = events / population * 100000, 
+         fatalities_100k = fatalities / population * 100000) |> 
+  group_by(country) |> 
+  summarise(events_100k = mean(events_100k, na.rm = TRUE), 
+            fatalities_100k = mean(fatalities_100k, na.rm = TRUE), 
+            events = sum(events), 
+            fatalities = sum(fatalities)) |> 
+  arrange(desc(events_100k)) |> 
+  ggplot(aes(x = events_100k + 0.01, 
+             y = fatalities_100k + 0.01)) + 
+  #geom_segment(aes(x = .04, xend = .02, y = 2, yend = 2), arrow = arrow(), 
+               #size = .1, lwd = 1.2, colour = "lightsteelblue", alpha = .1) + 
+  #geom_segment(aes(x = .6, xend = .6, y = 11, yend = 35), arrow = arrow(), 
+               #size = .1, lwd = 1.2, colour = "bisque3", alpha =.1) + 
+  geom_smooth(method = "lm",formula = y ~ splines::bs(x, 2), se = FALSE, lwd = 1) + 
+  geom_hline(yintercept = 0.01, lwd = .2, linetype = "dashed", alpha = .5) + 
+  geom_vline(xintercept = 0.01, lwd = .2, linetype = "dashed", alpha = .5) + 
+  geom_hline(yintercept = 1.01, lwd = .9, linetype = "dashed", alpha = .3, colour = "blue") + 
+  geom_vline(xintercept = 1.01, lwd = .9, linetype = "dashed", alpha = .3, colour = "blue") + 
+  geom_point(aes(colour = fatalities, 
+                 size = events), alpha = .8) + 
+  # geom_text(aes(label = country), vjust = "inward") +
+  ggrepel::geom_text_repel(aes(label = country), size = 3, vjust = "inward", 
+                           max.overlaps = 20) +
+  scale_x_log10(breaks=c(0.01, 0.11, 1.01, 2.01, 5.01), labels=\(x) x-0.01) + 
+  scale_y_log10(breaks=c(0.01, 0.11, 1.01, 10.01), labels=\(x) x-0.01) +
+  scale_size_continuous(range = c(.1, 6), trans = "log10") + 
+  scale_colour_viridis_c(option = "magma", direction = -1, end = .85) + 
+  labs(x = "Events per 100k", 
+       y = "Fatalities per 100k", 
+       title = "Severity and lethality of political conflict in the Asia-Pacific", 
+       subtitle = "Mean annual events and fatalities per country per 100,000 persons", 
+       caption = "Source: www.accleddata.com", 
+       size = "No. Events", 
+       colour = "Fatalities") + 
+  theme(plot.caption = element_text(hjust = .5))
+
+
+
+```
+
+<br> 
+
+The countries most affected by political violence are in the upper-right quadrant, with distinctions between Afghanistan and Myanmar and the rest. The blue dotted reference lines were chosen just on a visual inspection of the data, but having at least one annual conflict fatality per 100,000 persons does seem to be a significant threshold. For reference and to put Myanmar and Afghanistan into perspective, the [homicide rate](https://www.who.int/data/gho/data/indicators/indicator-details/GHO/estimates-of-rates-of-homicides-per-100-000-population) in Southeast Asia is four per 100,000, and the [road traffic death rate](https://www.who.int/data/gho/data/indicators/indicator-details/GHO/estimated-road-traffic-death-rate-(per-100-000-population) is 16.  
+
+Most interestingly, though is the central tendency (the solid blue line) that most countries in the Asia-Pacific seem to exist on, with autocracies (or their approximations) on one end of the line and on the other, countries where violence has spun out of state control. It is unfortunate that most Asian countries seem to exist on the spectrum between political participation is dangerous and few people do it, to political participation is dangerous and many people do it.
+
+At the bottom of the plot, not on the central tendency are the "functioning" democracies of the region (except Hong Kong). All have populations who actively participate in the political process -- even the least protest-inclined of this group, Fiji and Japan, have higher rates of participation (i.e. number of events per 100k) than Indonesia or Malaysia. Yet in all of these countries, political participation does not mean death. Conflict fatalities tend to be very infrequent.
+
+As a final note, ACLED does not capture all conflict. We use the number of fatalities per 100,000 that we have calculated from their dataset for comparison. Were we looking to calculate the mortality rate, there are [preferred sources](https://www.who.int/data/gho/data/themes/mortality-and-global-health-estimates/ghe-leading-causes-of-death).
+
+<br><br><br>
+
+
+
+
+<br><br><br>
+
+## Event types 
 
 ### Streamgraphs
 
 
 ```{r}
 event_stream_data <- acled_filtered |> 
-  filter(sub_event_type %out% c("Agreement", "Change to group/activity", "Headquarters or base established")) |> 
   mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
   group_by(country, event_type, quarter) |> 
   summarise(events = n_distinct(event_id_cnty), 
@@ -562,330 +627,6 @@ With the victory of the Taliban, Afghanistan has seen a 96% reduction on conflic
 
 <br><br><br>
 
-### Correlations
-
-```{r fig.height=8}
-
-top_10_annual_fatalities <- acled_filtered |> 
-  group_by(country, year) |> 
-  summarise(fatalities = sum(fatalities), .groups = "drop") |> 
-  group_by(country) |> 
-  summarise(annual_fatalities = mean(fatalities, na.rm = TRUE)) |> 
-  arrange(desc(annual_fatalities)) |> 
-  head(10) |> pull(country)
-
-
-acled_filtered |> 
-  group_by(country, event_type, sub_event_type) |> 
-  summarise(events = n(), 
-            fatalities = sum(fatalities), .groups = "drop") |>
-  filter(country %in% top_10_annual_fatalities) |>
-  mutate(country = fct_relevel(country, top_10_annual_fatalities)) |> 
-  ggplot(aes(x = events + 0.01, 
-             y = fatalities + 0.01)) + 
-  geom_hline(yintercept = .01, alpha = .5, linetype = "dashed", linewidth = .5) +
-  geom_vline(xintercept = .01, alpha = .5, linetype = "dashed", linewidth = .5) +
-  geom_point(aes(colour = event_type)) + 
-  geom_text_repel(aes(label = sub_event_type), 
-                  size = 1.5, 
-                  max.overlaps = 16) + 
-  facet_wrap(~ country, scales = "free", ncol = 3) +
-  scale_x_log10(breaks = c(1, 10, 100, 1000, 10000, 60000)) + 
-  scale_y_log10(breaks = c(1, 10, 100, 1000, 10000, 60000)) + 
-  theme(strip.background = element_rect(fill = "black"))
-
-
-
-```
-
-<br>
-
-As an addendum to the streamgraphs, trends are quite country-specific, 
-maybe a mob-violence axis, an war axis and a violence against civilians axis
-
-```{r}
-acled_filtered |> 
-  group_by(sub_event_type) |> 
-  summarise(events = n()) |> 
-  arrange(desc(events))
-```
-
-```{r}
-acled_filtered |> 
-  filter(sub_event_type %in% c("Peaceful protest", "Mob violence", 
-                               "Violent demonstration", "Protest with intervention", 
-                               "Arrests", "Looting/property destruction", 
-                               "Other", "Abduction/forced disappearance", 
-                               "Change to group/activity", "Excessive force against protesters", 
-                               "Agreement", "Sexual violence", 
-                               "Attack")) |>  
-  count(inter_type, sort = TRUE)
-  glimpse()
-```
-
-```{r}
-acled_filtered |> 
-  filter(sub_event_type == "Other") |> 
-  sample_n(5) |> 
-  pull(notes)
-```
-
-
-```{r fig.height=7}
-
-p.mat <- cor_pmat(mtcars)
-
-acled_cor <- acled_filtered |>
-  group_by(country, floor = floor_date(event_date, unit = "quarter"), sub_event_type) |> 
-  summarise(events = n(), .groups = "drop") |> 
-  pivot_wider(names_from = sub_event_type, values_from = events, values_fill = 0) |>
-  select(-country, -floor)
-
-acled_pmat <- acled_cor |> cor_pmat()
-
-acled_cor |> 
-  cor(method = c("pearson")) |> 
-  ggcorrplot(type = "lower", p.mat = acled_pmat)
-  
-  corrplot::corrplot(type = "upper",
-                     method = "number",
-                     tl.srt = 35,
-                     tl.cex = .5, 
-                     number.cex = .5, 
-                     title = "Correlation plot of acled event types")
-  
-  
-
-```
-
-
-
-## Per Capita
-
-
-
-```{r}
-event_stream_data |>
-  mutate(year = year(quarter)) |> 
-  group_by(country, year) |> 
-  summarise(events = sum(events), 
-            fatalities = sum(fatalities), 
-            .groups = "drop") |> 
-  left_join(
-    population_estimates, 
-    by = c("country", "year")
-  ) |> 
-  mutate(events_100k = events / population * 100000, 
-         fatalities_100k = fatalities / population * 100000) |> 
-  group_by(country) |> 
-  summarise(events_100k = mean(events_100k, na.rm = TRUE), 
-            fatalities_100k = mean(fatalities_100k, na.rm = TRUE), 
-            events = sum(events), 
-            fatalities = sum(fatalities)) |> 
-  arrange(desc(events_100k)) |> 
-  ggplot(aes(x = events_100k + 0.01, 
-             y = fatalities_100k + 0.01)) + 
-  geom_hline(yintercept = 0.01, lwd = .2, linetype = "dashed", alpha = .5) + 
-  geom_vline(xintercept = 0.01, lwd = .2, linetype = "dashed", alpha = .5) + 
-  geom_point(aes(colour = fatalities, 
-                 size = events), alpha = .8) + 
-  # geom_text(aes(label = country), vjust = "inward") +
-  ggrepel::geom_text_repel(aes(label = country), size = 3, vjust = "inward") +
-  scale_x_log10(breaks=c(0.01, 0.11, 1.01, 2.01, 5.01), labels=\(x) x-0.01) + 
-  scale_y_log10(breaks=c(0.01, 0.11, 1.01, 10.01), labels=\(x) x-0.01) +
-  scale_size_continuous(range = c(.1, 6), trans = "log10") + 
-  scale_colour_viridis_c(option = "magma", direction = -1, end = .85) + 
-  labs(x = "Events per 100k", 
-       y = "Fatalities per 100k", 
-       title = "Events (magnitude) and fatalities (lethality) per 100,000 persons", 
-       size = "No. Events", 
-       colour = "Fatalities")
-
-
-
-```
-
-<br> 
-
-It makes sense to cluster the data -- there seems to be a "repressive" cluster (China, Laos, North Korea, Singapore, Vietnam). We have "functioning democracies" of various stripes, at the bottom-left corner. We have war-torn countries -- Myanmar and Afghanistan. 
-
-And finally, we have the "main sequence" running diagonally down the middle. 
-
-
-## Afghanistan-Pakistan
-
-The plots below show the past 5 years of conflict data in Afghanistan and Pakistan, with the border area between the two marked in a light grey.
-
-The first three years show ultimately successful Taliban insurgency in full swing, with quite a significant amount of spillover into Pakistan, culminating in the US withdrawal in 2021. 2022 shows markedly less conflict, though we can see the beginnings of this "migration" of conflict (we don't know how literal this is yet) from Afghanistan to Pakistan, this is more evident in 2023. This is in also line with the longstanding Taliban policy of disregard for the Durand Line. 
-
-<br>
-
-```{r}
-afpak_map <- function(tbl){
-  
-  tbl |> 
-    filter(!is.na(longitude) & !is.na(latitude) & 
-             country %in% c("Afghanistan", "Pakistan")) |> 
-    filter(sub_event_type %out% c("Agreement", 
-                                  "Change to group/activity", 
-                                  "Headquarters or base established", 
-                                  "Non-violent transfer of territory")) |> 
-    mutate(quarter = floor_date(event_date, "quarter")) %>%
-    select(event_id_cnty, event_type, longitude, latitude, event_type, quarter, fatalities) |>
-    ggplot() +
-    geom_sf(data = world_shape, size = .7, colour = "gold", fill = "grey95") + 
-    geom_sf(data = afpak_buffer, colour = "grey90", fill = "white", alpha = .09) +
-    coord_sf(xlim = c(60.41, 75.02), 
-             ylim = c(25.04, 39.11)) +
-    geom_point(aes(x = 73.0363, y = 33.6995), colour = "cornflowerblue", pch = 15) +
-    geom_point(aes(x = 69.2075, y = 34.5553), colour = "cornflowerblue", pch = 15) +
-    geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
-    theme(plot.background = element_rect(fill = NA, colour = NA),
-          panel.background = element_rect(fill = NA, colour = NA),
-          rect = element_rect(fill = NA, colour = NA),
-          legend.text = element_text(colour = "white"), 
-          title = element_text(colour = "white"),
-          legend.title = element_text(face = "bold"),
-          plot.caption = element_text(hjust = 0.2)) + 
-    guides(colour = guide_legend(override.aes = list(alpha = 1)), 
-           size = guide_legend(override.aes = list(alpha = 1, 
-                                                   colour = "grey"))) + 
-    theme_void() + 
-    labs(colour = "", size = "Fatalities")
-}
-
-
-```
-
-
-```{r fig.height = 6.5, fig.width=9}
-
-
-acled_filtered |> 
-  filter(year == 2019) |> 
-  afpak_map() + 
-  scale_size_continuous(range = c(0.1, 3)) +
-  labs(title = "2019") + # max100
-  theme(legend.position = "none") + 
-
-acled_filtered |> 
-  filter(year == 2020) |> 
-  afpak_map() + 
-  scale_size_continuous(range = c(0.1, 2)) +
-  labs(title = "2020") + #75
-  theme(legend.position = "none") + 
-  
-acled_filtered |> 
-  filter(year == 2021) |> 
-  afpak_map() + 
-  scale_size_continuous(range = c(0.1, 4)) +
-  labs(title = "2021") + #150
-  theme(legend.text = element_text(size = 4),
-        legend.title = element_text(size = 5), 
-        legend.key.width = unit(.3, "cm"), 
-        legend.key.height = unit(.3, "cm"), 
-        legend.margin=margin(t = 0, unit='cm')) +
-  
-acled_filtered |> 
-  filter(year == 2022) |> 
-  afpak_map() + 
-  scale_size_continuous(range = c(0.1, 1.5)) +
-  labs(title = "2022") + #60
-  theme(legend.position = "none") + 
-  
-acled_filtered |> 
-  filter(year == 2023) |> 
-  afpak_map() + 
-  scale_size_continuous(range = c(0.1, 2.2)) +
-  labs(title = "2023") + #80
-  theme(legend.position = "none") +
-  plot_layout(guides = "collect") + 
-  plot_annotation(
-    title = "Political incidents in Afghanistan and Pakistan", 
-    subtitle = "Border areas (>100km) marked in light grey; country capitals in blue")
-
-
-
-```
-
-<br>
-
-Although ACLED only began data collection in Afghanistan in 2019, ACLED data on Pakistan was extracted all the way back to 2013. This is plotted below. 
-
-Immediately apparent is how comparable the levels of conflict in and outside of Pakistan's border areas with Afghanistan are. This 100 km-thick strip of land only lags behind the rest of the country (including the capital) in the number of protests and strategic developments. 
-
-<br>
-
-
-```{r}
-
-acled_afpak <- acled_filtered |> 
-  filter(!is.na(longitude) & !is.na(latitude) & 
-             country %in% c("Afghanistan", "Pakistan")) |> 
-  left_join(acled_filtered |>
-              filter(!is.na(longitude) & !is.na(latitude) &
-                       country %in% c("Afghanistan", "Pakistan")) |>
-              st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |>
-              st_intersection(afpak_buffer) |>
-              st_drop_geometry() |>
-              mutate(afpak_border = "Afpak border") |>
-              select(event_id_cnty, afpak_border), 
-            by = "event_id_cnty") |> 
-  mutate(afpak_border = ifelse(is.na(afpak_border), "Non-border", afpak_border))
-  
-```
-
-
-
-```{r}
-acled_afpak |>
-  filter(country == "Pakistan" & year != 2024) |> 
-  group_by(event_type, year = floor_date(event_date, "year"), afpak_border) |> 
-  summarise(events = n_distinct(event_id_cnty), 
-            .groups = "drop") |> 
-  ggplot(aes(x = year, y = events)) + 
-  geom_line(aes(colour = event_type)) +
-  scale_y_log10(labels = comma) +
-  scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
-  facet_wrap(~afpak_border) + 
-  theme(strip.background = element_rect(fill = "black")) + 
-  labs(colour = "Event type", 
-       x = "", 
-       y = "Number of political incidents",
-       title = "Political incidents in Pakistan, by year and border area", 
-       subtitle = "Border area defined as 100km from Afghanistan")
-```
-
-<br>
-
-And, as observed from the maps above, we see an increase in political violence after the Taliban victory. As mentioned, this is in line with Taliban policy, but it remains to be explored how centrally-directed these efforts are. 
-
-Perhaps a more instructive view of violence in Pakistan's border areas comes from an examination of conflict fatalities over time. Explosions and remote violence, battles and violence against civilians were once much more common in Pakistan's border areas -- this was likely dependent on the cycles of stabilisation and destabilisation in Afghanistan. This situation should be monitored for further deterioration since conflict is on the upswing. 
-
-<br>
-
-```{r}
-acled_afpak |>
-  filter(country == "Pakistan" & year != 2024) |> 
-  group_by(event_type, year = floor_date(event_date, "year"), afpak_border) |> 
-  summarise(fatalities = sum(fatalities, na.rm = TRUE), 
-            .groups = "drop") |> 
-  ggplot(aes(x = year, y = fatalities)) + 
-  geom_line(aes(colour = event_type)) +
-  scale_y_continuous(labels = comma) + 
-  scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
-  facet_wrap(~afpak_border) + 
-  theme(strip.background = element_rect(fill = "black")) + 
-  labs(colour = "", 
-       x = "", 
-       y = "Number of fatalities",
-       title = "Fatalities from political incidents in Pakistan, by year and border area", 
-       subtitle = "Border area defined as 100km from Afghanistan")
-```
-
-
-
-<br><br><br>
 
 ## Myanmar
 
@@ -922,7 +663,9 @@ acled_mmr |>
 
 <br>
 
-With reference to the maps above, it would appear that unlike in Afghanistan and Pakistan, cross-border conflict seems to have been largely contained within Myanmar. The exceptions in the border regions, visible in the map below are Cox's Bazaar -- which seems to have had an elevated level of political violence even before the first militaty crackdown; admittedly, there had been Rohingya refugees in Cox's Bazaar prior to the commencement of ACLED's data collection -- and Chiang Rai: a cursory inspection of the data indicates the majority of the recent political violence to have been driven by domestic issues, such as the cyclical election violence and calls for reforms to the monarchy. 
+With reference to the maps above, it would appear that unlike in Afghanistan and Pakistan that will be discussed later, cross-border conflict seems to have been largely contained within Myanmar. The visible exceptions in the border regions in the map below seem to back this up, upon investigation. 
+
+First, Cox's Bazaar already had an elevated level of political violence even before the first militaty crackdown; admittedly, there had been Rohingya refugees in Cox's Bazaar prior to the commencement of ACLED's data collection -- and Chiang Rai: and a cursory inspection of the data indicates the majority of the recent political violence to have been driven by domestic issues, such as the cyclical election violence and calls for reforms to the monarchy. 
 
 However, the spillover from the civil war in Myanmar has been pervasive in the region. And we will discuss this in its own section below, after a brief review of the current situation in Myanmar. 
 
@@ -963,9 +706,15 @@ However, with reference to MIMU's excellent ethnolinguistic map of Myanmar, if t
 
 ### Spillover and most lethal actors 
 
-#### Most lethal actors 
+#### "Deadliest" actors 
 
+The plot below details the most lethal actors by country: these are the actors involved in events associated with the highest number of fatalities. The x-axis is the estimate for the number of fatalities from each event each actors is involved in. 
 
+Additionally, actors related to or originating from Myanmar are highlighted in red in the plot below. The widespread nature of protests, riots and violent incursions related to Myanmar. Even though armed conflict in Myanmar is largely contained within its borders, a war of this size is destabilising for the region as a whole. 
+
+The [ILO](https://www.ilo.org/media/558626/download) noted that there were 2.2 million Myanmar migrants in Thailand and Malaysia alone in 2019. It is unclear how much more that number has grown since the start of the civil war. 
+
+<br>
 
 ```{r fig.height=10}
 
@@ -998,7 +747,8 @@ actors_conf_int %>%
   group_by(country) |> 
   slice(1:10) |> 
   ungroup() |> 
-  filter(country %out% c("Bhutan", "Fiji", "Timor-Leste")) |> 
+  filter(country %out% c("Bhutan", "Fiji", "Timor-Leste",
+                         "Singapore", "New Zealand", "Mongolia")) |> 
   mutate(actor_description = fct_relevel(actor_description,
                                          c(
                                            "Civilians", "State Forces", 
@@ -1025,7 +775,7 @@ actors_conf_int %>%
   facet_wrap(~country, scales = "free", ncol = 4) +
   labs(x = "Mean fatalities per conflict event (log scale)",
       y = "", 
-      title = "Top 10 most lethal actors per country in order of fatalities per event, 2014-2023", 
+      title = "Top 10 'deadliest' actors per country in order of fatalities per event, 2014-2023", 
       subtitle = "Only actors involved more than 20 conflict events. Size indicates number of fatalities associated with actor. Red actors are from Myanmar.", 
       caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com",
       colour = "", size = "") + 
@@ -1040,11 +790,10 @@ actors_conf_int %>%
 
 <br>
 
-What does it say that the Philippine police is more lethal than anti-drug vigilantes. Similarly, in China, civilians seem to be involved in more fatalities per event than even the police, or rioters, indicating problems with violence against civilians (as fatalities from an incident where one party were civilians and the other combatants). 
 
-South Korea as a counterpoint to the Philippines, Vietnam and China, especially in terms of the lethality of state actors. The South Korean state doesn't seem to kill many people. 
+The Philippine police is more lethal than anti-drug vigilantes and the New People's Army. Similarly, in China, civilians seem to be involved in more fatalities per event than even the police, or rioters, indicating problems with violence against civilians (as fatalities from an incident where one party were civilians and the other combatants). 
 
-no pink, re-do the 
+South Korea here should be counterpoint to the Philippines, Vietnam and China, especially in terms of the lethality of state actors. In spite of how much Koreans protest, neither their protesters nor their state actors are amongst those who have suffered the most casualties.   
 
 <br><br><br>
 
@@ -1112,6 +861,308 @@ genocide_t_test <- bangladesh_summary |>
   t.test(.$post_genocide, .$pre_genocide, data = .) |> 
   broom::tidy()
 ```
+
+
+
+## India-Pakistan
+
+
+```{r}
+acled_filtered |> 
+  filter(year > 2015) |> 
+  filter(!is.na(longitude) & !is.na(latitude) & 
+           country %in% c("Pakistan", "India")) |> 
+  select(event_id_cnty, event_type, longitude, latitude, event_type, fatalities) |>
+  ggplot() + 
+  geom_sf(data = world_shape, size = .7, colour = "gold", fill = "grey85", alpha = .5) +
+  geom_sf(data = kash_buffer, colour = "white", fill = "white", alpha = .65) + 
+  #coord_sf(xlim = c(60.756785, 81.810392), ylim = c(18.846805, 37.550718)) +
+  coord_sf(xlim = c(55, 96.5), ylim = c(7.264010, 37)) +
+  geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
+  scale_size_continuous(range = c(.1, 5)) + 
+  theme(plot.background = element_rect(fill = NA, colour = NA),
+          panel.background = element_rect(fill = NA, colour = NA),
+          rect = element_rect(fill = NA, colour = NA),
+          legend.title = element_text(face = "bold"),
+          plot.caption = element_text(hjust = 0.2)) + 
+    guides(colour = guide_legend(override.aes = list(alpha = 1)), 
+           size = guide_legend(override.aes = list(alpha = 1, 
+                                                   colour = "grey"))) + 
+    theme_void() +
+  labs(title = "Political incidents in India and Pakistan",
+       subtitle = "Border areas (within 100km) and Kashmir marked in white", 
+       colour = "", size = "Fatalities")
+  
+  
+```
+
+<br>
+
+Apart from Jammu and Kashmir, the border region between India and Pakistan is sparsely populated. Though, with reference to the graphs below, the number of violent incidents in Kashmir has decreased since 2020, over the time period monitored by ACLED below, there were more battles in Kashmir than the rest of India. 
+
+Pakistan's recent increase in conflict will be discussed in the next section. 
+
+<br>
+
+
+```{r}
+acled_filtered |> 
+  filter(year < 2024 & year > 2015) |> 
+  filter(country %in% c("India", "Pakistan")) |> 
+  mutate(kashmir = case_when(
+    admin1 %in% c("Azad Jammu and Kashmir", "Jammu and Kashmir") ~ "Kashmir", 
+    country == "Pakistan" ~ "other Pakistan", 
+    country == "India" ~ "other India"
+  )) |> 
+  group_by(event_type, year, kashmir) |> 
+  summarise(events = n_distinct(event_id_cnty), .groups = "drop") |> 
+  ggplot(aes(x = year, y = events)) + 
+  geom_line(aes(colour = event_type), lwd = 1) +
+  scale_y_log10(labels = comma) +
+  scale_x_continuous(breaks = c(2013, 2015, 2017, 2019, 2021, 2023)) + 
+  facet_wrap(~kashmir) + 
+  theme(strip.background = element_rect(fill = "black")) + 
+  labs(colour = "Event type", 
+       x = "", 
+       y = "Number of political incidents",
+       title = "Political incidents in Kash, by year and border area (2016-2023)")
+
+```
+
+
+<br>
+
+```{r}
+acled_filtered |> 
+  filter(country %in% c("India", "Pakistan")) |> 
+  mutate(kashmir = case_when(
+    admin1 %in% c("Azad Jammu and Kashmir", "Jammu and Kashmir") ~ "Kashmir", 
+    country == "Pakistan" ~ "other Pakistan", 
+    country == "India" ~ "other India"
+  )) |> 
+  filter(country == "India") |> 
+  group_by(event_type, kashmir) |> 
+   summarise(events = n_distinct(event_id_cnty),
+             fatalities = sum(fatalities),
+             .groups = "drop") |> 
+  pivot_longer(cols = c(events, fatalities), 
+               names_to = "variable", 
+               values_to = "value") |> 
+  ggplot(aes(x = value, y = fct_rev(event_type), fill = kashmir)) +
+  geom_col(position = position_dodge(width = .9)) + 
+  geom_text(aes(label = comma(value)), 
+            position = position_dodge(width = .9), 
+            hjust = "inward") + 
+  scale_x_continuous(label = comma, trans = "sqrt") + 
+  scale_fill_viridis_d(begin = .3) + 
+  facet_wrap(~ variable, scales = "free_x") + 
+  theme(strip.background = element_rect(fill = "black"), 
+        legend.position = "top",
+        plot.title = element_text(size = 11)) + 
+  labs(x = "", y = "", fill = "", 
+       title = "Conflict events and fatalities in Indian-adminstered Kashmir vs the rest of the country, 2016-01-01 to 2024-05-30")
+
+```
+
+
+<br>
+
+Fatalities in Kashmir have also decreased since their 2018 highs. Kashmir experiences violence against civilians and riots at a lower rate than the rest of India and Pakistan. 
+
+<br>
+
+```{r}
+acled_filtered |> 
+  filter(year < 2024 & year > 2015) |> 
+  filter(country %in% c("India", "Pakistan")) |> 
+  mutate(kashmir = case_when(
+    admin1 %in% c("Azad Jammu and Kashmir", "Jammu and Kashmir") ~ "Kashmir", 
+    country == "Pakistan" ~ "other Pakistan", 
+    country == "India" ~ "other India"
+  )) |> 
+  group_by(event_type, year, kashmir) |> 
+  summarise(fatalities = sum(fatalities), .groups = "drop") |> 
+  ggplot(aes(x = year, y = fatalities)) + 
+  geom_line(aes(colour = event_type), lwd = 1) +
+  scale_y_continuous(labels = comma) +
+  scale_x_continuous(breaks = c(2013, 2015, 2017, 2019, 2021, 2023)) + 
+  facet_wrap(~kashmir) + 
+  theme(strip.background = element_rect(fill = "black")) + 
+  labs(colour = "Event type", 
+       x = "", 
+       y = "Number of conflict fatalities per event type",
+       title = "Political conflict fatalities by year")
+```
+
+<br><br><br>
+
+
+## Afghanistan-Pakistan
+
+Even as violence in Kashmir lessens (though upcoming elections in the Indian-administered zone may change that), Pakistan is still facing tremendous cross-border pressure. The plots below show the past 5 years of conflict data in Afghanistan and Pakistan, with the border area between the two marked in a light grey.
+
+The first three years show ultimately successful Taliban insurgency in full swing, with quite a significant amount of spillover into Pakistan, culminating in the US withdrawal in 2021. 2022 shows markedly less conflict, though we can see the beginnings of this "migration" of conflict (we don't know how literal this is yet) from Afghanistan to Pakistan, this is more evident in 2023. This is in also line with the longstanding Taliban policy of disregard for the Durand Line. 
+
+<br>
+
+
+
+```{r}
+afpak_map <- function(tbl){
+  
+  tbl |> 
+    filter(!is.na(longitude) & !is.na(latitude) & 
+             country %in% c("Afghanistan", "Pakistan")) |> 
+    select(event_id_cnty, event_type, longitude, latitude, event_type, fatalities) |>
+    ggplot() +
+    geom_sf(data = world_shape, size = .7, colour = "gold", fill = "grey90", alpha = .5) + 
+    geom_sf(data = afpak_buffer, colour = "white", fill = "white", alpha = .5) +
+    coord_sf(xlim = c(60.41, 75.02), 
+             ylim = c(25.04, 39.11)) +
+    geom_point(aes(x = 73.0363, y = 33.6995), colour = "cornflowerblue", pch = 15) +
+    geom_point(aes(x = 69.2075, y = 34.5553), colour = "cornflowerblue", pch = 15) +
+    geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
+    theme(plot.background = element_rect(fill = NA, colour = NA),
+          panel.background = element_rect(fill = NA, colour = NA),
+          rect = element_rect(fill = NA, colour = NA),
+          legend.title = element_text(face = "bold"),
+          plot.caption = element_text(hjust = 0.2)) + 
+    guides(colour = guide_legend(override.aes = list(alpha = 1)), 
+           size = guide_legend(override.aes = list(alpha = 1, 
+                                                   colour = "grey"))) + 
+    theme_void() + 
+    labs(colour = "", size = "Fatalities")
+}
+
+
+```
+
+
+
+
+```{r fig.height = 6.5, fig.width=9}
+
+
+acled_filtered |> 
+  filter(year == 2019) |> 
+  afpak_map() + 
+  scale_size_continuous(range = c(0.1, 3)) +
+  labs(title = "2019") + # max100
+  theme(legend.position = "none") + 
+
+acled_filtered |> 
+  filter(year == 2020) |> 
+  afpak_map() + 
+  scale_size_continuous(range = c(0.1, 2)) +
+  labs(title = "2020") + #75
+  theme(legend.position = "none") + 
+  
+acled_filtered |> 
+  filter(year == 2021) |> 
+  afpak_map() + 
+  scale_size_continuous(range = c(0.1, 4)) +
+  labs(title = "2021") + #150
+  theme(legend.text = element_text(size = 4),
+        legend.title = element_text(size = 5), 
+        legend.key.width = unit(.3, "cm"), 
+        legend.key.height = unit(.3, "cm"), 
+        legend.margin=margin(t = 0, unit='cm')) +
+  
+acled_filtered |> 
+  filter(year == 2022) |> 
+  afpak_map() + 
+  scale_size_continuous(range = c(0.1, 1.5)) +
+  labs(title = "2022") + #60
+  theme(legend.position = "none") + 
+  
+acled_filtered |> 
+  filter(year == 2023) |> 
+  afpak_map() + 
+  scale_size_continuous(range = c(0.1, 2.2)) +
+  labs(title = "2023") + #80
+  theme(legend.position = "none") +
+  plot_layout(guides = "collect") + 
+  plot_annotation(
+    title = "Political incidents in Afghanistan and Pakistan", 
+    subtitle = "Border areas (within 100km) marked in white; country capitals in blue")
+
+
+
+```
+
+<br>
+
+Although ACLED only began data collection in Afghanistan in 2019, ACLED data on Pakistan was extracted all the way back to 2013. This is plotted below. 
+
+Immediately apparent is how comparable the levels of conflict in and outside of Pakistan's border areas with Afghanistan are. This 100 km-thick strip of land only lags behind the rest of the country (including the capital) in the number of protests and strategic developments. 
+
+<br>
+
+
+```{r}
+acled_afpak <- acled_filtered |> 
+  filter(!is.na(longitude) & !is.na(latitude) & 
+             country %in% c("Afghanistan", "Pakistan")) |> 
+  left_join(acled_filtered |>
+              filter(!is.na(longitude) & !is.na(latitude) &
+                       country %in% c("Afghanistan", "Pakistan")) |>
+              st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |>
+              st_intersection(afpak_buffer) |>
+              st_drop_geometry() |>
+              mutate(afpak_border = "Afpak border") |>
+              select(event_id_cnty, afpak_border), 
+            by = "event_id_cnty") |> 
+  mutate(afpak_border = ifelse(is.na(afpak_border), "Non-border", afpak_border))
+
+acled_afpak |>
+  filter(country == "Pakistan" & year != 2024) |> 
+  group_by(event_type, year = floor_date(event_date, "year"), afpak_border) |> 
+  summarise(events = n_distinct(event_id_cnty), 
+            .groups = "drop") |> 
+  ggplot(aes(x = year, y = events)) + 
+  geom_line(aes(colour = event_type), lwd = .8) +
+  scale_y_log10(labels = comma) +
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
+  facet_wrap(~afpak_border) + 
+  theme(strip.background = element_rect(fill = "black")) + 
+  labs(colour = "Event type", 
+       x = "", 
+       y = "Number of political incidents",
+       title = "Political incidents in Pakistan, by year and border area", 
+       subtitle = "Border area defined as 100km from Afghanistan")
+```
+
+<br>
+
+And, as observed from the maps above, we see an increase in political violence after the Taliban victory. As mentioned, this is in line with Taliban policy, but it remains to be explored how centrally-directed these efforts are. 
+
+Perhaps a more instructive view of violence in Pakistan's border areas comes from an examination of conflict fatalities over time. Explosions and remote violence, battles and violence against civilians were once much more common in Pakistan's border areas -- this was likely dependent on the cycles of stabilisation and destabilisation in Afghanistan. This situation should be monitored for further deterioration since conflict is on the upswing.  
+
+<br>
+
+```{r}
+acled_afpak |>
+  filter(country == "Pakistan" & year != 2024) |> 
+  group_by(event_type, year = floor_date(event_date, "year"), afpak_border) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE), 
+            .groups = "drop") |> 
+  ggplot(aes(x = year, y = fatalities)) + 
+  geom_line(aes(colour = event_type)) +
+  scale_y_continuous(labels = comma) + 
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
+  facet_wrap(~afpak_border) + 
+  theme(strip.background = element_rect(fill = "black")) + 
+  labs(colour = "", 
+       x = "", 
+       y = "Number of fatalities",
+       title = "Fatalities from political incidents in Pakistan, by year and border area", 
+       subtitle = "Border area defined as 100km from Afghanistan")
+```
+
+
+
+<br><br><br>
+
 
 
 ## Actors 
@@ -1207,80 +1258,119 @@ acled_actors |>
        legend.text = element_text(size = 6), 
        legend.title = element_text(size = 7)) 
 
+ggsave(here("plots", "actor_type_plot.png"), height = 7, width = 11, unit = "in", dpi =)
+
 ```
 
 <br>
 
-Judging by the frequency of protest events in countries not at war, pre-covid, the countries and territories with the most dissatisfied populations were Nepal, Hong Kong, Pakistan, Sri Lanka, Cambodia and Bangladesh (with its predominance of riots). Post-covid, populations in Pakistan and Sri Lanka are still voicing their dissatisfaction. For the most part, protests seem to be less lethal after covid.  
+Judging by the frequency of protest events in countries not at war, pre-covid, the countries and territories with the most dissatisfied populations were Nepal, Hong Kong, Pakistan, Sri Lanka, Cambodia and Bangladesh (with its predominance of riots). Post-covid, populations in Pakistan and Sri Lanka are still voicing their dissatisfaction. For the most part, protests seem to be less lethal after covid, though Pakistani protesters had almost as high a fatality rate as protesters in Myanmar.  
 
-Protests have increased in India and Indonesia, though riots are still at the roughly the same levels as before. Maldivians (at the bottom right) are protesting at greater levels than even pre-covid Hong Kong.  
-Maldives post-covid what's going on? 
+Protests have increased in India and Indonesia, though riots are still at the roughly the same levels as before. Maldivians (at the bottom right) are protesting at greater levels than even pre-covid Hong Kong. Pre-covid, Cambodian protesters died at the highest rate of al lother protesters. 
 
-Post-covid, there has been a notable increase in riots across the Asia-Pacific. 
+Pre-covid, the most prominent actors in Afghanistan, Pakistan and Myanmar indicated that these countries were experiencing open warfare, given the high activity and lethality experienced amongst state forces, rebel groups, political militias and civilians (any event involving a combatant and a civilian ends predictably). Bangladeshi and Thai actors border these most prolific actors, indicating significant instability and unrest in those countries. 
 
-Pakistani protesters had almost as high a fatality rate as protesters in Myanmar. 
+Post-covid, we see a rapid increase of deaths in Afghanistan and Myanmar, due to intensifying battles leading to victory for the Taliban and the post-coup civil war respectively. 
 
-Pre-covid, Afghanistan, Pakistan and Myanmar were clearly involved in open warfare, given the high activity and lethality experienced amongst state forces, rebel groups, political militias and civilians (any event involving a combatant and a civilian ends predictably). Bangladeshi and Thai actors border these most prolific actors, indicating significant instability and unrest in those countries. 
-
-Post-covid, we see a rapid increase of deaths in Afghanistan and Myanmar, whereas conflict actors in Pakistan and Philippines were less violent, but still 
-
-Papua New Guinea, where data collection began in `r acled_filtered |> filter(country == "Papua New Guinea")  %>% {min(.$event_date)}`, has showed itself to be one of the 
-
-Pre-covid, it would appear that, just from the chart, Afghanistan, Pakistan, Philippines, India and Myanmar were involved in either civil wars or insurgencies. States with significant violence against civilians and collateral damage (any event involving a combatant actor and a civilian actor ends predictably) were Philippines, Pakistan, Indonesia,  
-
-Before covid, it was Indonesian protesters who died the most. Afghanistan had the most prolific conflict actors prior to and after covid; this is particularly worrisome considering ACLED only began data collection there on `r acled_filtered |> filter(country == "Afghanistan")  %>% {min(.$event_date)}`. Additionally, as unstable that Bangladesh appears in hindsight, Indonesia has also had similar levels of activity amongst rioters and political militias. 
-
-It would appear that during the drug war, 
-
-
-
-
-
-
-<br><br><br>
-
-
-
-Chinese military is untested, at least recently. 
-
-```{r}
-
-actors_conf_int |> 
-  left_join(acled_actors %>% 
-              group_by(actor, actor_description, country) %>% 
-              summarise(fatalities = sum(fatalities), .groups = "drop"), 
-            by = "actor") |> 
-  filter(country == "Vietnam") |> 
-  arrange(desc(fatalities))
-```
-
-
-```{r}
-acled_actors |> 
-  filter(country != "Myanmar" & str_detect(actor, "Myanmar|Arakan|Rohingya|Kachin")) |> 
-  group_by(country) |> 
-  summarise(events = n_distinct(event_id_cnty), 
-            fatalities = sum(fatalities)) |> 
-  arrange(desc(events)) |> 
-  kable(caption = "Events and fatalities involving Myanmar persons") 
- 
-```
-
+Papua New Guinea, where data collection began in `r acled_filtered |> filter(country == "Papua New Guinea")  %>% {min(.$event_date)}`, has showed itself to be one of the most violent countries in the Asia-Pacific. 
 
 
 
 ```{r}
-scale_fill_manual(
-    values = c(
-      "Civilians" = "#FCFFA4FF",
-      "State Forces" = "#000004FF",
-      "Protesters" = "#FAC127FF",
-      "Identity Militias" = "#9F2A63FF",
-      "Rebel Groups" = "#F57D15FF",
-      "Rioters" = "#280B54FF",
-      "Political Militias" = "#D44842FF",
-      "Other Forces" = "#65156EFF"))
+
+acled_actors |>
+    mutate(covid = ifelse(event_date >= "2020-03-11", "Post-covid", "Pre-covid"), 
+           covid = fct_relevel(covid, "Pre-covid", "Post-covid")) |>
+    group_by(actor_description, covid) |> 
+    summarise(events = n_distinct(event_id_cnty), 
+              fatalities = sum(fatalities, na.rm = TRUE), 
+              .groups = "drop") |> 
+    mutate(actor_description = fct_relevel(actor_description, 
+                                           c("State Forces",
+                                             "Civilians", 
+                                             "Protesters",
+                                             "Rebel Groups", 
+                                             "Rioters", 
+                                             "Political Militias", 
+                                             "Identity Militias", 
+                                             "Other Forces"
+                                             ))) |> 
+  ggplot(aes(y = fct_rev(actor_description), x = events)) + 
+  geom_col(aes(fill = actor_description)) + 
+  facet_wrap(~ covid, labeller = label_wrap_gen(multi_line=FALSE), ncol = 1) + 
+  scale_fill_manual(values = c(
+      "Civilians" = "#fde725ff",
+      "State Forces" = "#7A0403FF",
+      "Protesters" = "#4AC16DFF",
+      "Identity Militias" = "#4777EFFF",
+      "Rebel Groups" = "#FE9B2DFF",
+      "Rioters" = "#1BD0D5FF",
+      "Political Militias" = "#D3436EFF",
+      "Other Forces" = "grey30")) +
+  scale_x_continuous(labels = comma) + 
+  guides(colour = guide_legend(override.aes = list(alpha = 1, 
+                                                   size = 1.8)), 
+         size = guide_legend(override.aes = list(alpha = 1, 
+                                                 colour = "grey"))) + 
+ labs(x = "No. of Events", 
+      y = "",
+      title = "Conflict Events", 
+      caption = "Source: www.acleddata.com") + 
+ theme(plot.caption = element_text(hjust = .5), 
+       strip.background = element_rect(fill = "black"), 
+       strip.text = element_text(face = "bold"), 
+       legend.position = "none", 
+       axis.text.x = element_text(size = 7)) + 
+  
+acled_actors |>
+    mutate(covid = ifelse(event_date >= "2020-03-11", "Post-covid", "Pre-covid"), 
+           covid = fct_relevel(covid, "Pre-covid", "Post-covid")) |>
+    group_by(actor_description, covid) |> 
+    summarise(events = n_distinct(event_id_cnty), 
+              fatalities = sum(fatalities, na.rm = TRUE), 
+              .groups = "drop") |> 
+    mutate(actor_description = fct_relevel(actor_description, 
+                                           c("State Forces",
+                                             "Civilians", 
+                                             "Protesters",
+                                             "Rebel Groups", 
+                                             "Rioters", 
+                                             "Political Militias", 
+                                             "Identity Militias", 
+                                             "Other Forces"
+                                             ))) |> 
+  ggplot(aes(y = fct_rev(actor_description), x = fatalities)) + 
+  geom_col(aes(fill = actor_description)) + 
+  facet_wrap(~ covid, labeller = label_wrap_gen(multi_line=FALSE), ncol = 1) + 
+  scale_fill_manual(values = c(
+      "Civilians" = "#fde725ff",
+      "State Forces" = "#7A0403FF",
+      "Protesters" = "#4AC16DFF",
+      "Identity Militias" = "#4777EFFF",
+      "Rebel Groups" = "#FE9B2DFF",
+      "Rioters" = "#1BD0D5FF",
+      "Political Militias" = "#D3436EFF",
+      "Other Forces" = "grey30")) +
+  scale_x_continuous(labels = comma) + 
+  guides(colour = guide_legend(override.aes = list(alpha = 1, 
+                                                   size = 1.8)), 
+         size = guide_legend(override.aes = list(alpha = 1, 
+                                                 colour = "grey"))) + 
+ labs(x = "No. of Fatalities", 
+      y = "",
+      title = "Conflict Fatalities", 
+      caption = "Source: www.acleddata.com") + 
+ theme(plot.caption = element_text(hjust = .5), 
+       strip.background = element_rect(fill = "black"), 
+       strip.text = element_text(face = "bold"), 
+       legend.position = "none", 
+       axis.text.x = element_text(size = 7)) + 
+  
+plot_layout(widths = c(1.84, 1.3))
 ```
+
+
+
 
 <br><br><br>
 
@@ -1311,15 +1401,6 @@ protest_country_words <- acled_filtered |>
 
 
 ```{r}
-protest_country_words |>
-  # filter(covid == "post-covid") |> 
-  distinct(event_id_cnty, word, covid) |> 
-  add_count(word) |> 
-  pivot_wider(names_from = covid, values_from = n, values_fill = 0) |> 
-  janitor::clean_names() |> 
-  mutate(n = post_covid + pre_covid) |> 
-  arrange(desc(n))
-
 acled_protests <- acled_filtered |> 
   filter(event_type == "Protests") |> 
   mutate(covid = ifelse(event_date >= "2020-03-11", "post-covid", "pre-covid")) |> 
@@ -1330,8 +1411,8 @@ acled_protests <- acled_filtered |>
   filter(word %out% c("township", "district", "city", "village", 
                       "region", "town", "coded", "province", "county", 
                       "pradesh", "prefecture", "regency", 
-                      "barangay", "upazila", "hong", "kong", "phnom", "penh", 
-                      "january", "february", "march", "april", "may",
+                      "barangay", "upazila", "january", "february", 
+                      "march", "april", "may",
                         "june", "july", "august", "september", "october",
                         "november", "december", 
                         "report")) |> 
@@ -1349,7 +1430,7 @@ protest_network_graph <- acled_protests |>
   add_count(word) |> 
   filter(n >= 425) |> 
   pairwise_cor(word, event_id_cnty, sort = TRUE) |> 
-  filter(correlation >= .205) |> 
+  filter(correlation >= .207) |> 
   left_join(
     acled_protests |> 
       distinct(event_id_cnty, word) |> 
@@ -1366,13 +1447,13 @@ protest_network_graph <- acled_protests |>
   geom_node_point(colour = "cornflowerblue", alpha = 0.2, size = .5) +
   geom_node_text(aes(label = ifelse(name %in% 
                                         c("myanmar", "laundering", "coronavirus",
-                                          "citizenship", "union", "load", "farm", 
-                                          "prices", "arrears", "palestine", "kashmir", 
+                                          "citizenship", "union", "electricity", "farm", 
+                                          "prices", "wage", "palestine", "kashmir", 
                                           "pension", "fukushima", "majeste",
-                                          "arrest", "oli", "manipur", "korea"),
+                                          "arrest", "oli", "manipur", "kctu"),
                                       str_to_title(name),
                                       "")), 
-                 size = 4.3, 
+                 size = 4.5, 
                  alpha = .7, 
                  colour = "goldenrod2") + 
   geom_node_text(aes(label = name), size = 1.5) + 
@@ -1388,12 +1469,7 @@ ggsave(here("plots", "protest_network_graph.png"),
 
 ```
 
-```{r}
-acled_filtered |> 
-  filter(str_detect(notes, "Meitei")) |> 
-  sample_n(5) |> 
-  pull(notes)
-```
+
 
 
 <br>
@@ -1404,21 +1480,41 @@ acled_filtered |>
 
 <br>
 
-A few clusters of protest descriptions: Myanmar, Palestine, Korea and unions, Meitei, Kashmir, citizenship amendment, Fukushima and several around economic concerns (arrears, pensions, retirees, social security)
+The main topics identified from the graph include (cross-border issues are in bold): 
+
+* Contentious territories: **Myanmar**, **Palestine**, Korea, Manipur, **Kashmir**, **Fukushima**
+
+* Legislation and state overreach: Citizenship amendment, Lese majeste, Oli (Nepal), Arrest, **Money laundering**
+
+* Economic concerns: Unions, **Prices**, Arrears, Pensions, Hikes
+
+* Service delivery and infrastructure: Load shedding, Farms, Outages
+
+* **Coronavirus**
+
+
+<br><br><br>
+
+### Indonesia
+
+Let's take a look at the graph for Indonesia: 
+
+<br>
 
 ```{r eval=FALSE}
-set.seed(233)
 
-protest_network_graph <- acled_protests |>
+set.seed(234)
+
+protest_network_graph_indonesia <- acled_protests |>
   filter(str_detect(event_id_cnty, "IDN")) |> 
+  # filter(covid == "post-covid") |> 
   distinct(event_id_cnty, word) |> 
   add_count(word) |> 
   filter(n >= 100) |> 
   pairwise_cor(word, event_id_cnty, sort = TRUE) |> 
-  filter(correlation >= .2) |> 
+  filter(correlation >= .15) |> 
   left_join(
     acled_protests |> 
-      filter(str_detect(event_id_cnty, "IDN")) |> 
       distinct(event_id_cnty, word) |> 
       add_count(word) |> 
       filter(n >= 100) |> 
@@ -1427,23 +1523,40 @@ protest_network_graph <- acled_protests |>
   ) |> 
   igraph::graph_from_data_frame() %>% 
   ggraph(layout = "fr") + 
-  geom_edge_link(aes(alpha = correlation, edge_width = n), colour = "cornflowerblue", check_overlap = TRUE) + 
+  geom_edge_link(aes(alpha = correlation, edge_width = n), colour = "lightskyblue2", check_overlap = TRUE) +
   scale_edge_width_continuous(range = c(.1, 2.5), trans = "log10") +
   scale_alpha_continuous(range = c(0.01, 0.08)) +
-  geom_node_point(colour = "cornflowerblue", alpha = 0.2, size = .5) +
-  geom_node_text(aes(label = name), size = 1.6) + 
+  geom_node_point(colour = "lightskyblue2", alpha = 0.2, size = .5) +
+  geom_node_text(aes(label = ifelse(name %in% 
+                                        c("myanmar", "laundering", "coronavirus",
+                                          "citizenship", "union", "load", "farm", 
+                                          "prices", "arrears", "palestine", "kashmir", 
+                                          "pension", "fukushima", "majeste",
+                                          "arrested", "oli", "manipur", "korea", 
+                                          "football", "rights", 
+                                          "incumbent", "drivers", "dispute", 
+                                          "papua", "kpk"),
+                                      str_to_title(name),
+                                      "")), 
+                 size = 4.3, 
+                 alpha = .7, 
+                 colour = "goldenrod2") + 
+  geom_node_text(aes(label = name), size = 1.5) + 
   theme(legend.position = "none", 
         plot.caption = element_text(hjust = .5)) + 
-  labs(title = "Network graph of post-covid Indonesian protest descriptions", 
-       subtitle = "Line thickness indicates number of events involving those words, line transparency indicates the correlation between words", 
+  labs(title = "Network graph of protest descriptions in Indonesia 2014-2024", 
+       subtitle = "Line thickness indicates number of events involving those words, line transparency indicates the correlation between words. Selected words highlighted.", 
        caption = "Source: www.acleddata.com")
   
 
 ggsave(here("plots", "protest_network_graph_indonesia.png"), 
-       width = 42.0, height = 29.7, units = "cm", dpi = 300)
+       width = 11, height = 7, units = "in", dpi = 300)
+
 ```
 
+![](./plots/protest_network_graph_indonesia.png)
 
+<br><br><br>
 
 ```{r fig.height=8}
 admin2_list <- acled_filtered |> 
@@ -1454,7 +1567,7 @@ admin2_list <- acled_filtered |>
                                   "city|special|south |north |west |east|-north|\\-", 
                                   ""), 
          admin1 = str_trim(admin2)) |> 
-  filter(!is.na(admin2))
+  filter(!is.na(admin2)) |> 
   pull(admin2)
 
 admin1_list <- acled_filtered |> 
@@ -1473,13 +1586,16 @@ protest_order <- protest_country_words |>
   arrange(desc(count)) |> 
   pull(country)
 
+
 protest_country_words |> 
   filter(covid == "post-covid") |> 
   filter(word %out% c(admin1_list, admin2_list) & 
            word %out% c("protest", "staged", "demonstration", "held", "couple", 
                         "demonstrators", "urged", "banners", "slogan", "slogans", 
                         "banner", "coordinating", "opposed", "condemned", 
-                        "demanded", "demonstrate", "rally", "demands") & 
+                        "demanded", "demonstrate", "rally", "demands", 
+                        "municipality", "locality", "township", "metropolitan", 
+                        "provincial", "prefectural", "bandar", "federation") & 
            stem %out% c("protest")) |>
   count(word, country, sort = TRUE) |>  
   bind_tf_idf(country, word, n) |> 
@@ -1495,13 +1611,13 @@ protest_country_words |>
       str_detect(word, "tamil|hindu|nadu|indian") ~ "ethnic",
       str_detect(word, "bjp") & country != "Bangladesh" ~ "ethnic", 
       str_detect(word, "corona|lockdown|restrict|home|pandem") ~ "covid",
-      str_detect(word, "omni|congress|articl|law|legco")  ~ "legislation",
+      str_detect(word, "omni|congress|articl|law|legco|sabha")  ~ "legislation",
       str_detect(word, "provin|local|farmer|skm|bku|regen|farm|tribal") ~ "rural",
       str_detect(word, "myanmar|kachin|arakan") ~ "myanmar",
       str_detect(word, "kashmir|jammu") ~ "kashmir",
       str_detect(word, "press|editor|media") ~ "press",
       str_detect(word, 
-                 "military|coup|lese|maj|president|government|monarchy|police|arrest|release|oli") 
+                 "military|coup|lese|maj|president|government|monarchy|police|arrest|release|oli|kpk") 
       ~ "state", 
       str_detect(word, "student|university|youth|teacher|education|school") ~ "student", 
      TRUE ~ "other"),
@@ -1514,7 +1630,7 @@ protest_country_words |>
                       "including", "support", "demand")) |> 
   arrange(desc(log_odds_weighted)) |> 
   group_by(country) |> 
-  slice(1:20) |> 
+  slice(1:15) |> 
   ungroup() |>
   ggplot(aes(x = log_odds_weighted, 
              y = reorder_within(str_sub(word, 1, 25), 
@@ -1540,7 +1656,8 @@ protest_country_words |>
         legend.text = element_text(size = 7)) + 
   labs(x = "Log odds weighted", 
        y = "", 
-       fill = "Topic")
+       fill = "Topic", 
+       title = "Most common protest descrptions by country")
 
   
 
@@ -1550,56 +1667,6 @@ protest_country_words |>
 <br>
 
 Place names indicate widespread protests. 
-
-
-```{r}
-acled_filtered |> 
-  filter(str_detect(notes, "padlocking") & country == "Nepal") |> 
-  sample_n(5) |> 
-  pull(notes)
-```
-
-
-```{r}
-
-protest_country_words |> 
-  filter(covid == "post-covid") |> 
-  filter(word %out% c(admin1_list, admin2_list) & 
-           word %out% c("protest", "staged", "demonstration", "held", "couple") & 
-           stem %out% c("protest", "guangzhou", "shenzhen", "zhengzhou")) |>
-  count(word, country, sort = TRUE) |>  
-  bind_tf_idf(country, word, n) |> 
-  tidylo::bind_log_odds(country, word, n) |> 
-  filter(n > 2) |> 
-  mutate(country = fct_relevel(country, protest_order)) |> 
-  mutate(
-    word_group = case_when(
-      str_detect(
-        word,
-        "worker|arrear|wage|factori|union|kctu|picket|pension|syndic|retire|commod|labor|price|cpi|employer|economic|financial|strike|owe")
-      ~ "economic",
-      str_detect(word, "tamil|hindu|bjp|nadu|indian") ~ "indian nat.",
-      str_detect(word, "civi|disobed") ~ "disobedience",
-      str_detect(word, "corona|lockdown|restrict|home|pandem") ~ "covid",
-      str_detect(word, "omni|congress|articl")  ~ "legislation",
-      str_detect(word, "provin|local|farmer|skm|bku|regen") ~ "rural",
-      str_detect(word, "myanmar|kachin|arakan") ~ "myanmar",
-      str_detect(word, "kashmir|jammu") ~ "kashmir",
-      str_detect(word, "press|editor") ~ "press",
-      str_detect(word, "student|university|youth") ~ "student", 
-     TRUE ~ "other"),
-    word_group = fct_relevel(word_group, 
-                             c("economic", "indian", "disobedience", "covid", 
-                               "legislation", "rural", "myanmar", "kashmir", 
-                               "press", "student", "other"))
-  ) |>
-  filter(word %out% c("front", "conference", "demanding", 
-                      "including", "support", "demand")) |> 
-  arrange(desc(log_odds_weighted)) |> 
-  group_by(country) |> 
-  slice(1:20) |> 
-  ungroup()
-```
 
 
 
@@ -1613,7 +1680,6 @@ protest_country_words |>
 
 #### Protests vs non-protests
 
-move to references 
 
 ```{r fig.height=7}
 acled_filtered |> 

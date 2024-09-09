@@ -1007,11 +1007,18 @@ ind_shape <- world_shape |> filter(name == "India")
 
 pak_shape <- world_shape |> filter(name == "Pakistan")
 
-ind_pak_border <- st_intersection(ind_shape, pak_shape, model = "cloded")
+ind_pak_border <- st_intersection(ind_shape, pak_shape, model = "closed")
 
 ind_pak_buffer <- ind_pak_border |> st_buffer(dist = 100000, endCapStyle = "FLAT")
 
-st_write(afpakir_buffer, here("data", "ind_pak_buffer", "ind_pak_buffer.shp"))
+ind_pak_kash_buffer <- st_union(ind_pak_buffer, world_shape |> filter(name %in% c("Jammu-Kashmir", "Ladakh"))) |>
+  select(-matches("fren"), -iso_3166_1_.1, -iso_3166_1_.2)
+
+st_write(ind_pak_buffer, here("data", "ind_pak_buffer", "ind_pak_buffer.shp"))
+
+st_write(ind_pak_kash_buffer, here("data", "kash_buffer", "kash_buffer.shp"))
+
+
 
 ```
 
