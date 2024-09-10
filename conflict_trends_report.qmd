@@ -175,21 +175,24 @@ indo_adm1_pop <- read_csv(here("data", "idn_admpop_adm1_2020_v2.csv")) |>
 
 ## Introduction
 
-This document is intended as an overview of observed conflict trends in the Asia-Pacific region in the past ten years. Conflict, including political unrest, in the region is multifarious and interconnected. 
+This document is intended as an overview of observed conflict trends in the Asia-Pacific region in the past ten years. For that, we have used the ACLED (Armed Conflict Location and Event Data) dataset. The reasons for privileging this source over UCDP's Georefereced Event Dataset are detailed [here](https://risk-anticipation-hub.github.io/conflict-trends-asia-pacific/acled_ucdp.html). 
+
 
 Making sense of this data will require a deeper examination of the various contexts in this region. We have endeavoured to produce, rather than a template, more of a demonstration of what types of conflict analysis are possible, using ACLED data from the Asia-Pacific. 
 
-The gif below displays cumulative conflict events collected by ACLED, over the past 10 years. This shows us how political conflict has been concentrated over the past 10 years, and which populations and regions have been particularly restive.
+The gif below displays cumulative conflict events collected by ACLED, over the past 10 years. This is a visualisation of all the data we are working with (all observations, or rows, at least). 
+
+A few first things to note: as we will discuss shortly, the data collection has not been uniform. ACLED is dependent on resources like any other agency and will expand their services if their capacity allows it. Nevertheless, major conflict hotspots in the region are all quite clear: Afghanistan, Pakistan, Kashmir, Bangladesh, Chhattisgarh in India, Southern Thailand, Mindanao and the rest of the Philippines for different reasons, and Myanmar. 
 
 <br>
 
-![](./plots/asia_pacific_event_types_grey.gif)
+[![](./plots/asia_pacific_event_types_grey.gif)](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/plots/asia_pacific_event_types_grey.gif)
 
 <br>
 
-Protests are a non-violent form of political conflict which manifest when all legal and administrative avenues have been exhausted. Their existence indicates that people are able to express their support for or dissatisfaction with a given issue. But it also indicates a "hole" in governance which was previously unaddressed (and very might might continue to go unaddressed). 
+The most common form of political conflict is to protest. Protests are a non-violent form of political conflict which manifest when all legal and administrative avenues have been exhausted. Their existence indicates that people are able to express their support for or dissatisfaction with a given issue. But it also indicates a "hole" in governance which was previously unaddressed (and very might might continue to go unaddressed). 
 
-Though in no way is this document intended to be an exhaustive analysis of conflict in the region, in our exploratory analysis of the data, we have found the following topics/sections to provide an reasonable overview of conflict trends in the region: 
+This document is no way intended to be an exhaustive analysis of conflict in the region. And in our exploratory analysis of the data, we have found the following topics/sections to provide an reasonable overview of conflict trends in the region, corresponding largely to the sections of this report: 
 
 * A review of conflict by event type: 5-year and 10-year summary charts and graphs. 
 
@@ -204,13 +207,14 @@ Though in no way is this document intended to be an exhaustive analysis of confl
 * Text mining of protest descriptions
 
 
-Any analysis is limited by the knowledge of the subject matter expert and the time available. This means that there is much to be gained from both going larger (comparing regions, forms of government or economic blocs) and smaller (country-level or subnational) with this analysis. There are many definitely many avenues of exploration which I am not even aware of, given the vastness of the Asia-Pacific region and the contexts within it. This product doesn't supplant reports from in-country analysts -- who would be more accurate sources of information anyway -- as they can convey the "feel" of the situation on the ground, something necessary in conflict analysis, given how diverse political conflict can be. 
+Any analysis is limited by the knowledge of the subject matter expert and the time available. This means that there is much to be gained from both going larger (comparing regions, forms of government or economic blocs) and smaller (country-level or subnational) with this analysis. There are many definitely many avenues of exploration which we am not even aware of, given the vastness of the Asia-Pacific region and the contexts within it. This product doesn't supplant reports from in-country analysts -- who would be more accurate sources of information anyway -- as they can convey the "feel" of the situation on the ground, something necessary in conflict analysis, given how diverse political conflict can be. 
 
-Nevertheless, with this report, we are, at least, contributing original analysis, with relatively few overlaps with ACLED's current output: ACLED has [regional overviews](https://acleddata.com/2024/09/06/asia-pacific-overview-august-2024/) but they tend to be more punctual, bird's eye and monthly products intended for different purposes. ACLED also adds value through its in-depth reports, such as this one on [Hindu nationalism](https://acleddata.com/2024/04/28/india-votes-2024-a-resurgent-hindu-nationalism-sets-the-stage-for-the-upcoming-elections-driving-communal-violence/) and, as mentioned, country-level analysis tends to be very specific: 
+Nevertheless, with this report, we are, at least, contributing original research, with relatively few overlaps with ACLED's current output: ACLED has [regional overviews](https://acleddata.com/2024/09/06/asia-pacific-overview-august-2024/) but they tend to be more punctual, bird's eye and monthly products intended for different purposes. ACLED also adds value through its in-depth reports, such as this one on [Hindu nationalism](https://acleddata.com/2024/04/28/india-votes-2024-a-resurgent-hindu-nationalism-sets-the-stage-for-the-upcoming-elections-driving-communal-violence/) which highlight, as mentioned, how country-level analysis tends to be very specific: 
 
 <br>
 
-![](./plots/hindu_muslim_violence.png)
+
+![](./plots/hindu_muslim_violence.png){width=60%}
 
 <br>
 
@@ -673,9 +677,7 @@ However, the spillover from the civil war in Myanmar has been pervasive in the r
 
 <br>
 
-
-
-![](./plots/roads_conflict_black_red_combined.png)
+[![](./plots/roads_conflict_black_red_combined.png)](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/plots/roads_conflict_black_red_combined.png)
 
 
 <br>
@@ -699,8 +701,7 @@ However, with reference to MIMU's excellent ethnolinguistic map of Myanmar, if t
 
 <br>
 
-![](./plots/Ethnologue_Map_Main_Spoken_Languages_of_MyanmarNeighbour_MIMU1300v03_7Jan2019_A1_1.png)
-
+[![](./plots/Ethnologue_Map_Main_Spoken_Languages_of_MyanmarNeighbour_MIMU1300v03_7Jan2019_A1_1.png)](https://www.themimu.info/sites/themimu.info/files/documents/Ethnologue_Map_Main_Spoken_Languages_of_MyanmarNeighbour_MIMU1300v03_7Jan2019_A1.pdf){height=50%}
 
 <br><br><br>
 
@@ -862,23 +863,33 @@ genocide_t_test <- bangladesh_summary |>
   broom::tidy()
 ```
 
+A lot more on Bangladesh
 
+<br><br><br>
 
 ## India-Pakistan
 
 
-```{r}
+```{r fig.height=7}
 acled_filtered |> 
   filter(year > 2015) |> 
   filter(!is.na(longitude) & !is.na(latitude) & 
            country %in% c("Pakistan", "India")) |> 
   select(event_id_cnty, event_type, longitude, latitude, event_type, fatalities) |>
   ggplot() + 
-  geom_sf(data = world_shape, size = .7, colour = "gold", fill = "grey85", alpha = .5) +
+  geom_sf(data = world_shape, size = .7, colour = "gold", fill = "grey90", alpha = .5) +
   geom_sf(data = kash_buffer, colour = "white", fill = "white", alpha = .65) + 
   #coord_sf(xlim = c(60.756785, 81.810392), ylim = c(18.846805, 37.550718)) +
   coord_sf(xlim = c(55, 96.5), ylim = c(7.264010, 37)) +
   geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
+   scale_colour_manual(
+    values = c("Battles" = "#7A0403FF", 
+      "Explosions/Remote violence" = "#FABA39FF", 
+      "Protests" = "#72FE5EFF", 
+      "Riots" = "#36AAF9FF", 
+      "Strategic developments" = "#30123BFF", 
+      "Violence against civilians" = "#FCFDBFFF")
+  ) + 
   scale_size_continuous(range = c(.1, 5)) + 
   theme(plot.background = element_rect(fill = NA, colour = NA),
           panel.background = element_rect(fill = NA, colour = NA),
@@ -889,7 +900,7 @@ acled_filtered |>
            size = guide_legend(override.aes = list(alpha = 1, 
                                                    colour = "grey"))) + 
     theme_void() +
-  labs(title = "Political incidents in India and Pakistan",
+  labs(title = "Political conflict in India and Pakistan",
        subtitle = "Border areas (within 100km) and Kashmir marked in white", 
        colour = "", size = "Fatalities")
   
@@ -920,12 +931,20 @@ acled_filtered |>
   geom_line(aes(colour = event_type), lwd = 1) +
   scale_y_log10(labels = comma) +
   scale_x_continuous(breaks = c(2013, 2015, 2017, 2019, 2021, 2023)) + 
+   scale_colour_manual(values = c(
+      "Battles" = "#7A0403FF",
+      "Violence against civilians" = "#F05B12FF",
+      "Explosions/Remote violence" = "#E1DD37FF",
+      "Protests" = "#25ECA7FF",
+      "Strategic developments" = "#30123BFF",
+      "Riots" = "#3E9BFEFF"
+    )) + 
   facet_wrap(~kashmir) + 
   theme(strip.background = element_rect(fill = "black")) + 
   labs(colour = "Event type", 
        x = "", 
        y = "Number of political incidents",
-       title = "Political incidents in Kash, by year and border area (2016-2023)")
+       title = "Political incidents in India and Pakistan, by year and border area (2016-2023)")
 
 ```
 
@@ -984,6 +1003,14 @@ acled_filtered |>
   summarise(fatalities = sum(fatalities), .groups = "drop") |> 
   ggplot(aes(x = year, y = fatalities)) + 
   geom_line(aes(colour = event_type), lwd = 1) +
+   scale_colour_manual(values = c(
+      "Battles" = "#7A0403FF",
+      "Violence against civilians" = "#F05B12FF",
+      "Explosions/Remote violence" = "#E1DD37FF",
+      "Protests" = "#25ECA7FF",
+      "Strategic developments" = "#30123BFF",
+      "Riots" = "#3E9BFEFF"
+    )) + 
   scale_y_continuous(labels = comma) +
   scale_x_continuous(breaks = c(2013, 2015, 2017, 2019, 2021, 2023)) + 
   facet_wrap(~kashmir) + 
@@ -1022,6 +1049,14 @@ afpak_map <- function(tbl){
     geom_point(aes(x = 73.0363, y = 33.6995), colour = "cornflowerblue", pch = 15) +
     geom_point(aes(x = 69.2075, y = 34.5553), colour = "cornflowerblue", pch = 15) +
     geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
+    scale_colour_manual(
+    values = c("Battles" = "#7A0403FF", 
+      "Explosions/Remote violence" = "#FABA39FF", 
+      "Protests" = "#72FE5EFF", 
+      "Riots" = "#36AAF9FF", 
+      "Strategic developments" = "#30123BFF", 
+      "Violence against civilians" = "#FCFDBFFF")
+  ) +
     theme(plot.background = element_rect(fill = NA, colour = NA),
           panel.background = element_rect(fill = NA, colour = NA),
           rect = element_rect(fill = NA, colour = NA),
@@ -1123,6 +1158,14 @@ acled_afpak |>
   geom_line(aes(colour = event_type), lwd = .8) +
   scale_y_log10(labels = comma) +
   scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
+  scale_colour_manual(values = c(
+      "Battles" = "#7A0403FF",
+      "Violence against civilians" = "#F05B12FF",
+      "Explosions/Remote violence" = "#E1DD37FF",
+      "Protests" = "#25ECA7FF",
+      "Strategic developments" = "#30123BFF",
+      "Riots" = "#3E9BFEFF"
+    )) + 
   facet_wrap(~afpak_border) + 
   theme(strip.background = element_rect(fill = "black")) + 
   labs(colour = "Event type", 
@@ -1150,6 +1193,14 @@ acled_afpak |>
   geom_line(aes(colour = event_type)) +
   scale_y_continuous(labels = comma) + 
   scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
+  scale_colour_manual(values = c(
+      "Battles" = "#7A0403FF",
+      "Violence against civilians" = "#F05B12FF",
+      "Explosions/Remote violence" = "#E1DD37FF",
+      "Protests" = "#25ECA7FF",
+      "Strategic developments" = "#30123BFF",
+      "Riots" = "#3E9BFEFF"
+    )) + 
   facet_wrap(~afpak_border) + 
   theme(strip.background = element_rect(fill = "black")) + 
   labs(colour = "", 
@@ -1276,102 +1327,6 @@ Papua New Guinea, where data collection began in `r acled_filtered |> filter(cou
 
 
 
-```{r}
-
-acled_actors |>
-    mutate(covid = ifelse(event_date >= "2020-03-11", "Post-covid", "Pre-covid"), 
-           covid = fct_relevel(covid, "Pre-covid", "Post-covid")) |>
-    group_by(actor_description, covid) |> 
-    summarise(events = n_distinct(event_id_cnty), 
-              fatalities = sum(fatalities, na.rm = TRUE), 
-              .groups = "drop") |> 
-    mutate(actor_description = fct_relevel(actor_description, 
-                                           c("State Forces",
-                                             "Civilians", 
-                                             "Protesters",
-                                             "Rebel Groups", 
-                                             "Rioters", 
-                                             "Political Militias", 
-                                             "Identity Militias", 
-                                             "Other Forces"
-                                             ))) |> 
-  ggplot(aes(y = fct_rev(actor_description), x = events)) + 
-  geom_col(aes(fill = actor_description)) + 
-  facet_wrap(~ covid, labeller = label_wrap_gen(multi_line=FALSE), ncol = 1) + 
-  scale_fill_manual(values = c(
-      "Civilians" = "#fde725ff",
-      "State Forces" = "#7A0403FF",
-      "Protesters" = "#4AC16DFF",
-      "Identity Militias" = "#4777EFFF",
-      "Rebel Groups" = "#FE9B2DFF",
-      "Rioters" = "#1BD0D5FF",
-      "Political Militias" = "#D3436EFF",
-      "Other Forces" = "grey30")) +
-  scale_x_continuous(labels = comma) + 
-  guides(colour = guide_legend(override.aes = list(alpha = 1, 
-                                                   size = 1.8)), 
-         size = guide_legend(override.aes = list(alpha = 1, 
-                                                 colour = "grey"))) + 
- labs(x = "No. of Events", 
-      y = "",
-      title = "Conflict Events", 
-      caption = "Source: www.acleddata.com") + 
- theme(plot.caption = element_text(hjust = .5), 
-       strip.background = element_rect(fill = "black"), 
-       strip.text = element_text(face = "bold"), 
-       legend.position = "none", 
-       axis.text.x = element_text(size = 7)) + 
-  
-acled_actors |>
-    mutate(covid = ifelse(event_date >= "2020-03-11", "Post-covid", "Pre-covid"), 
-           covid = fct_relevel(covid, "Pre-covid", "Post-covid")) |>
-    group_by(actor_description, covid) |> 
-    summarise(events = n_distinct(event_id_cnty), 
-              fatalities = sum(fatalities, na.rm = TRUE), 
-              .groups = "drop") |> 
-    mutate(actor_description = fct_relevel(actor_description, 
-                                           c("State Forces",
-                                             "Civilians", 
-                                             "Protesters",
-                                             "Rebel Groups", 
-                                             "Rioters", 
-                                             "Political Militias", 
-                                             "Identity Militias", 
-                                             "Other Forces"
-                                             ))) |> 
-  ggplot(aes(y = fct_rev(actor_description), x = fatalities)) + 
-  geom_col(aes(fill = actor_description)) + 
-  facet_wrap(~ covid, labeller = label_wrap_gen(multi_line=FALSE), ncol = 1) + 
-  scale_fill_manual(values = c(
-      "Civilians" = "#fde725ff",
-      "State Forces" = "#7A0403FF",
-      "Protesters" = "#4AC16DFF",
-      "Identity Militias" = "#4777EFFF",
-      "Rebel Groups" = "#FE9B2DFF",
-      "Rioters" = "#1BD0D5FF",
-      "Political Militias" = "#D3436EFF",
-      "Other Forces" = "grey30")) +
-  scale_x_continuous(labels = comma) + 
-  guides(colour = guide_legend(override.aes = list(alpha = 1, 
-                                                   size = 1.8)), 
-         size = guide_legend(override.aes = list(alpha = 1, 
-                                                 colour = "grey"))) + 
- labs(x = "No. of Fatalities", 
-      y = "",
-      title = "Conflict Fatalities", 
-      caption = "Source: www.acleddata.com") + 
- theme(plot.caption = element_text(hjust = .5), 
-       strip.background = element_rect(fill = "black"), 
-       strip.text = element_text(face = "bold"), 
-       legend.position = "none", 
-       axis.text.x = element_text(size = 7)) + 
-  
-plot_layout(widths = c(1.84, 1.3))
-```
-
-
-
-
 <br><br><br>
 
 
@@ -1474,7 +1429,7 @@ ggsave(here("plots", "protest_network_graph.png"),
 
 <br>
 
-![](./plots/protest_network_graph.png)
+[![](./plots/protest_network_graph.png)](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/plots/./plots/protest_network_graph.png)
 
 
 
@@ -1554,9 +1509,25 @@ ggsave(here("plots", "protest_network_graph_indonesia.png"),
 
 ```
 
-![](./plots/protest_network_graph_indonesia.png)
+
+
+[![](./plots/protest_network_graph_indonesia.png)](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/plots/./plots/protest_network_graph_indonesia.png)
+
+<br>
+
+Whilst the regional network graph provided a very broad overview and gave insight into common trends. I'd argue that a more targeted network graph, like this one, at the country level is far more interpretable. 
 
 <br><br><br>
+
+### Common protest topics
+
+The following charts, broken down by country show the (log of) odds that a word will appear in the event description (`notes`) for protest events in a given country. 
+
+As an example, the word most likely to appear in protest events in India is `BJP`. 
+
+Most topics are local or are place names (indicating significant protests in a specific area), but several common topics have been manually identified and are coloured in the chart below. 
+
+<br>
 
 ```{r fig.height=8}
 admin2_list <- acled_filtered |> 
@@ -1666,9 +1637,9 @@ protest_country_words |>
 
 <br>
 
-Place names indicate widespread protests. 
+Despite all the violence in Pakistan, `load shedding` still appears in the words most likely to be associated with protests in Pakistan, perhaps indicating that their infrastructure is in a truly dire state, even when compared to countries of similar income levels. 
 
-
+Are wage protests in China a sign of a slowing economy or is it that the only acceptable subjects to protest about in China are economic issues? 
 
 <br><br><br>
 
@@ -1716,3 +1687,102 @@ acled_filtered |>
 
 
 ```
+
+<br><br>
+
+#### Actor types pre- and post-covid
+
+```{r}
+
+acled_actors |>
+    mutate(covid = ifelse(event_date >= "2020-03-11", "Post-covid", "Pre-covid"), 
+           covid = fct_relevel(covid, "Pre-covid", "Post-covid")) |>
+    group_by(actor_description, covid) |> 
+    summarise(events = n_distinct(event_id_cnty), 
+              fatalities = sum(fatalities, na.rm = TRUE), 
+              .groups = "drop") |> 
+    mutate(actor_description = fct_relevel(actor_description, 
+                                           c("State Forces",
+                                             "Civilians", 
+                                             "Protesters",
+                                             "Rebel Groups", 
+                                             "Rioters", 
+                                             "Political Militias", 
+                                             "Identity Militias", 
+                                             "Other Forces"
+                                             ))) |> 
+  ggplot(aes(y = fct_rev(actor_description), x = events)) + 
+  geom_col(aes(fill = actor_description)) + 
+  facet_wrap(~ covid, labeller = label_wrap_gen(multi_line=FALSE), ncol = 1) + 
+  scale_fill_manual(values = c(
+      "Civilians" = "#fde725ff",
+      "State Forces" = "#7A0403FF",
+      "Protesters" = "#4AC16DFF",
+      "Identity Militias" = "#4777EFFF",
+      "Rebel Groups" = "#FE9B2DFF",
+      "Rioters" = "#1BD0D5FF",
+      "Political Militias" = "#D3436EFF",
+      "Other Forces" = "grey30")) +
+  scale_x_continuous(labels = comma) + 
+  guides(colour = guide_legend(override.aes = list(alpha = 1, 
+                                                   size = 1.8)), 
+         size = guide_legend(override.aes = list(alpha = 1, 
+                                                 colour = "grey"))) + 
+ labs(x = "No. of Events", 
+      y = "",
+      title = "Conflict Events", 
+      caption = "Source: www.acleddata.com") + 
+ theme(plot.caption = element_text(hjust = .5), 
+       strip.background = element_rect(fill = "black"), 
+       strip.text = element_text(face = "bold"), 
+       legend.position = "none", 
+       axis.text.x = element_text(size = 7)) + 
+  
+acled_actors |>
+    mutate(covid = ifelse(event_date >= "2020-03-11", "Post-covid", "Pre-covid"), 
+           covid = fct_relevel(covid, "Pre-covid", "Post-covid")) |>
+    group_by(actor_description, covid) |> 
+    summarise(events = n_distinct(event_id_cnty), 
+              fatalities = sum(fatalities, na.rm = TRUE), 
+              .groups = "drop") |> 
+    mutate(actor_description = fct_relevel(actor_description, 
+                                           c("State Forces",
+                                             "Civilians", 
+                                             "Protesters",
+                                             "Rebel Groups", 
+                                             "Rioters", 
+                                             "Political Militias", 
+                                             "Identity Militias", 
+                                             "Other Forces"
+                                             ))) |> 
+  ggplot(aes(y = fct_rev(actor_description), x = fatalities)) + 
+  geom_col(aes(fill = actor_description)) + 
+  facet_wrap(~ covid, labeller = label_wrap_gen(multi_line=FALSE), ncol = 1) + 
+  scale_fill_manual(values = c(
+      "Civilians" = "#fde725ff",
+      "State Forces" = "#7A0403FF",
+      "Protesters" = "#4AC16DFF",
+      "Identity Militias" = "#4777EFFF",
+      "Rebel Groups" = "#FE9B2DFF",
+      "Rioters" = "#1BD0D5FF",
+      "Political Militias" = "#D3436EFF",
+      "Other Forces" = "grey30")) +
+  scale_x_continuous(labels = comma) + 
+  guides(colour = guide_legend(override.aes = list(alpha = 1, 
+                                                   size = 1.8)), 
+         size = guide_legend(override.aes = list(alpha = 1, 
+                                                 colour = "grey"))) + 
+ labs(x = "No. of Fatalities", 
+      y = "",
+      title = "Conflict Fatalities", 
+      caption = "Source: www.acleddata.com") + 
+ theme(plot.caption = element_text(hjust = .5), 
+       strip.background = element_rect(fill = "black"), 
+       strip.text = element_text(face = "bold"), 
+       legend.position = "none", 
+       axis.text.x = element_text(size = 7)) + 
+  
+plot_layout(widths = c(1.84, 1.3))
+```
+
+
