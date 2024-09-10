@@ -177,20 +177,19 @@ indo_adm1_pop <- read_csv(here("data", "idn_admpop_adm1_2020_v2.csv")) |>
 
 This document is intended as an overview of observed conflict trends in the Asia-Pacific region in the past ten years. For that, we have used the ACLED (Armed Conflict Location and Event Data) dataset. The reasons for privileging this source over UCDP's Georefereced Event Dataset are detailed [here](https://risk-anticipation-hub.github.io/conflict-trends-asia-pacific/acled_ucdp.html). 
 
-
 Making sense of this data will require a deeper examination of the various contexts in this region. We have endeavoured to produce, rather than a template, more of a demonstration of what types of conflict analysis are possible, using ACLED data from the Asia-Pacific. 
 
 The gif below displays cumulative conflict events collected by ACLED, over the past 10 years. This is a visualisation of all the data we are working with (all observations, or rows, at least). 
 
-A few first things to note: as we will discuss shortly, the data collection has not been uniform. ACLED is dependent on resources like any other agency and will expand their services if their capacity allows it. Nevertheless, major conflict hotspots in the region are all quite clear: Afghanistan, Pakistan, Kashmir, Bangladesh, Chhattisgarh in India, Southern Thailand, Mindanao and the rest of the Philippines for different reasons, and Myanmar. 
+A few first things to note: as we will discuss shortly, the data collection has not been uniform. ACLED is dependent on resources like any other agency and will expand their services if their capacity allows it -- we can see several countries pop in as conflict monitoring there comes online. 
+
+Major conflict hotspots in the region are all quite clear: Afghanistan, Pakistan, Kashmir, Bangladesh, Chhattisgarh in India, Southern Thailand, Mindanao and the rest of the Philippines, and Myanmar. 
 
 <br>
 
 [![](./plots/asia_pacific_event_types_grey.gif)](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/plots/asia_pacific_event_types_grey.gif)
 
 <br>
-
-The most common form of political conflict is to protest. Protests are a non-violent form of political conflict which manifest when all legal and administrative avenues have been exhausted. Their existence indicates that people are able to express their support for or dissatisfaction with a given issue. But it also indicates a "hole" in governance which was previously unaddressed (and very might might continue to go unaddressed). 
 
 This document is no way intended to be an exhaustive analysis of conflict in the region. And in our exploratory analysis of the data, we have found the following topics/sections to provide an reasonable overview of conflict trends in the region, corresponding largely to the sections of this report: 
 
@@ -391,7 +390,9 @@ On the whole, however, conflict events have decreased in more than half of Asia-
 ```{r fig.height= 6.5}
 acled_filtered |> 
   filter(year > 2013 & year <= 2025) |> 
-  filter(country %in% most_fatalities_list) |>  
+  filter(country %in% most_fatalities_list) |> 
+  filter(country %out% c("Singapore", "Bhutan", "Fiji", "Maldives", 
+                         "South Korea", "New Zealand", "Vanuatu")) |> 
   group_by(country, year) |> 
   summarise(fatalities = sum(fatalities, na.rm = TRUE), 
             .groups = "drop") |> 
@@ -400,6 +401,7 @@ acled_filtered |>
   mutate(date = as.Date(paste(year, 1, 1, sep="-")), 
          fatalities_100k = fatalities / population * 100000, 
          country = fct_relevel(country, most_fatalities_list)) |>
+  
   ggplot(aes(x = date, y = fatalities)) + 
   geom_smooth(alpha = .1, colour = "salmon") + 
   geom_line(aes(group = country)) + 
@@ -426,7 +428,7 @@ acled_filtered |>
 
 Both the magnitude (number of events) and the severity (number of events per 100,000 persons) provide important perspectives on conflict: India may have a very large number of conflict events, but as can be seen from the graph below, on a per-capita basis, it sits fairly in the middle of the pack.
 
-The plot below is of the number of events per 100,000 pe
+The plot below is of the number of events per 100,000 persons against the number of conflict fatalities per 100,000 persons. The number of events is represented by the size of each point, and the colour represents total conflict fatalities. 
 
 <br>
 
@@ -484,13 +486,13 @@ acled_filtered |>
 
 <br> 
 
-The countries most affected by political violence are in the upper-right quadrant, with distinctions between Afghanistan and Myanmar and the rest. The blue dotted reference lines were chosen just on a visual inspection of the data, but having at least one annual conflict fatality per 100,000 persons does seem to be a significant threshold. For reference and to put Myanmar and Afghanistan into perspective, the [homicide rate](https://www.who.int/data/gho/data/indicators/indicator-details/GHO/estimates-of-rates-of-homicides-per-100-000-population) in Southeast Asia is four per 100,000, and the [road traffic death rate](https://www.who.int/data/gho/data/indicators/indicator-details/GHO/estimated-road-traffic-death-rate-(per-100-000-population) is 16.  
+The countries most affected by political violence are in the upper-right quadrant, with distinctions between Afghanistan and Myanmar and the rest. The blue dotted reference lines were chosen just on a visual inspection of the data, but having at least one annual conflict fatality per 100,000 persons does seem to be a significant threshold. For reference and to put Myanmar and Afghanistan into perspective, the [homicide rate](https://www.who.int/data/gho/data/indicators/indicator-details/GHO/estimates-of-rates-of-homicides-per-100-000-population) in Southeast Asia is four per 100,000, and the [road traffic death rate](https://www.who.int/data/gho/data/indicators/indicator-details/GHO/estimated-road-traffic-death-rate-per-100-000-population) is 16.  
 
 Most interestingly, though is the central tendency (the solid blue line) that most countries in the Asia-Pacific seem to exist on, with autocracies (or their approximations) on one end of the line and on the other, countries where violence has spun out of state control. It is unfortunate that most Asian countries seem to exist on the spectrum between political participation is dangerous and few people do it, to political participation is dangerous and many people do it.
 
 At the bottom of the plot, not on the central tendency are the "functioning" democracies of the region (except Hong Kong). All have populations who actively participate in the political process -- even the least protest-inclined of this group, Fiji and Japan, have higher rates of participation (i.e. number of events per 100k) than Indonesia or Malaysia. Yet in all of these countries, political participation does not mean death. Conflict fatalities tend to be very infrequent.
 
-As a final note, ACLED does not capture all conflict. We use the number of fatalities per 100,000 that we have calculated from their dataset for comparison. Were we looking to calculate the mortality rate, there are [preferred sources](https://www.who.int/data/gho/data/themes/mortality-and-global-health-estimates/ghe-leading-causes-of-death).
+As a final note, ACLED does not capture all conflict. We use the number of fatalities per 100,000 that we have calculated from their dataset for comparisons between countries. Were we looking for the actual mortality rate, there are [preferred sources](https://www.who.int/data/gho/data/themes/mortality-and-global-health-estimates/ghe-leading-causes-of-death).
 
 <br><br><br>
 
@@ -701,7 +703,7 @@ However, with reference to MIMU's excellent ethnolinguistic map of Myanmar, if t
 
 <br>
 
-[![](./plots/Ethnologue_Map_Main_Spoken_Languages_of_MyanmarNeighbour_MIMU1300v03_7Jan2019_A1_1.png)](https://www.themimu.info/sites/themimu.info/files/documents/Ethnologue_Map_Main_Spoken_Languages_of_MyanmarNeighbour_MIMU1300v03_7Jan2019_A1.pdf){height=50%}
+[![](./plots/Ethnologue_Map_Main_Spoken_Languages_of_MyanmarNeighbour_MIMU1300v03_7Jan2019_A1_1.png)](https://www.themimu.info/sites/themimu.info/files/documents/Ethnologue_Map_Main_Spoken_Languages_of_MyanmarNeighbour_MIMU1300v03_7Jan2019_A1.pdf){width=500}
 
 <br><br><br>
 
@@ -1333,7 +1335,24 @@ Papua New Guinea, where data collection began in `r acled_filtered |> filter(cou
 
 ## Protests 
 
+The most common form of political conflict is to protest. Protests are a non-violent form of political conflict which manifest when all legal and administrative avenues have been exhausted. Their existence indicates that people are able to express their support for or dissatisfaction with a given issue. But it also indicates a "hole" in governance which was previously unaddressed (and very might might continue to go unaddressed). 
 
+In this section, we explore the concerns of protesters in the Asia-Pacific. Below is a network graph of event descriptions of protests in the Asia-Pacific in the past 10 years. The links (edges) between each of the words indicate the strength of the relationship (transparency) and the number of times this word pair has occurred (thickness). Only the most common word pairs with correlations above 0.2 are included (for legibility). 
+
+
+The main topics identified from the graph include (cross-border issues are in bold): 
+
+* Contentious territories: **Myanmar**, **Palestine**, Korea, Manipur, **Kashmir**, **Fukushima**
+
+* Legislation and state overreach: Citizenship amendment, Lese majeste, Oli (Nepal), Arrest, **Money laundering**
+
+* Economic concerns: Unions, **Prices**, Arrears, Pensions, Hikes
+
+* Service delivery and infrastructure: Load shedding, Farms, Outages
+
+* **Coronavirus**
+
+<br>
 
 ```{r}
 protest_country_words <- acled_filtered |> 
@@ -1427,25 +1446,8 @@ ggsave(here("plots", "protest_network_graph.png"),
 
 
 
-<br>
-
 [![](./plots/protest_network_graph.png)](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/plots/./plots/protest_network_graph.png)
 
-
-
-<br>
-
-The main topics identified from the graph include (cross-border issues are in bold): 
-
-* Contentious territories: **Myanmar**, **Palestine**, Korea, Manipur, **Kashmir**, **Fukushima**
-
-* Legislation and state overreach: Citizenship amendment, Lese majeste, Oli (Nepal), Arrest, **Money laundering**
-
-* Economic concerns: Unions, **Prices**, Arrears, Pensions, Hikes
-
-* Service delivery and infrastructure: Load shedding, Farms, Outages
-
-* **Coronavirus**
 
 
 <br><br><br>
