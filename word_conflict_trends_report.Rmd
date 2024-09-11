@@ -178,8 +178,6 @@ Making sense of this data will require a deeper examination of the various conte
 
 The gif below displays cumulative conflict events collected by ACLED, over the past 10 years. This is a visualisation of all the data we are working with (all observations, or rows, at least). 
 
-A few first things to note: as we will discuss shortly, the data collection has not been uniform. ACLED is dependent on resources like any other agency and will expand their services if their capacity allows it -- we can see several countries pop in as conflict monitoring there comes online. 
-
 Major conflict hotspots in the region are all quite clear: Afghanistan, Pakistan, Kashmir, Bangladesh, Chhattisgarh in India, Southern Thailand, Mindanao and the rest of the Philippines, and Myanmar. 
 
 This document is no way intended to be an exhaustive analysis of conflict in the region. And in our exploratory analysis of the data, we have found the following topics/sections to provide an reasonable overview of conflict trends in the region, corresponding largely to the sections of this report: 
@@ -196,10 +194,11 @@ This document is no way intended to be an exhaustive analysis of conflict in the
 
 * Text mining of protest descriptions
 
+Data collection has not been uniform. ACLED is dependent on resources like any other agency and will expand their services if their capacity allows it -- we can see several countries pop in as conflict monitoring there comes "online". We accounted for this by both limiting timeframes (only plotting cross-border violence in Afghanistan and Pakistan for years where data collection was ongoing in both countries) and by making use of annual or quarterly means as well as per capita calculations to make for fair comparisons. 
 
 Any analysis is limited by the knowledge of the subject matter expert and the time available. This means that there is much to be gained from both going larger (comparing regions, forms of government or economic blocs) and smaller (country-level or subnational) with this analysis. There are many definitely many avenues of exploration which we am not even aware of, given the vastness of the Asia-Pacific region and the contexts within it. This product doesn't supplant reports from in-country analysts -- who would be more accurate sources of information anyway -- as they can convey the "feel" of the situation on the ground, something necessary in conflict analysis, given how diverse political conflict can be. 
 
-ACLED has [regional overviews](https://acleddata.com/2024/09/06/asia-pacific-overview-august-2024/) but they tend to be more punctual, bird's eye and monthly products intended for different purposes. ACLED also adds value through its in-depth reports, such as this one on [Hindu nationalism](https://acleddata.com/2024/04/28/india-votes-2024-a-resurgent-hindu-nationalism-sets-the-stage-for-the-upcoming-elections-driving-communal-violence/) which highlight, as mentioned, how country-level analysis tends to be very specific: 
+ACLED has [regional overviews](https://acleddata.com/2024/09/06/asia-pacific-overview-august-2024/) but they tend to be more punctual, bird's eye and monthly products intended for different purposes. ACLED also adds value through its in-depth reports, such as this one on [Hindu nationalism](https://acleddata.com/2024/04/28/india-votes-2024-a-resurgent-hindu-nationalism-sets-the-stage-for-the-upcoming-elections-driving-communal-violence/) which highlight how country-level analysis tends to be very specific: 
 
 <br>
 

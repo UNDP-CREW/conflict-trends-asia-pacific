@@ -487,7 +487,7 @@ acled_filtered |>
 
 <br> 
 
-Most interesting is the central tendency (the solid blue line) that most countries in the Asia-Pacific seem to sit on. I would venture that this line describes something like state control, as we have disproportionately quiet autocracies (or their approximations) on one end of the line And other other extreme are countries where violence has spread out of state control. 
+Most interesting is the central tendency (the solid blue line) that most countries in the Asia-Pacific seem to sit on. I would venture that this line describes something like state control, as we have disproportionately quiet autocracies (or their approximations) on one end of the line and other other extreme are countries where violence has spread out of state control. 
 
 Myanmar, Afghanistan have exited the central tendency and have experienced open warfare. The Philippines, Papua New Guinea and Pakistan are all at risk or were at risk of doing the same during the past 10 years. The blue dotted reference lines were chosen just on a visual inspection of the data, but having at least one annual conflict fatality per 100,000 persons does seem to be a reasonable threshold for now. 
 
