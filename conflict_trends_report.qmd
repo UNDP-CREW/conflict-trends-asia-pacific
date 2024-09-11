@@ -205,10 +205,9 @@ This document is no way intended to be an exhaustive analysis of conflict in the
 
 * Text mining of protest descriptions
 
-
 Any analysis is limited by the knowledge of the subject matter expert and the time available. This means that there is much to be gained from both going larger (comparing regions, forms of government or economic blocs) and smaller (country-level or subnational) with this analysis. There are many definitely many avenues of exploration which we am not even aware of, given the vastness of the Asia-Pacific region and the contexts within it. This product doesn't supplant reports from in-country analysts -- who would be more accurate sources of information anyway -- as they can convey the "feel" of the situation on the ground, something necessary in conflict analysis, given how diverse political conflict can be. 
 
-Nevertheless, with this report, we are, at least, contributing original research, with relatively few overlaps with ACLED's current output: ACLED has [regional overviews](https://acleddata.com/2024/09/06/asia-pacific-overview-august-2024/) but they tend to be more punctual, bird's eye and monthly products intended for different purposes. ACLED also adds value through its in-depth reports, such as this one on [Hindu nationalism](https://acleddata.com/2024/04/28/india-votes-2024-a-resurgent-hindu-nationalism-sets-the-stage-for-the-upcoming-elections-driving-communal-violence/) which highlight, as mentioned, how country-level analysis tends to be very specific: 
+ACLED has [regional overviews](https://acleddata.com/2024/09/06/asia-pacific-overview-august-2024/) but they tend to be more punctual, bird's eye and monthly products intended for different purposes. ACLED also adds value through its in-depth reports, such as this one on [Hindu nationalism](https://acleddata.com/2024/04/28/india-votes-2024-a-resurgent-hindu-nationalism-sets-the-stage-for-the-upcoming-elections-driving-communal-violence/) which highlight, as mentioned, how country-level analysis tends to be very specific: 
 
 <br>
 
@@ -217,7 +216,7 @@ Nevertheless, with this report, we are, at least, contributing original research
 
 <br>
 
-This is ultimately a living document and we seek feedback on its utility. I personally don't feel that it is "sharp" enough to be considered an aid for decision-making. It is more of a primer on conflict in the region.  
+Nevertheless, with this report, we are, at least, contributing original research, with relatively few overlaps with ACLED's current output. This is ultimately a living document and we seek feedback on its utility. I personally don't feel that it is "sharp" enough to be considered an aid for decision-making. It is more of a primer on conflict in the region.  
 
 <br><br><br>
 
@@ -460,8 +459,8 @@ acled_filtered |>
   geom_smooth(method = "lm",formula = y ~ splines::bs(x, 2), se = FALSE, lwd = 1) + 
   geom_hline(yintercept = 0.01, lwd = .2, linetype = "dashed", alpha = .5) + 
   geom_vline(xintercept = 0.01, lwd = .2, linetype = "dashed", alpha = .5) + 
-  geom_hline(yintercept = 1.01, lwd = .9, linetype = "dashed", alpha = .3, colour = "blue") + 
-  geom_vline(xintercept = 1.01, lwd = .9, linetype = "dashed", alpha = .3, colour = "blue") + 
+  geom_hline(yintercept = 1.01, lwd = .9, linetype = "dashed", alpha = .4, colour = "cornflowerblue") + 
+  geom_vline(xintercept = 1.01, lwd = .9, linetype = "dashed", alpha = .4, colour = "cornflowerblue") + 
   geom_point(aes(colour = fatalities, 
                  size = events), alpha = .8) + 
   # geom_text(aes(label = country), vjust = "inward") +
@@ -469,11 +468,12 @@ acled_filtered |>
                            max.overlaps = 20) +
   scale_x_log10(breaks=c(0.01, 0.11, 1.01, 2.01, 5.01), labels=\(x) x-0.01) + 
   scale_y_log10(breaks=c(0.01, 0.11, 1.01, 10.01), labels=\(x) x-0.01) +
-  scale_size_continuous(range = c(.1, 6), trans = "log10") + 
-  scale_colour_viridis_c(option = "magma", direction = -1, end = .85) + 
+  scale_size_continuous(range = c(1, 9), breaks = c(100, 1000, 10000, 100000), 
+                        labels = comma) + 
+  scale_colour_viridis_c(option = "magma", direction = -1, end = .85, labels = comma) + 
   labs(x = "Events per 100k", 
        y = "Fatalities per 100k", 
-       title = "Severity and lethality of political conflict in the Asia-Pacific", 
+       title = "Severity and lethality of political conflict in the Asia-Pacific, 2014-2023", 
        subtitle = "Mean annual events and fatalities per country per 100,000 persons", 
        caption = "Source: www.accleddata.com", 
        size = "No. Events", 
@@ -486,20 +486,20 @@ acled_filtered |>
 
 <br> 
 
-The countries most affected by political violence are in the upper-right quadrant, with distinctions between Afghanistan and Myanmar and the rest. The blue dotted reference lines were chosen just on a visual inspection of the data, but having at least one annual conflict fatality per 100,000 persons does seem to be a significant threshold. For reference and to put Myanmar and Afghanistan into perspective, the [homicide rate](https://www.who.int/data/gho/data/indicators/indicator-details/GHO/estimates-of-rates-of-homicides-per-100-000-population) in Southeast Asia is four per 100,000, and the [road traffic death rate](https://www.who.int/data/gho/data/indicators/indicator-details/GHO/estimated-road-traffic-death-rate-per-100-000-population) is 16.  
+Most interesting is the central tendency (the solid blue line) that most countries in the Asia-Pacific seem to sit on. I would venture that this line describes something like state control, as we have disproportionately quiet autocracies (or their approximations) on one end of the line And other other extreme are countries where violence has spread out of state control. 
 
-Most interestingly, though is the central tendency (the solid blue line) that most countries in the Asia-Pacific seem to exist on, with autocracies (or their approximations) on one end of the line and on the other, countries where violence has spun out of state control. It is unfortunate that most Asian countries seem to exist on the spectrum between political participation is dangerous and few people do it, to political participation is dangerous and many people do it.
+Myanmar, Afghanistan have exited the central tendency and have experienced open warfare. The Philippines, Papua New Guinea and Pakistan are all at risk or were at risk of doing the same during the past 10 years. The blue dotted reference lines were chosen just on a visual inspection of the data, but having at least one annual conflict fatality per 100,000 persons does seem to be a reasonable threshold for now. 
 
-At the bottom of the plot, not on the central tendency are the "functioning" democracies of the region (except Hong Kong). All have populations who actively participate in the political process -- even the least protest-inclined of this group, Fiji and Japan, have higher rates of participation (i.e. number of events per 100k) than Indonesia or Malaysia. Yet in all of these countries, political participation does not mean death. Conflict fatalities tend to be very infrequent.
+As a counterpart to these autocracies (as they exist on a spectrum of North Korea to Vietnam) are the "functioning" democracies of the region (except Hong Kong), who have also exited this central tendency but lie around the `y = 0` but past the blue dotted vertical reference line at `x = 1`. For these countries, political participation and conflict is not associated with the increase in fatalities per 100k seen in the other countries in the region. 
 
-As a final note, ACLED does not capture all conflict. We use the number of fatalities per 100,000 that we have calculated from their dataset for comparisons between countries. Were we looking for the actual mortality rate, there are [preferred sources](https://www.who.int/data/gho/data/themes/mortality-and-global-health-estimates/ghe-leading-causes-of-death).
+All have populations who actively participate in the political process -- even the least protest-inclined of this group, Fiji and Japan, have higher rates of participation (i.e. number of events per 100k) than Indonesia or Malaysia, or even pre-2024 Bangladesh. In this regard, Fiji is an overachiever, outperforming Singapore in its transition to a "functioning" or "mature" democracy. 
+
+I don't think there is an optimum amount of political conflict. But we can hypothesise from the high rates of political conflict in South Korea, The Maldives and Hong Kong that at the extreme ends of the x-axis are countries indicate that countries are experiencing widespread dissatisfaction, verging on revolt. And that this is not desirable. This would be interesting to test this out on other regions and see if there is more we can get from this.   
+
+As a final note, ACLED does not capture all conflict. The number of fatalities per 100,000 that we have calculated here is more for comparisons between countries within the ACLED dataset. Were we looking for the actual mortality rate or leading causes of death, there are [preferred sources](https://www.who.int/data/gho/data/themes/mortality-and-global-health-estimates/ghe-leading-causes-of-death). Though it does put Myanmar and Afghanistan into perspective: the [homicide rate](https://www.who.int/data/gho/data/indicators/indicator-details/GHO/estimates-of-rates-of-homicides-per-100-000-population) in Southeast Asia is four per 100,000, and the [road traffic death rate](https://www.who.int/data/gho/data/indicators/indicator-details/GHO/estimated-road-traffic-death-rate-per-100-000-population) is 16.
 
 <br><br><br>
 
-
-
-
-<br><br><br>
 
 ## Event types 
 
