@@ -421,8 +421,6 @@ We note that ACLED, in general, draws from a much larger number of sources than 
 
 <br>
 
-9
-
 
 ```{r fig.height=7}
 

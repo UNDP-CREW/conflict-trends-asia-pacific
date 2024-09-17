@@ -198,6 +198,10 @@ myanmar_raw <- read_csv(here(
   "raw_data", "2021-02-01-2024-08-18-Myanmar.csv")) |>  
   mutate(event_date = as.Date(event_date, "%d %B %Y"))
 
+bangladesh_raw <- read_csv(here(
+  "raw_data", "1900-01-01-2024-09-13-Bangladesh.csv"
+))
+
 ged241 <- readRDS(here("data", "ged241.rds"))
 
 acled <- rbind(
@@ -209,7 +213,9 @@ acled <- rbind(
   read_csv(here("raw_data", "2013-01-01-2015-05-24-East_Asia-Oceania-South_Asia-Southeast_Asia.csv")),
   # Countries outside of the above regions but still in UNDP region
   read_csv(here("raw_data", "2013-01-01-2024-05-25-Afghanistan.csv")),
-  read_csv(here("raw_data", "2013-01-01-2024-05-25-Iran.csv"))
+  read_csv(here("raw_data", "2013-01-01-2024-05-25-Iran.csv")), 
+  read_csv(here("raw_data", "2024-05-26-2024-09-13-East_Asia-Oceania-South_Asia-Southeast_Asia.csv")), 
+  read_csv(here("raw_data", "2024-05-26-2024-09-13-Afghanistan-Iran.csv"))
   )
   # filter(year >= 2014 & year < 2024) |> 
   
@@ -311,7 +317,11 @@ acled_filtered <- acled |>
 ```{r eval=FALSE}
 myanmar_civil_war <- myanmar_raw |> 
   acled_cleaning()
+
+bangladesh <- bangladesh_raw |> acled_cleaning()
 ```
+
+
 
 
 
@@ -322,6 +332,8 @@ acled_filtered |> write_rds(here("data", "acled_filtered.rds"),
 myanmar_civil_war |> write_rds(here("data", "myanmar_civil_war.rds"), 
                                compress = c("gz"))
 
+bangladesh |> write_rds(here("data", "bangladesh.rds"), 
+                        compress = "gz")
 ```
 
 
