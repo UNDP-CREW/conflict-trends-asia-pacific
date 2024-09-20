@@ -144,9 +144,6 @@ actor_codes_acled <- tribble(
 
 lebanon <- readRDS(here("data", "lebanon.rds"))
 
-lebanon_shape <- world_shape |> 
-  filter(str_detect(name, 
-                    "Gaza Strip|Israel|West Bank|Lebanon|Syrian Arab Republic"))
 ```
 
 
@@ -217,10 +214,89 @@ gganimate::anim_save(here("plots", "asia_pacific_event_types_grey.gif"))
 
 ```
 
+```{r}
+geom_sf(data = world_shape |> filter(str_detect(name, "Lebanon")), 
+          size = 2, colour = "goldenrod2", fill = "grey90") + 
+```
+
+
+# Lebanon
+
+
 
 ```{r}
+
+cities <- tribble(~x, ~y, ~name,
+  35.5018, 33.8938, "Beirut", 
+  36.2768, 33.5132, "Damascus", 
+  34.467, 31.5085, "Gaza", 
+  34.7818, 32.0853, "Tel Aviv", 
+  35.2034, 31.9038, "Ramallah",
+  35.8362, 34.4346, "Tripoli",
+  35.2038, 33.2705, "Tyre", 
+  36.7135, 34.7325, "Homs"
+  
+) |> 
+  st_as_sf(coords = c("x", "y"), crs = 4326)
+
+lebanon_shape <- world_shape |> filter(iso3 %in% c("ISR", "JOR", "LBN", "PSE", "SYR"))
+
+
 lebanon_event_types <- lebanon |> 
-  filter(event_date > "2019-09-13") |> 
+  filter(country %in% c("Lebanon", "Syria", "Palestine", "Jordan", "Israel")) |> 
+  filter(event_date >= "2023-01-01") |> 
+  mutate(month = floor_date(event_date, "month")) %>%
+  select(event_id_cnty, event_type, longitude, latitude, event_type, month, fatalities) %>%
+  mutate(month = map(month, ~seq.Date(as.Date(.), as.Date("2024-09-13"), by = "month"))) |> 
+  unnest(month) |> 
+  mutate(month = format_ISO8601(month, precision = "ym")) |> 
+  ggplot() + 
+  geom_sf(data = lebanon_shape, size = .5, colour = "grey", fill = "grey90") + 
+  geom_sf(data = world_shape |> filter(str_detect(name, "Lebanon")), 
+          size = 2, colour = "goldenrod2", fill = "grey90") + 
+  geom_sf_text(data = cities, aes(geometry = geometry, label = name), 
+          size = 3, alpha = .8) +
+  geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .15) + 
+  coord_sf(xlim = c(34, 43), 
+           ylim = c(29, 37.8)) +
+  scale_colour_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#bb3e03",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#e9d8a6",
+      "Riots" = "#005f73"
+    )) +
+  scale_size_continuous(range = c(.1, 6), breaks = c(0, 10, 50, 100, 150)) +
+  theme_void() +
+  guides(colour = guide_legend(override.aes = list(alpha = 1, size = 2.7)), 
+         size = guide_legend(override.aes = list(alpha = 1, 
+                                                 colour = "grey"))) +
+  theme(plot.background = element_rect(fill = "grey99", colour = "grey99"), 
+        rect = element_rect(fill = NA, colour = NA), 
+        legend.title = element_text(face = "bold", size = 16),
+        legend.position = c(0.8, 0.2), 
+        legend.box.background = element_blank(),
+        legend.key = element_rect(colour = NA, fill = NA), 
+        plot.caption = element_text(hjust = 0.5), 
+        plot.title = element_text(size = 23)) + 
+  gganimate::transition_manual(month) + 
+  labs(title = "Conflict events in Lebanon and neigbouring countries in { current_frame }", 
+       caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com",
+       colour = "Event type", 
+       size = "Fatalities")
+
+gganimate::animate(lebanon_event_types, width = 3240, height = 2160, res = 150, duration = 20, 
+                   renderer = gifski_renderer())
+
+
+
+gganimate::anim_save(here("plots", "lebanon_event_types_grey_months.gif"))
+```
+
+```{r}
+lebanon_quarter <- lebanon |> 
+  filter(country %in% c("Lebanon", "Syria", "Palestine", "Jordan", "Israel")) |> 
   mutate(quarter = floor_date(event_date, "quarter")) %>%
   select(event_id_cnty, event_type, longitude, latitude, event_type, quarter, fatalities) %>%
   mutate(quarter = map(quarter, ~seq.Date(as.Date(.), as.Date("2024-09-13"), by = "quarter"))) |> 
@@ -230,27 +306,8 @@ lebanon_event_types <- lebanon |>
   geom_sf(data = lebanon_shape, size = .5, colour = "grey", fill = "grey90") + 
   geom_sf(data = world_shape |> filter(str_detect(name, "Lebanon")), 
           size = 2, colour = "goldenrod2", fill = "grey90") + 
-  geom_point(aes(x = 35.5018, y = 33.8938), size = 4.5, 
-             colour = "goldenrod2", pch = 18, alpha = .8) +
-  geom_text(aes(x = 35.5018, y = 33.8938), size = 2, label = "Beirut") +
-  geom_point(aes(x = 36.2768, y = 33.5132), size = 4.5, 
-             colour = "goldenrod2", pch = 18, alpha = .8) +
-  geom_text(aes(x = 36.2768, y = 33.5132), size = 2, label = "Damascus") +
-  geom_point(aes(x = 34.27, y = 31.31), size = 4.5, <
-             colour = "goldenrod2", pch = 18, alpha = .8) +
-  geom_text(aes(x = 34.27, y = 31.31), size = 2, label = "Gaza") +
-  geom_point(aes(x = 32.0853, y = 34.7818), size = 4.5, 
-             colour = "goldenrod2", pch = 18, alpha = .8) +
-  geom_text(aes(x = 32.0853, y = 34.7818), size = 2, label = "Tel Aviv") +
-  geom_point(aes(x = 35.2034, y = 31.9038), size = 4.5, 
-             colour = "goldenrod2", pch = 18, alpha = .8) +
-  geom_text(aes(x = 35.2034, y = 31.9038), size = 2, label = "Ramallah") +, 
-  geom_point(aes(x = 36.011300744967144, y = 34.47941171325137), size = 4.5, 
-             colour = "goldenrod2", pch = 18, alpha = .8) +
-  geom_text(aes(x = 36.011300744967144, y = 34.47941171325137), size = 2, label = "Tripoli") +
-  geom_point(aes(x = 36.7309300817992, y = 34.73074641115168), size = 4.5, 
-             colour = "goldenrod2", pch = 18, alpha = .8) +
-  geom_text(aes(x = 36.7309300817992, y = 34.73074641115168), size = 2, label = "Homs") +
+  geom_sf_text(data = cities, aes(geometry = geometry, label = name), 
+          size = 3, alpha = .8) +
   geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .15) + 
   coord_sf(xlim = c(34, 43), 
            ylim = c(29, 37.8)) +
@@ -259,7 +316,7 @@ lebanon_event_types <- lebanon |>
       "Violence against civilians" = "#bb3e03",
       "Explosions/Remote violence" = "#ee9b00",
       "Protests" = "#94d2bd",
-      "Strategic developments" = "#001219",
+      "Strategic developments" = "#e9d8a6",
       "Riots" = "#005f73"
     )) +
   scale_size_continuous(range = c(.1, 6), breaks = c(0, 10, 50, 100, 150)) +
@@ -278,16 +335,16 @@ lebanon_event_types <- lebanon |>
   gganimate::transition_manual(quarter) + 
   labs(title = "Conflict events in Lebanon and neigbouring countries in { current_frame }", 
        caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com",
-       colour = "Event type")
+       colour = "Event type", 
+       size = "Fatalities")
 
-gganimate::animate(lebanon_event_types, width = 3240, height = 2160, res = 150, duration = 30, 
+gganimate::animate(lebanon_quarter, width = 3240, height = 2160, res = 150, duration = 50, 
                    renderer = gifski_renderer())
 
 
 
-gganimate::anim_save(here("plots", "lebanon_event_types_grey.gif"))
+gganimate::anim_save(here("plots", "lebanon_event_types_grey_quarter.gif"))
 ```
-
 
 ```{r}
 world_shape |> st_drop_geometry() |> count(country)
