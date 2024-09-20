@@ -38,7 +38,9 @@ show_col(viridis_pal(option = "cividis")(8))
 ```
 
 
+
 # Data
+
 
 ```{r data}
 country_list <- c("Australia", "Afghanistan", "Bangladesh", "Bhutan", "Cambodia", 
@@ -150,6 +152,7 @@ lebanon <- readRDS(here("data", "lebanon.rds"))
 
 
 
+
 > New variable for conflict in border areas. 
 > Define buffer radius
 
@@ -157,6 +160,7 @@ For Afghanhistan, basically, create a line approximating the border, then
 
 
 # Gif
+
 
 
 ```{r}
@@ -220,7 +224,9 @@ geom_sf(data = world_shape |> filter(str_detect(name, "Lebanon")),
 ```
 
 
+
 # Lebanon
+
 
 
 
@@ -359,10 +365,6 @@ acled_filtered |>
   summarise(fatalities = mean(fatalities))
 ```
 
-
-
-
-
 ```{r}
 asia_pacific_event_types <- acled_filtered |>  
   filter(sub_event_type %out% c("Agreement", 
@@ -413,7 +415,6 @@ ggplot() +
            ylim = c(-44, 52))
 ```
 
-
 ```{r}
 asia_pacific_event_types <- acled_filtered |>  
   filter(!is.na(longitude) & !is.na(latitude)) |> 
@@ -455,10 +456,12 @@ gganimate::anim_save(here("plots", "asia_pacific_event_types.gif"))
 ```
 
 
+
 ### Interaction codes
 
 
 ### Test for aesthetics 
+
 
 ```{r}
 acled_filtered |>  
