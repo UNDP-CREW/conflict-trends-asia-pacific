@@ -60,6 +60,9 @@ range_wna <- function(x){(x-min(x, na.rm = TRUE))/(max(x, na.rm = TRUE)-min(x, n
 ```
 
 
+
+
+
 ```{r data, message=FALSE, warning=FALSE}
 lbn_idp <- readxl::read_excel(here("data", "Lebanon - IDP Tracking Dataset - ROUND 45 - 05-09-2024.xlsx")) |> 
   clean_names() |>
