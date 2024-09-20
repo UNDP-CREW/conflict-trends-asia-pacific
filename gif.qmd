@@ -217,10 +217,6 @@ gganimate::anim_save(here("plots", "asia_pacific_event_types_grey.gif"))
 
 ```
 
-```{r}
-
-```
-
 
 ```{r}
 lebanon_event_types <- lebanon |> 
@@ -233,18 +229,39 @@ lebanon_event_types <- lebanon |>
   ggplot() + 
   geom_sf(data = lebanon_shape, size = .5, colour = "grey", fill = "grey90") + 
   geom_sf(data = world_shape |> filter(str_detect(name, "Lebanon")), 
-          size = 1.2, colour = "goldenrod", fill = "grey90") + 
+          size = 2, colour = "goldenrod2", fill = "grey90") + 
+  geom_point(aes(x = 35.5018, y = 33.8938), size = 4.5, 
+             colour = "goldenrod2", pch = 18, alpha = .8) +
+  geom_text(aes(x = 35.5018, y = 33.8938), size = 2, label = "Beirut") +
+  geom_point(aes(x = 36.2768, y = 33.5132), size = 4.5, 
+             colour = "goldenrod2", pch = 18, alpha = .8) +
+  geom_text(aes(x = 36.2768, y = 33.5132), size = 2, label = "Damascus") +
+  geom_point(aes(x = 34.27, y = 31.31), size = 4.5, <
+             colour = "goldenrod2", pch = 18, alpha = .8) +
+  geom_text(aes(x = 34.27, y = 31.31), size = 2, label = "Gaza") +
+  geom_point(aes(x = 32.0853, y = 34.7818), size = 4.5, 
+             colour = "goldenrod2", pch = 18, alpha = .8) +
+  geom_text(aes(x = 32.0853, y = 34.7818), size = 2, label = "Tel Aviv") +
+  geom_point(aes(x = 35.2034, y = 31.9038), size = 4.5, 
+             colour = "goldenrod2", pch = 18, alpha = .8) +
+  geom_text(aes(x = 35.2034, y = 31.9038), size = 2, label = "Ramallah") +, 
+  geom_point(aes(x = 36.011300744967144, y = 34.47941171325137), size = 4.5, 
+             colour = "goldenrod2", pch = 18, alpha = .8) +
+  geom_text(aes(x = 36.011300744967144, y = 34.47941171325137), size = 2, label = "Tripoli") +
+  geom_point(aes(x = 36.7309300817992, y = 34.73074641115168), size = 4.5, 
+             colour = "goldenrod2", pch = 18, alpha = .8) +
+  geom_text(aes(x = 36.7309300817992, y = 34.73074641115168), size = 2, label = "Homs") +
   geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .15) + 
   coord_sf(xlim = c(34, 43), 
            ylim = c(29, 37.8)) +
-  scale_colour_manual(
-    values = c("Battles" = "#7A0403FF", 
-      "Explosions/Remote violence" = "#FABA39FF", 
-      "Protests" = "#72FE5EFF", 
-      "Riots" = "#36AAF9FF", 
-      "Strategic developments" = "#30123BFF", 
-      "Violence against civilians" = "#FCFDBFFF")
-  ) + 
+  scale_colour_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#bb3e03",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#001219",
+      "Riots" = "#005f73"
+    )) +
   scale_size_continuous(range = c(.1, 6), breaks = c(0, 10, 50, 100, 150)) +
   theme_void() +
   guides(colour = guide_legend(override.aes = list(alpha = 1, size = 2.7)), 

@@ -83,18 +83,18 @@ lebanon |>
             .groups = "drop") |> 
   mutate(country = fct_relevel(country, 
                                c("Syria", "Palestine", 
-                                 "Lebanon", "Israel"))) |> 
+                                 "Lebanon","Iran", "Israel"))) |> 
   ggplot(aes(x = quarter, y = events, fill = event_type)) + 
     ggstream::geom_stream(aes(fill = event_type)) + 
   geom_vline(aes(xintercept=as.numeric(as.Date(dmy("07/10/2023")))), linetype=2, colour="black", 
              alpha = .4, size = .4) +
     scale_fill_manual(values = c(
-      "Battles" = "#7A0403FF",
-      "Violence against civilians" = "#F05B12FF",
-      "Explosions/Remote violence" = "#E1DD37FF",
-      "Protests" = "#25ECA7FF",
-      "Strategic developments" = "#30123BFF",
-      "Riots" = "#3E9BFEFF"
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#bb3e03",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#001219",
+      "Riots" = "#005f73"
     )) +
     facet_wrap(~ country, scales = "free_y") + 
     labs(fill = "", 
@@ -114,16 +114,66 @@ lebanon |>
        subtitle = "Data from 2019-09-13 to 2024-09-13, black dotted line is 2024-10-07",
        y = "Events by quarter")
 ```
+
+
 <br>
+
+```{r}
+lebanon |>
+  filter(!str_detect(country, "Syria")) |> 
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
+  group_by(country, event_type, quarter) |> 
+  summarise(fatalities = sum(fatalities), 
+            .groups = "drop") |> 
+  mutate(country = fct_relevel(country, 
+                               c("Syria", "Palestine", 
+                                 "Lebanon","Iran", "Israel"))) |> 
+  ggplot(aes(x = quarter, y = fatalities, fill = event_type)) + 
+  ggstream::geom_stream(aes(fill = event_type)) + 
+  geom_vline(aes(xintercept=as.numeric(as.Date(dmy("07/10/2023")))), linetype=2, colour="black", 
+             alpha = .4, size = .4) +
+    scale_fill_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#bb3e03",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#001219",
+      "Riots" = "#005f73"
+    )) +
+    facet_wrap(~ country, scales = "free_y") + 
+    labs(fill = "", 
+         x = "") +
+    theme(legend.position = "top",
+          legend.key.width = unit(.3, "cm"), 
+          legend.key.height = unit(.3, "cm"),
+          legend.text = element_text(size = 5), 
+          axis.text.y = element_text(size = 4), 
+          axis.text.x = element_text(size = 4, angle = 30, hjust = 1, vjust = 1), 
+          strip.text = element_text(size = 7), 
+          strip.background = element_rect(fill = "black"), 
+          plot.title = element_text(size = 13), 
+          plot.subtitle = element_text(size = 11)) + 
+    guides(fill = guide_legend(nrow = 1)) + 
+  labs(title = "Number of political incidents by event type over time", 
+       subtitle = "Data from 2019-09-13 to 2024-09-13, black dotted line is 2024-10-07",
+       y = "Events by quarter")
+```
 
 
 From the observed data, Lebanon's patterns of violence seem to be the most closely related with those of Palestine and Israel, much more so than with its eastern neighbour, Syria. More testing needs to be done on this. 
 
 The current flavour of violence in Lebanon is very different from the October 17 revolution in 2019. In fact, Lebanon has been relatively peaceful (until recently), especially in comparison with its neighbours. 
 
-There was an increase in violence in Israel, Palestine and Lebanon throughout 2023.  
+There was an increase in violence in Israel, Palestine and Lebanon throughout 2023, prior to October 7 2023, this included an uptick in explosive attacks.   
 
 There had already been an uptick in explosive attacks
+
+Widespread and persistent dissatisfaction with the Iranian government
+
+2017-2018 Protests in Iran. The government of Iran is under severe strain: with reference 
+2022 Mahsa Amini
+One 
+
 
 DTM -- 
 

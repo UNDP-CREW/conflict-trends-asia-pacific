@@ -525,12 +525,12 @@ event_type_streamgraph <- function(df, column_var) {
     ggplot(aes(x = quarter, y = !!column_var, fill = event_type)) + 
     geom_stream(aes(fill = event_type)) + 
     scale_fill_manual(values = c(
-      "Battles" = "#7A0403FF",
-      "Violence against civilians" = "#F05B12FF",
-      "Explosions/Remote violence" = "#E1DD37FF",
-      "Protests" = "#25ECA7FF",
-      "Strategic developments" = "#30123BFF",
-      "Riots" = "#3E9BFEFF"
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#bb3e03",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#001219",
+      "Riots" = "#005f73"
     )) +
     facet_wrap(~ country, scales = "free_y") + 
     labs(fill = "", 
@@ -1123,210 +1123,7 @@ South Korea here should be counterpoint to the Philippines, Vietnam and China, e
 
 <br><br><br>
 
-## Bangladesh
 
-
-The recent 2024 protests are unique in recent history -- this is apparent from the spike in fatalities in the plots below, which took place almost entirely during Sheikh Hasina's rule -- her second premiership began on 6 January 2009, before ACLED began data collection in Bangladesh.  
-
-In the plots below, the first grey line marks the start of the 2018 quota reform protests, and consequently, movement. The second grey line marks the overturn of the 2018 decision (which was in favour of the protesters) by the Supreme Court. 
-
-However, it should be noted that in contrast to before the 2018 protests, Bangladesh used to have a much higher ratio of riots to protests, though deaths from riots and violence against civilians seem to be a prevalent part of its political landscape. 
-
-<br>
-
-```{r}
-bangladesh |> 
-  group_by(event_type, quarter = floor_date(event_date, unit = "quarter")) |> 
-  summarise(Events = n_distinct(event_id_cnty), 
-            Fatalities = sum(fatalities, na.rm = TRUE), 
-            .groups = "drop") |> 
-  pivot_longer(cols = c(Events, Fatalities), 
-               names_to = "type", 
-               values_to = "value") |>
-  ggplot(aes(x = quarter, y = value)) + 
-  geom_vline(aes(xintercept=as.numeric(as.Date(dmy("17/2/2018")))), linetype=4, colour="black", 
-             alpha = .5, size = .5) +
-  geom_vline(aes(xintercept=as.numeric(as.Date(dmy("1/4/2024")))), linetype=4, colour="black", 
-             alpha = .5, size = .5) +
-  geom_area(aes(fill = event_type), 
-            size = .75, 
-            alpha = .7) + 
-  facet_wrap(~ type, scales = "free_y", ncol = 1) + 
-  scale_y_continuous(labels = comma) + 
-  scale_x_date(date_breaks = "2 years", date_labels = "%Y") + 
-  theme(strip.background = element_rect(fill = "black"), 
-        legend.position = "top") + 
-  labs(x = "", y = "",
-       title = "Conflict events and fatalities in Bangladesh, 2010-2024", 
-       fill = "") + 
-  guides(fill = guide_legend(nrow = 1))
-```
-
-<br>
-
-```{r}
-bangladesh_quota_words <- bangladesh |> 
-  filter(event_type %in% c("Protests", "Riots")) |> 
-  mutate(quota = ifelse(event_date <= "2018-02-17", "Pre-2018 protests", "Post-2018 protests")) |> 
-  select(event_id_cnty, notes, quota) |> 
-  unnest_tokens(word, notes) |> 
-  anti_join(stop_words, by = "word") |> 
-  filter(str_detect(word, "[a-z]")) |> 
-  filter(word %out% c("township", "district", "city", "village", 
-                      "region", "town", "coded", "province", "county", 
-                      "pradesh", "prefecture", "regency", 
-                      "barangay", "upazila", "january", "february", 
-                      "march", "april", "may",
-                        "june", "july", "august", "september", "october",
-                        "november", "december", 
-                        "report")) |> 
-  mutate(stem = SnowballC::wordStem(word, language = "porter"))   
-```
-
-```{r}
-bangladesh_quota_words |> 
-  count(word, quota, sort = TRUE) |> 
-  bind_tf_idf(quota, word, n) |> 
-  tidylo::bind_log_odds(quota, word, n) |> 
-  mutate(
-    word_group = case_when(
-      str_detect(
-        word,
-        "worker|arrear|wage|factori|union|kctu|picket|pension|affili|retire|commod|labor|price|cpi|employer|economic|financial|strike|owe|increase|inflation|company|salary|liveli|compensation")
-      ~ "economic",
-      str_detect(word, "tamil|hindu|nadu|indian") ~ "ethnic",
-      str_detect(word, "corona|lockdown|restrict|home|pandem") ~ "covid",
-      str_detect(word, "omni|congress|articl|law|legco|sabha")  ~ "legislation",
-      str_detect(word, "provin|local|farmer|skm|bku|regen|farm|tribal") ~ "rural",
-      str_detect(word, "resignation|awami|government|police|arrest") ~ "incumbent",
-      str_detect(word, "quota|reform") ~ "quota",
-      str_detect(word, "ransacked|editor|media") ~ "riots",
-      str_detect(word, "jei|ics|shibir|bombs|crude|azam") ~ "terrorism",
-      str_detect(word, "blockaders|hartal|ganatantra|bnp|elections") ~ "opposition", 
-      str_detect(word, 
-                 "military|coup|lese|maj|president|release|oli|kpk") 
-      ~ "state", 
-      str_detect(word, "student|university|youth|teacher|education|school") ~ "student", 
-     TRUE ~ "other"),
-    word_group = fct_relevel(word_group, 
-                             c("economic", "disobedience", "ethnic",   
-                               "legislation", "rural", "covid", "kashmir", 
-                               "press", "student", "state", "other"))
-  ) |>
-  filter(word %out% c("front", "conference", "demanding", 
-                      "including", "support", "demand", 
-                      "staged", "protest", "emerging", "sadar", 
-                      "demonstration", "movement", "people", 
-                      "brought", "leaving", "amid", "anti", 
-                      "rally")) |> 
-  arrange(desc(log_odds_weighted)) |> 
-  group_by(quota) |> 
-  slice(1:20) |> 
-  ungroup() |>
-  mutate(quota = fct_rev(quota)) |> 
-  ggplot(aes(x = log_odds_weighted, 
-             y = reorder_within(str_sub(word, 1, 25), 
-                                log_odds_weighted, 
-                                quota))) + 
-  geom_col(aes(fill = word_group)) + 
-  scale_fill_manual(values = c(
-    "state" = "#f8766d",
-    "ethnic" = "#00bf7d",
-    "covid" = "#d89000",
-    "opposition" = "#9590ff",
-    "terrorism" = "#39b600",
-    "kashmir" = "#e76bf3",
-    "riots" = "#00bfc4",
-    "incumbent" = "#7A0403FF",
-    "quota" = "#fde725ff",
-    "other" = "grey50"
-  )) +
-  scale_y_reordered() + 
-  facet_wrap(~ quota, scales = "free") + 
-  labs(title = "Descriptors of protests and riots in Bangladesh, 2010-2024", 
-       y = "", 
-       x = "Log-odds weighted", 
-       fill = "") + 
-  theme(strip.background = element_rect(fill = "black"))
-```
-
-
-
-
-### Sub-national variations 
-
-```{r}
-bangladesh_admin2 <- bangladesh |>  
-  group_by(admin2) |> 
-  summarise(fatalities = sum(fatalities, na.rm = TRUE), 
-            events = n_distinct(event_id_cnty), 
-            .groups = "drop") |> 
-  arrange(desc(fatalities)) |> 
-  head(20) |> pull(admin2)
-```
-
-
-```{r}
-bangladesh_summary <- bangladesh |>  
-  mutate(quarter = floor_date(event_date, "quarter")) |> 
-  group_by(quarter, admin2) |> 
-  summarise(fatalities = sum(fatalities, na.rm = TRUE), 
-            events = n_distinct(event_id_cnty), 
-            .groups = "drop") |>
-  
-  pivot_longer(cols = c(fatalities, events), 
-               names_to = "type", 
-               values_to = "value") |> 
-  mutate(admin2 = fct_relevel(admin2, bangladesh_admin2), 
-         type = fct_rev(type)) 
-
-bangladesh_summary |> 
-  filter(admin2 %in% c("Dhaka", "Chittagong", "Cox's Bazar", "Jessore")) |> 
-  ggplot(aes(x = quarter, y = value)) + 
-  geom_vline(aes(xintercept=as.numeric(quarter[c(145)])), linetype=4, colour="black", 
-             alpha = .5, 
-             size = .5) +
-  geom_line(aes(colour = type)) + 
-  facet_wrap(~admin2, scales = "free_y") + 
-  scale_x_date(date_breaks = "2 years", label = date_format("%Y")) + 
-  
-  theme(axis.text.x = element_text(size = 5), 
-        strip.background = element_rect(fill = "black")) + 
-  labs(title = "Top 4 districts (admin2) in Bangladesh, political incidents and resulting fatalities", 
-       subtitle = "Grey line marks Rohingya genocide", 
-       y = "", x = "")
-
-```
-
-```{r}
-genocide_t_test <- bangladesh_summary |> 
-  mutate(rohingya = ifelse(quarter < "2017-08-25", 
-                           "pre_genocide", 
-                           "post_genocide")) |> 
-  filter(type == "fatalities") |> 
-  select(-type) |> 
-  group_by(admin2, rohingya) |> 
-  summarise(mean_value = mean(value, na.rm = TRUE), 
-            .groups = "drop") |> 
-  pivot_wider(values_from = mean_value, 
-              names_from = rohingya)  %>%
-  t.test(.$post_genocide, .$pre_genocide, data = .) |> 
-  broom::tidy()
-```
-
-
-A lot more on Bangladesh
-
-
-The Rohingya genocide, and consequent flight of more than 723,000 Rohingya refugees, occurred shortly after the most stable quarter Bangladesh in the past 10 years.  
-
-Possibly Sheikh Hasina thought 
-t the lowest point in violence in Bangladesh in the past 10 years. 
-
-The plot below charts events and fatalities by the type of conflict event. 
-
-
-<br><br><br>
 
 ## India-Pakistan
 
@@ -1343,14 +1140,14 @@ acled_filtered |>
   #coord_sf(xlim = c(60.756785, 81.810392), ylim = c(18.846805, 37.550718)) +
   coord_sf(xlim = c(55, 96.5), ylim = c(7.264010, 37)) +
   geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
-   scale_colour_manual(
-    values = c("Battles" = "#7A0403FF", 
-      "Explosions/Remote violence" = "#FABA39FF", 
-      "Protests" = "#72FE5EFF", 
-      "Riots" = "#36AAF9FF", 
-      "Strategic developments" = "#30123BFF", 
-      "Violence against civilians" = "#FCFDBFFF")
-  ) + 
+  scale_fill_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#bb3e03",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#001219",
+      "Riots" = "#005f73"
+    )) +
   scale_size_continuous(range = c(.1, 5)) + 
   theme(plot.background = element_rect(fill = NA, colour = NA),
           panel.background = element_rect(fill = NA, colour = NA),
@@ -1392,14 +1189,14 @@ acled_filtered |>
   geom_line(aes(colour = event_type), lwd = 1) +
   scale_y_log10(labels = comma) +
   scale_x_continuous(breaks = c(2013, 2015, 2017, 2019, 2021, 2023)) + 
-   scale_colour_manual(values = c(
-      "Battles" = "#7A0403FF",
-      "Violence against civilians" = "#F05B12FF",
-      "Explosions/Remote violence" = "#E1DD37FF",
-      "Protests" = "#25ECA7FF",
-      "Strategic developments" = "#30123BFF",
-      "Riots" = "#3E9BFEFF"
-    )) + 
+  scale_colour_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#bb3e03",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#001219",
+      "Riots" = "#005f73"
+    )) +
   facet_wrap(~kashmir) + 
   theme(strip.background = element_rect(fill = "black")) + 
   labs(colour = "Event type", 
@@ -1464,13 +1261,13 @@ acled_filtered |>
   summarise(fatalities = sum(fatalities), .groups = "drop") |> 
   ggplot(aes(x = year, y = fatalities)) + 
   geom_line(aes(colour = event_type), lwd = 1) +
-   scale_colour_manual(values = c(
-      "Battles" = "#7A0403FF",
-      "Violence against civilians" = "#F05B12FF",
-      "Explosions/Remote violence" = "#E1DD37FF",
-      "Protests" = "#25ECA7FF",
-      "Strategic developments" = "#30123BFF",
-      "Riots" = "#3E9BFEFF"
+  scale_colour_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#bb3e03",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#001219",
+      "Riots" = "#005f73"
     )) + 
   scale_y_continuous(labels = comma) +
   scale_x_continuous(breaks = c(2013, 2015, 2017, 2019, 2021, 2023)) + 
@@ -1510,14 +1307,14 @@ afpak_map <- function(tbl){
     geom_point(aes(x = 73.0363, y = 33.6995), colour = "cornflowerblue", pch = 15) +
     geom_point(aes(x = 69.2075, y = 34.5553), colour = "cornflowerblue", pch = 15) +
     geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
-    scale_colour_manual(
-    values = c("Battles" = "#7A0403FF", 
-      "Explosions/Remote violence" = "#FABA39FF", 
-      "Protests" = "#72FE5EFF", 
-      "Riots" = "#36AAF9FF", 
-      "Strategic developments" = "#30123BFF", 
-      "Violence against civilians" = "#FCFDBFFF")
-  ) +
+    scale_colour_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#bb3e03",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#001219",
+      "Riots" = "#005f73"
+    )) +
     theme(plot.background = element_rect(fill = NA, colour = NA),
           panel.background = element_rect(fill = NA, colour = NA),
           rect = element_rect(fill = NA, colour = NA),
@@ -1620,13 +1417,13 @@ acled_afpak |>
   scale_y_log10(labels = comma) +
   scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
   scale_colour_manual(values = c(
-      "Battles" = "#7A0403FF",
-      "Violence against civilians" = "#F05B12FF",
-      "Explosions/Remote violence" = "#E1DD37FF",
-      "Protests" = "#25ECA7FF",
-      "Strategic developments" = "#30123BFF",
-      "Riots" = "#3E9BFEFF"
-    )) + 
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#bb3e03",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#001219",
+      "Riots" = "#005f73"
+    )) +
   facet_wrap(~afpak_border) + 
   theme(strip.background = element_rect(fill = "black")) + 
   labs(colour = "Event type", 
@@ -1655,13 +1452,13 @@ acled_afpak |>
   scale_y_continuous(labels = comma) + 
   scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
   scale_colour_manual(values = c(
-      "Battles" = "#7A0403FF",
-      "Violence against civilians" = "#F05B12FF",
-      "Explosions/Remote violence" = "#E1DD37FF",
-      "Protests" = "#25ECA7FF",
-      "Strategic developments" = "#30123BFF",
-      "Riots" = "#3E9BFEFF"
-    )) + 
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#bb3e03",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#001219",
+      "Riots" = "#005f73"
+    )) +
   facet_wrap(~afpak_border) + 
   theme(strip.background = element_rect(fill = "black")) + 
   labs(colour = "", 
