@@ -202,6 +202,11 @@ bangladesh_raw <- read_csv(here(
   "raw_data", "1900-01-01-2024-09-13-Bangladesh.csv"
 ))
 
+lebanon_neighbours <- rbind(
+  read_csv(here("raw_data", "1900-01-01-2024-09-19-Israel-Lebanon-Syria.csv")), 
+  read_csv(here("raw_data", "1900-01-01-2024-09-19-Palestine.csv")), 
+  read_csv(here("raw_data", "1900-01-01-2024-09-19-Iran.csv")))
+
 ged241 <- readRDS(here("data", "ged241.rds"))
 
 acled <- rbind(
@@ -318,6 +323,8 @@ acled_filtered <- acled |>
 myanmar_civil_war <- myanmar_raw |> 
   acled_cleaning()
 
+lebanon <- lebanon_neighbours |> acled_cleaning()
+
 bangladesh <- bangladesh_raw |> acled_cleaning()
 ```
 
@@ -334,6 +341,11 @@ myanmar_civil_war |> write_rds(here("data", "myanmar_civil_war.rds"),
 
 bangladesh |> write_rds(here("data", "bangladesh.rds"), 
                         compress = "gz")
+
+lebanon |> write_rds(here("data", "lebanon.rds"), 
+                     compress = "gz")
+
+
 ```
 
 
@@ -1262,6 +1274,52 @@ st_write(mmr_buffer, here("data", "mmr_buffer", "mmr_buffer.shp"))
 
 ```
 
+### LBN-ISR-SYR
+
+```{r}
+lbn_shape <- world_shape |> 
+  filter(str_detect(name, "Lebanon"))
+
+syr_shape <- world_shape |> 
+  filter(str_detect(name, "Syrian Arab Republic"))
+
+isr_shape <- world_shape |> 
+  filter(str_detect(name, "Israel"))
+
+lbn_syr_buffer <- st_intersection(lbn_shape, syr_shape, model = "closed") |> 
+  st_buffer(dist = 50000, endCapStyle = "FLAT")
+
+lbn_isr_buffer <- st_intersection(lbn_shape, isr_shape, model = "closed") |> 
+  st_buffer(dist = 50000, endCapStyle = "FLAT")
+
+lbn_buffer_list <- bind_rows(list(lbn_syr_buffer, 
+                                         lbn_isr_buffer))
+
+lbn_buffer <- st_union(lbn_buffer_list)
+
+st_write(lbn_buffer, here("data", "lbn_buffer", "lbn_buffer.shp"))
+
+
+mmr_buffer <- st_union(mmr_buffer_list)
+
+st_write(mmr_buffer, here("data", "mmr_buffer", "mmr_buffer.shp"))
+
+Gaza Strip
+Israel
+West Bank
+
+world_shape |> st_drop_geometry() |> count(name)
+
+world_shape |> 
+  filter(str_detect(name, "Lebanon|Gaza Strip|Israel|West Bank|Syrian Arab Republic")) |> 
+  ggplot() + 
+  geom_sf(size = .1) + 
+  geom_sf(data = lbn_buffer, fill = "blue", alpha = .3)
+
+coord_sf(xlim = c(34, 43), 
+           ylim = c(29, 37.8)) + 
+```
+
 
 
 #### ACLED MMR
@@ -1328,7 +1386,7 @@ ggplot() +
   geom_sf(data = mmr_buffer, alpha = .1, fill = "grey", colour = NA)
 ```
 
-### Protest and non-protest events 
+## Protest and non-protest events 
 
 
 ```{r}

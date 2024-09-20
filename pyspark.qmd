@@ -5,9 +5,7 @@ format: html
 
 
 ```{r}
-1 + 1
 ```
-
 
 
 ```{Python}
@@ -42,3 +40,18 @@ dimtm = "dbo.DimTime"
 ```
 
 The `echo: false` option disables the printing of code (only output is displayed).
+
+
+```{r}
+library(DBI)
+library(RPostgres)
+library(odbc)
+
+con <- DBI::dbConnect(RPostgres::Postgres(),
+                      dbname = "UNDP_DW_CRD",
+                      host = "undp-cb-sqlmi-crd-dev.f1de0fd669a7.database.windows.net",
+                      user = "sqlMLAdmin",
+                      password = odbc::quote_value("=\\>a={}+&BG[,y_bf,x)"),
+                      port = 1433)
+```
+

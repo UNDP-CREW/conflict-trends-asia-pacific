@@ -1,0 +1,147 @@
+---
+title: "Exploratory data analysis of Asia-Pacific conflict trends"
+author: "Sean Ng"
+date: "19 September 2024"
+toc: true
+toc-location: left
+toc-depth: 4
+format: 
+  html:
+    page-layout: full
+    code-tools: true
+    self-contained: true
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.width = 9.5)
+
+library(tidyverse)
+library(here)
+library(lubridate)
+library(patchwork)
+library(scales)
+library(sf)
+library(broom)
+library(treemapify)
+library(kableExtra) 
+library(ggstream)
+library(ggrepel)
+library(ggcorrplot)
+library(tidytext)
+library(ggtext)
+library(widyr)
+library(ggraph)
+library(janitor)
+
+`%out%` <- Negate(`%in%`)
+options(scipen = 100)
+theme_set(theme_light())
+
+
+```
+
+
+
+rolled up separately 
+
+
+
+```{r data}
+lbn_idp <- read_excel(here("data", "Lebanon - IDP Tracking Dataset - ROUND 45 - 05-09-2024.xlsx")) |> 
+  clean_names() |>
+  naniar::replace_with_na(list(
+    returned_from_district = "NULL", 
+    returned_from_governorate = "NULL"
+  )) |> 
+  rename(idps = id_ps, 
+         households = h_hs, 
+         adm1_pcode = governorate_pcode, 
+         adm2_pcode = district_pcode, 
+         adm3_pcode = cadaster_pcode)
+
+lebanon <- readRDS(here("data", "lebanon.rds"))
+```
+
+ACLED's data collection in Lebanon began on `r min(lebanon$event_date)`. 
+
+
+```{r}
+lebanon <- readRDS(here("data", "lebanon.rds")) 
+
+max(lebanon$event_date)
+```
+
+
+```{r}
+lebanon |>
+  filter(!str_detect(country, "Syria")) |> 
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
+  group_by(country, event_type, quarter) |> 
+  summarise(events = n_distinct(event_id_cnty), 
+            .groups = "drop") |> 
+  mutate(country = fct_relevel(country, 
+                               c("Syria", "Palestine", 
+                                 "Lebanon", "Israel"))) |> 
+  ggplot(aes(x = quarter, y = events, fill = event_type)) + 
+    ggstream::geom_stream(aes(fill = event_type)) + 
+  geom_vline(aes(xintercept=as.numeric(as.Date(dmy("07/10/2023")))), linetype=2, colour="black", 
+             alpha = .4, size = .4) +
+    scale_fill_manual(values = c(
+      "Battles" = "#7A0403FF",
+      "Violence against civilians" = "#F05B12FF",
+      "Explosions/Remote violence" = "#E1DD37FF",
+      "Protests" = "#25ECA7FF",
+      "Strategic developments" = "#30123BFF",
+      "Riots" = "#3E9BFEFF"
+    )) +
+    facet_wrap(~ country, scales = "free_y") + 
+    labs(fill = "", 
+         x = "") +
+    theme(legend.position = "top",
+          legend.key.width = unit(.3, "cm"), 
+          legend.key.height = unit(.3, "cm"),
+          legend.text = element_text(size = 5), 
+          axis.text.y = element_text(size = 4), 
+          axis.text.x = element_text(size = 4, angle = 30, hjust = 1, vjust = 1), 
+          strip.text = element_text(size = 7), 
+          strip.background = element_rect(fill = "black"), 
+          plot.title = element_text(size = 13), 
+          plot.subtitle = element_text(size = 11)) + 
+    guides(fill = guide_legend(nrow = 1)) + 
+  labs(title = "Number of political incidents by event type over time", 
+       subtitle = "Data from 2019-09-13 to 2024-09-13, black dotted line is 2024-10-07",
+       y = "Events by quarter")
+```
+<br>
+
+
+From the observed data, Lebanon's patterns of violence seem to be the most closely related with those of Palestine and Israel, much more so than with its eastern neighbour, Syria. More testing needs to be done on this. 
+
+The current flavour of violence in Lebanon is very different from the October 17 revolution in 2019. In fact, Lebanon has been relatively peaceful (until recently), especially in comparison with its neighbours. 
+
+There was an increase in violence in Israel, Palestine and Lebanon throughout 2023.  
+
+There had already been an uptick in explosive attacks
+
+DTM -- 
+
+```{r}
+lbn_idp <- read_excel(here("data", "Lebanon - IDP Tracking Dataset - ROUND 45 - 05-09-2024.xlsx")) |> 
+  clean_names() |>
+  naniar::replace_with_na(list(
+    returned_from_district = "NULL", 
+    returned_from_governorate = "NULL"
+  )) |> 
+  rename(idps = id_ps,          households = h_hs, 
+         adm1_pcode = governorate_pcode, 
+         adm2_pcode = district_pcode, 
+         adm3_pcode = cadaster_pcode)
+
+```
+
+```{r}
+
+```
+

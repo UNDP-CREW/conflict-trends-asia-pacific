@@ -604,6 +604,7 @@ event_stream_data |>
   filter(country %out% c("Bhutan")) |> 
   event_type_streamgraph(events) + 
   labs(title = "Number of political incidents by event type over time", 
+       subtitle = "Data from 2014-01-01 to 2024-05-31, but not countries had full coverage during this period",
        y = "Events by quarter")
 ```
 
