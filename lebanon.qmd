@@ -169,17 +169,17 @@ However, the southern border of Lebanon with Israel has become a conflict hotspo
 
 [![](./plots/lebanon_event_types_grey_months.gif)](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/plots/lebanon_event_types_grey_months.gif)
 
-<br>
+<br><br>
 
 ### References for this report
+
+* ACLED, (2019). Armed Conflict Location & Event Data Project (ACLED) Codebook. https://www.acleddata.com/wp-content/uploads/dlm_uploads/2017/10/ACLED_Codebook_2019FINAL_pbl.pdf
+
+* ACLED, (2024). Armed Conflict Location & Event Data for Lebanon, Syria, Israel, Palestine & Jordan (2016-01-01 to 2024-09-13). https://acleddata.com
 
 * Raleigh, C., Kishi, R. & Linke, A. Political instability patterns are obscured by conflict dataset scope conditions, sources, and coding choices. Humanit Soc Sci Commun 10,74 (2023). https://doi.org/10.1057/s41599-023-01559-4
 
 * Runfola, D. et al. (2020) geoBoundaries: A global database of political administrative boundaries. PLoS ONE 15(4): e0231866. https://doi.org/10.1371/journal.pone.0231866
-
-* ACLED, (2019). Armed Conflict Location & Event Data Project (ACLED) Codebook. https://www.acleddata.com/wp-content/uploads/dlm_uploads/2017/10/ACLED_Codebook_2019FINAL_pbl.pdf
-
-* ACLED, (2022). ACLED data for Lebanon, Syria, Israel, Palestine & Jordan (2016-01-01 - 2024-09-13). https://acleddata.com
 
 * Silge J, Robinson D (2016). tidytext: Text Mining and Analysis Using Tidy Data Principles in R. JOSS, 1(3). doi: 10.21105/joss.00037, http://dx.doi.org/10.21105/joss.00037
 
@@ -195,7 +195,7 @@ However, the southern border of Lebanon with Israel has become a conflict hotspo
 The charts below are streamgraphs, where values over time—in the case below, quarterly conflict events between 2016 and 2024—are represented by the area. Though negative values are shown, the Y-axis values are absolute; however, using a streamgraph, as opposed to an area graph, makes spikes in violence (from elections, for instance) much more visible.
 
 
-From the chart below, sorted in order of number of **events** from political incidents per quarter, it seems that Lebanon is stuck in Israel and Palestine’s orbit, with each experiencing an upswing in violence in 2023, before the 7 October attacks. Prior to this, Lebanon had been in a period of stabilisation since 2019 and the overthrow of their then government. However, the current flavor of violence in Lebanon is very different from the October 17 revolution in 2019, looking more like a country at war.
+From the chart below, sorted in order of number of **events** from political incidents per quarter, it seems that Lebanon is stuck in Israel and Palestine’s orbit, with each experiencing an upswing in violence in 2023, before the 7 October attacks. Prior to this, Lebanon had been in a period of stabilisation since 2019 and the overthrow of their then government. However, the current flavour of violence in Lebanon is very different from the October 17 revolution in 2019, looking more like a country at war.
 
 
 <br>
@@ -517,7 +517,7 @@ lebanon |>
         legend.box.background = element_blank(),
         legend.key = element_rect(colour = NA, fill = NA), 
         strip.background = element_rect(fill = "black"), 
-        plot.caption = element_text(hjust = 0.5), 
+        plot.caption = element_text(hjust = 1), 
         axis.text.x = element_blank(), 
         axis.text.y = element_blank()) + 
   labs(title = "Political violence in Lebanon, post-October 7 2023", 
