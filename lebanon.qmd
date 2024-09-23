@@ -154,7 +154,7 @@ lbn_food <- read_csv(here("data", "wfp_food_prices_lbn.csv")) |>
 
 ```
 
-
+READ: sources on all plots. disclaimers on maps
 
 
 ## Introduction 
@@ -170,6 +170,24 @@ However, the southern border of Lebanon with Israel has become a conflict hotspo
 <br>
 
 [![](./plots/lebanon_event_types_grey_months.gif)](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/plots/lebanon_event_types_grey_months.gif)
+*The designations employed and the presentation of the material on this map do not imply the expression of any opinion whatsoever on the part of the Secretariat of the United Nations concerning the legal status of any country, territory, city or area or of its authorities, or concerning the delimitation of its frontiers or boundaries. Every effort is made to ensure this map is free of errors but there is no warrant the map or its features are either spatially or temporally accurate or fit for a particular use. This map is provided without any warranty of any kind whatsoever, either express or implied.*
+
+<br>
+
+### References for this report
+
+* Raleigh, C., Kishi, R. & Linke, A. Political instability patterns are obscured by conflict dataset scope conditions, sources, and coding choices. Humanit Soc Sci Commun 10,74 (2023). https://doi.org/10.1057/s41599-023-01559-4.
+
+* Runfola, D. et al. (2020) geoBoundaries: A global database of political administrative boundaries. PLoS ONE 15(4): e0231866. https://doi.org/10.1371/journal.pone.0231866.
+
+* ACLED, (2019). Armed Conflict Location & Event Data Project (ACLED) Codebook. https://www.acleddata.com/wp-content/uploads/dlm_uploads/2017/10/ACLED_Codebook_2019FINAL_pbl.pdf.
+
+* ACLED, (2022). ACLED data for Lebanon, Syria, Israel, Palestine & Jordan (2016-01-01 - 2024-09-13). https://acleddata.com.
+
+* Silge J, Robinson D (2016). tidytext: Text Mining and Analysis Using Tidy Data Principles in R. JOSS, 1(3). doi: 10.21105/joss.00037, http://dx.doi.org/10.21105/joss.00037.
+
+* World Food Programme (2019). World administrative boundaries -- countries and territories. Extracted from https://public.opendatasoft.com/explore/dataset/world-administrative-boundaries/information/ on 11 June 2024. 
+
 
 <br><br><br>
 
@@ -680,7 +698,7 @@ The last period with a contracting economy and high inflation was during the Leb
 
 ## Protests
 
-In this section, we explore the concerns of protesters in the Asia-Pacific. Below is a network graph of event descriptions of protests in Lebanon since 2016. Network graphs shows the connections between various observations (in this case, protest descriptors from Lebanon) and are commonly used to visualise social networks. 
+In this section, we explore the concerns of protesters in Lebanon. Below is a network graph of event descriptions of protests in Lebanon since 2016. Network graphs shows the connections between various observations (in this case, protest descriptors from Lebanon) and are commonly used to visualise social networks. 
 
 The links between each of the words indicate the strength of the relationship (transparency) and the number of times this word pair has occurred (thickness). Only the most common word pairs with correlations above 0.2 are included (for legibility). 
 

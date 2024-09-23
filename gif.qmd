@@ -280,10 +280,12 @@ lebanon_event_types <- lebanon |>
         legend.box.background = element_blank(),
         legend.key = element_rect(colour = NA, fill = NA), 
         plot.caption = element_text(hjust = 0.5), 
-        plot.title = element_text(size = 23)) + 
+        plot.title = element_text(size = 23), 
+        plot.subtitle = element_text(size = 9)) + 
   gganimate::transition_manual(month) + 
   labs(title = "Conflict events in Lebanon and neigbouring countries in { current_frame }", 
-       caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com",
+       caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com. Map from WFP.",
+       subtitle = "The designations employed and the presentation of the material on this map do not imply the expression of any opinion whatsoever on the part of the Secretariat of the United Nations concerning the legal status\nof any country, territory, city or area or of its authorities, or concerning the delimitation of its frontiers or boundaries. This map is provided without any warranty of any kind whatsoever, either express or implied.",
        colour = "Event type", 
        size = "Fatalities")
 
@@ -292,6 +294,8 @@ gganimate::animate(lebanon_event_types, width = 3000, height = 2200, res = 150, 
 
 
 gganimate::anim_save(here("plots", "lebanon_event_types_grey_months.gif"))
+
+str_length("United Nations concerning the legal status of any country, territory, city or area or of its authorities, or concerning the delimitation of its frontiers or boundaries.")
 ```
 
 ```{r}
