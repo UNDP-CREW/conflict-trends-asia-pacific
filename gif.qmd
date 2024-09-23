@@ -234,7 +234,8 @@ cities <- tribble(~x, ~y, ~name,
   35.2034, 31.9038, "Ramallah",
   35.8362, 34.4346, "Tripoli",
   35.2038, 33.2705, "Tyre", 
-  36.7135, 34.7325, "Homs"
+  36.7135, 34.7325, "Homs", 
+  35.9106, 31.9544, "Amman"
   
 ) |> 
   st_as_sf(coords = c("x", "y"), crs = 4326)
@@ -286,9 +287,8 @@ lebanon_event_types <- lebanon |>
        colour = "Event type", 
        size = "Fatalities")
 
-gganimate::animate(lebanon_event_types, width = 3240, height = 2160, res = 150, duration = 20, 
+gganimate::animate(lebanon_event_types, width = 3000, height = 2200, res = 150, duration = 20, 
                    renderer = gifski_renderer())
-
 
 
 gganimate::anim_save(here("plots", "lebanon_event_types_grey_months.gif"))
