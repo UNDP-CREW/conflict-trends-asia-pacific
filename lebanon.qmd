@@ -233,7 +233,8 @@ lebanon |>
           strip.text = element_text(size = 7), 
           strip.background = element_rect(fill = "black"), 
           plot.title = element_text(size = 13), 
-          plot.subtitle = element_text(size = 11)) + 
+          plot.subtitle = element_text(size = 11), 
+          plot.caption = element_text(hjust = .5)) + 
     guides(fill = guide_legend(nrow = 1)) + 
   labs(title = "Number of political incidents by event type over time", 
        subtitle = "Data from 2016-01-01 to 2024-09-13, black dotted line is 2023-10-07",
@@ -287,7 +288,8 @@ lebanon |>
           strip.text = element_text(size = 7), 
           strip.background = element_rect(fill = "black"), 
           plot.title = element_text(size = 13), 
-          plot.subtitle = element_text(size = 11)) + 
+          plot.subtitle = element_text(size = 11), 
+          plot.caption = element_text(hjust = .5)) + 
     guides(fill = guide_legend(nrow = 1)) + 
   labs(title = "Number of political incident fatalities by event type over time", 
        subtitle = "Data from 2016-01-01 to 2024-09-13, black dotted line is 2023-10-07",
@@ -588,7 +590,8 @@ lbn_wdi |>
   facet_wrap(~ country) +
   theme(legend.position = "top", 
         strip.background = element_rect(fill = "black"), 
-        legend.text = element_text(size = 8)) + 
+        legend.text = element_text(size = 8), 
+        plot.caption = element_text(hjust = .5)) + 
   labs(colour = "", 
        y = "Normalised value", 
        x = "", 
@@ -645,7 +648,8 @@ lbn_food |>
        caption = "Data source: WFP Global Food Prices.") + 
   theme(axis.text.x = element_text(angle = 30, hjust = 1), 
         strip.background = element_rect(fill = "black"), 
-        legend.position = "top") + 
+        legend.position = "top", 
+        plot.caption = element_text(hjust = .5)) + 
   guides(colour = guide_legend(override.aes = list(linewidth = 1.5), 
                                nrow = 1))
   
@@ -682,7 +686,8 @@ lbn_food |>
        x = "",
        title = "Mean price per litre of fuel (petrol-gasoline, 95 octane)", 
        caption = "Data source: WFP Global Food Prices.") + 
-  theme(strip.background = element_rect(fill = "black"))
+  theme(strip.background = element_rect(fill = "black"), 
+        plot.caption = element_text(hjust = .5))
   
  
 ```
@@ -816,7 +821,7 @@ It is currently read on these forecasts that if the conflict with Israel expands
 <br>
 
 
-```{r}
+```{r fig.height=6}
 
 forecasts |> 
   filter(
