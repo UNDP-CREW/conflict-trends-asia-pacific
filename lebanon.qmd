@@ -159,7 +159,7 @@ lbn_food <- read_csv(here("data", "wfp_food_prices_lbn.csv")) |>
 
 ## Introduction 
 
-This document is a primer on recent conflict in Lebanon, making use of the [Armed Conflict Location and Event Data (ACLED)](https://acleddata.com/). It seeks to provide an overview of political violence in Lebanon and is intended to be included alongside other supporting documents (e.g. on demographics, civil society) to support scenario planning for Lebanon. 
+This document is a primer on recent conflict in Lebanon, making use of the [Armed Conflict Location and Event Data (ACLED)](https://acleddata.com/). It seeks to provide an overview of political violence in Lebanon and is intended to be read together with other supporting documents (e.g. on demographics, civil society) when scenario planning for Lebanon. 
 
 ACLED's data collection in Lebanon began on 1 January 2016. This report contains data up to 13 September 2024. The most recent violence -- the 2024 Lebanon pager explosions -- has yet to be reflected in the ACLED dataset. UCDP might have more years of data (though fewer recorded events): that dataset will be evaluated later; there is also a comparison of ACLED and UCDP [here](https://risk-anticipation-hub.github.io/conflict-trends-asia-pacific/acled_ucdp.html). 
 
@@ -428,7 +428,7 @@ lebanon_conf_int %>%
   theme(plot.caption = element_text(hjust = 0.5), 
         legend.text = element_text(size = 6), 
         legend.position = "top",
-        axis.text = element_text(size = 6), 
+        axis.text = element_text(size = 7), 
         axis.text.y = element_markdown(), 
         strip.background = element_rect(fill = "black"),
         plot.subtitle = element_text(size = 8)) +
