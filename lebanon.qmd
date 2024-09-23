@@ -12,6 +12,11 @@ format:
     self-contained: true
 ---
 
+```{r}
+
+```
+
+
 ```{css, echo=FALSE}
 
 #TOC::before {
@@ -126,17 +131,41 @@ lbn_adm3 <- st_read(here("data", "lbn_adm_cdr_20200810", "lbn_admbnda_adm3_cdr_2
   janitor::clean_names()
 
 
+lbn_wdi <- read_csv(here("data", "wdi_lebanon_neighbours_extract.csv")) |> 
+  clean_names() |> 
+  pivot_longer(cols = x2012_yr2012:x2023_yr2023, 
+               names_to = "year", 
+               values_to = "value") |> 
+  mutate(year = str_sub(year, start = 2L, end = 5L)) |> 
+  filter(!is.na(country_name) & !str_detect(country_name, "Data|Updated")) |> 
+  mutate(
+    country_name = case_when(country_name == "Iran, Islamic Rep." ~ "Iran", 
+                             country_name == "West Bank and Gaza" ~ "Palestine", 
+                             country_name == "Syrian Arab Republic" ~ "Syria",
+                             TRUE ~ country_name) 
+  ) |> 
+  rename(country = country_name, 
+         indicator = series_name)
+
+
+lbn_food <- read_csv(here("data", "wfp_food_prices_lbn.csv")) |> 
+  filter(date != "#date") |> 
+  mutate(date = ymd(date))
 
 ```
 
 
+
+
 ## Introduction 
 
-This is a primer on recent conflict in Lebanon, making use of the Armed Conflict Location and Event Data (ACLED). ACLED's data collection in Lebanon began on `r format(min(lebanon$event_date), "%d %B %Y")`. UCDP might have more years of data (though fewer recorded events): that dataset will be evaluated later. This report contains data up to 13 September 2024. The most recent violence -- the 2024 Lebanon pager explosions -- have yet to be reflected in the ACLED dataset.  
+This document is a primer on recent conflict in Lebanon, making use of the [Armed Conflict Location and Event Data (ACLED)](https://acleddata.com/). It seeks to provide an overview of political violence in Lebanon and is intended to be included alongside other supporting documents (e.g. on demographics, civil society) to support scenario planning for Lebanon. 
 
-The gif below shows a month-by-month progression of political conflict and violence in Lebanon, Israel, Palestine, Jordan and Syria from January 2023 to the present day. For at least the past two years, Lebanon seems far more influenced by the conflict in Palestine and Israel than conflict in Syria -- there is hardly any cross-border violence and Lebanon largely borders Assad-held areas, though there are many Syrian conflict actors operating within Lebanon. 
+ACLED's data collection in Lebanon began on 1 January 2016. This report contains data up to 13 September 2024. The most recent violence -- the 2024 Lebanon pager explosions -- has yet to be reflected in the ACLED dataset. UCDP might have more years of data (though fewer recorded events): that dataset will be evaluated later; there is also a comparison of ACLED and UCDP [here](https://risk-anticipation-hub.github.io/conflict-trends-asia-pacific/acled_ucdp.html). 
 
-However, the southern border of Lebanon with Israel has become a conflict hotspot, in the aftermath of October 7 2024. Let us briefly review the political conflict and violence, as recorded by ACLED. 
+The gif below shows a month-by-month progression of political conflict and violence in Lebanon, Israel, Palestine, Jordan and Syria from January 2023 to the present day. For at least the past two years, Lebanon seems far more influenced by the conflict in Palestine and Israel than the conflict in Syria -- there is hardly any cross-border violence and Lebanon largely borders Assad-held areas, though there are many Syrian conflict actors operating within Lebanon. 
+
+However, the southern border of Lebanon with Israel has become a conflict hotspot, in the aftermath of October 7 2023. Here’s a brief review of the political conflict and violence recorded by ACLED.
 
 <br>
 
@@ -146,9 +175,10 @@ However, the southern border of Lebanon with Israel has become a conflict hotspo
 
 ## Event types and fatalities
 
-The charts below are streamgraphs, where values over time -- in the case below, quarterly conflict events between 2016 and 2024 -- are represented by the area. Though there are negative values shown, the Y-axis values are absolute; however, using a streamgraph, as opposed to an area graph, makes spikes in violence (from elections, for instance) much more visible. 
+The charts below are streamgraphs, where values over time—in the case below, quarterly conflict events between 2016 and 2024—are represented by the area. Though negative values are shown, the Y-axis values are absolute; however, using a streamgraph, as opposed to an area graph, makes spikes in violence (from elections, for instance) much more visible.
 
-From the chart below, sorted in order of number of **events** from political incidents per quarter, it seems that Lebanon is stuck in Israel and Palestine's orbit, with each experiencing an upswing in violence in 2023, prior to the 7 October attacks. Prior to this, Lebanon had been had actually been in a period of stabilisation since 2019 and the overthrow of their then government. However, the current flavour of violence in Lebanon is very different from the October 17 revolution in 2019, looking more like a country at war. 
+
+From the chart below, sorted in order of number of **events** from political incidents per quarter, it seems that Lebanon is stuck in Israel and Palestine’s orbit, with each experiencing an upswing in violence in 2023, before the 7 October attacks. Prior to this, Lebanon had been in a period of stabilisation since 2019 and the overthrow of their then government. However, the current flavor of violence in Lebanon is very different from the October 17 revolution in 2019, looking more like a country at war.
 
 
 <br>
@@ -198,9 +228,10 @@ lebanon |>
 
 The streamgraphs below break down **fatalities** by event type. 
 
-Violence in Syria has plateaued since 2018, though Syrian-linked actors are still present and active in Lebanon. In terms of fatalities from political incidents, Lebanon has been fairly quiet since the 2017 Hezbollah-Syrian Arab Army offensive against ISIL. Note that despite toppling their government in 2019, there was barely a uptick in conflict fatalities despite the large number of riots and protests. 
+Violence in Syria has plateaued since 2018, though Syrian-linked actors are still present and active in Lebanon. In terms of fatalities from political incidents, Lebanon has been relatively quiet since the 2017 Hezbollah-Syrian Arab Army offensive against ISIL. Note that despite toppling their government in 2019, there was barely an uptick in conflict fatalities despite a large number of riots and protests.
 
-Iran and Jordan have seen a lessening of pressure on their governments since 7 October 2023. The Iranian government has been under tremendous pressure, fending off mass protest and civil disobedience movements every year. 
+Since 7 October 2023, Iran and Jordan have seen less pressure on their governments. The Iranian government has been under tremendous pressure, fending off mass protests and civil disobedience movements every year.
+
 
 <br>
 
@@ -247,9 +278,9 @@ lebanon |>
 
 <br>
 
-There was an escalation in tensions between Lebanon and Israel in 2023, prior to the October 7 attacks. But the pattern of violence in Lebanon is deeply changed, especially when compared to before October 7 2023. 
+There was an escalation in tensions between Lebanon and Israel in 2023, before the October 7 attacks. But the pattern of violence in Lebanon has profoundly changed, especially when compared to before October 7, 2023.
 
-As the plot below shows, Lebanon had previously been more widely-plagued by Syrian-linked militias, but as mentioned, it currently seems to be much more heavily involved in the Israel-Palestine conflict. 
+As the plot below shows, Lebanon had previously been more widely plagued by Syrian-linked militias. Still, as mentioned, it seems to be much more heavily involved in the Israel-Palestine conflict.
 
 
 <br>
@@ -313,11 +344,12 @@ lebanon |>
 
 ## Actors 
 
-Below is a plot of the "deadliest" actors in Lebanon and amongst its neighbours (sorted in order of their mean annual fatalities). Actors plotted below are those involved in events associated with the highest number of fatalities. The x-axis is the estimate for the number of fatalities from each event an actor is involved in. 
+Below is a plot of the “deadliest” actors in Lebanon and amongst its neighbours (sorted in order of their mean annual fatalities). The actors plotted below are those involved in events associated with the highest number of fatalities. The x-axis estimates the number of fatalities from each event an actor is involved in.
 
-Additionally, actors related to or originating from Israel or Palestine are highlighted in red, whilst the actors related to or originating from Syria are highlighted in gold. It would appear that Lebanon seems to be caught in the crosshairs of the two large regional conflicts, in line with conventional wisdom. 
+Additionally, actors related to or originating from Israel or Palestine are highlighted in red, while the actors related to or originating from Syria are highlighted in gold. In line with conventional wisdom, Lebanon seems to be caught in the crosshairs of the two large regional conflicts.
 
-As we have seen from the pre- and post-October 7 plots as well as from the streamgraphs above, Syria-related violence has largely been dormant since the 2018 offensive. Much of the recent violence is associated with Palestinian groups. It should be monitored if Syrian-related militias and armed groups take advantage of the current situation. 
+As we have seen from the pre- and post-October 2023 seven plots and the streamgraphs above, Syria-related violence has remained dormant since the 2018 offensive. Much of the recent violence is associated with Palestinian groups. It should be monitored if Syrian-related militias and armed groups take advantage of the current situation.
+
 
 <br>
 
@@ -407,7 +439,8 @@ lebanon_conf_int %>%
 
 <br>
 
-Longer error bars typically indicate higher uncertainty around the estimate, in the case of ACLED data, this means that there are comparatively fewer events for these actors compared to those with short error bars. 
+Longer error bars typically indicate higher uncertainty around the estimate. In the case of ACLED data, there are comparatively fewer events for these actors than for those actors with short error bars.
+
 
 <br><br><br>
 
@@ -477,7 +510,7 @@ lebanon |>
 
 <br>
 
-IDPs in Lebanon are located in the largest cities and in the belt between Tyre and Sidon near the Southern border. This is, unfortunately, very close to the bulk of the current conflict. These areas are primarily experiencing explosions and remote violence: Al Nabatieh and South Governorates both border Israel and have experienced numerous artillery attacks and drone strikes: 
+According to IOM's Displacement Tracking Matrix, [IDPs in Lebanon](https://dtm.iom.int/datasets/lebanon-idp-tracking-dataset-round-45-05-09-2024) are located in the largest cities, and the belt between Tyre and Sidon near the southern border. This is, unfortunately, very close to the bulk of the current conflict. These areas are primarily experiencing explosions and remote violence: Al Nabatieh and South Governorates both border Israel and have experienced numerous artillery attacks and drone strikes:
 
 <br>
 
@@ -500,18 +533,221 @@ lebanon |>
 
 <br>
 
-The carrying capacities of towns and cities in Southern Lebanon need to be more closely examined. Infrastructure and housing stock assessments are recommended for towns and cities in this area, to evaluate how ready these areas are to deal with additional displacement and identify priorities for recovery and reconstruction.
+The carrying capacities of towns and cities in Southern Lebanon need to be more closely examined. Infrastructure and housing stock assessments are recommended for these areas to evaluate how ready they are to deal with additional displacement and identify priorities for recovery and reconstruction.
 
 
 <br><br><br>
 
+## Macroeconomics 
 
+
+The plots below show various macroeconomic indicators for Lebanon and its neighbouring countries. Values have all been rescaled between 0 and 1 to aid in comparison. 
+
+Lebanon and its neighbours are under tremendous economic pressure. The GDP per capita of Lebanon, Palestine and Syria (and nearly Jordan) are all at 10-year lows. Whereas the Consumer Price Index, in all the countries which reported it, is at a 10-year high. 
+
+2020 (the year of the Beirut port explosion) seems to have been an economically significant year for Lebanon. However, even prior to the explosion, the Lebanese government defaulted on external debt for the first time in its history. This was also the high watermark for debt servicing in Lebanon. In many cases, governments are saddled with debt servicing that takes up a disproportionate amount of national budgets. But in Lebanon, the fall in debt servicing is likely due to its default as well as various actors and institutions no longer willing to extend credit. 
+
+Only the GDP per capita of Israel and Iran have increased in line with consumer prices. 
+
+<br>
+
+
+```{r fig.height=6.5}
+lbn_wdi |> 
+  filter(!str_detect(indicator, "Official exchange rate")) %>% 
+  mutate_at(vars(value, year), ~ as.numeric(.)) |> 
+  group_by(indicator, country) |> 
+  mutate(range = range_wna(value)) |> 
+  ggplot(aes(x = year, y = range)) + 
+  geom_line(aes(colour = indicator), 
+            linewidth = 1, 
+            alpha = .7) + 
+  scale_x_continuous(breaks = seq(2013, 2023, 2)) +
+  scale_colour_manual(values = c("#fde725ff", "#7ad151ff", "#2a788eff", "#440154ff")) + 
+  facet_wrap(~ country) +
+  theme(legend.position = "top", 
+        strip.background = element_rect(fill = "black"), 
+        legend.text = element_text(size = 8)) + 
+  labs(colour = "", 
+       y = "Normalised value", 
+       x = "", 
+       title = "Macronomic indicators -- Lebanon and its neighbours", 
+       subtitle = "Source: World Development Indicators, World Bank")
+```
+
+
+<br>
+
+The plots below show the mean prices of major food and non-food commodities in Lebanon, as collected by WFP market surveys. Immediately, it is apparent that all commodities experienced massive price increases between 2020 and 2021, before peaking in 2022 and then easing. Inflation in 2021 was 155% and 171% in 2022.
+
+The massive cratering of prices in 2023 was because the Lebanese pound's value fell by 98% against the US Dollar between January 2023 and March 2024. According to Banque du Liban, multiple exchange rates persist. The European Bank of Reconstruction and Development (EBRD) wrote in its [2023-2024 transition report](https://www.ebrd.com/publications/transition-report-202324-lebanon) that whilst the then official exchange rate was 15,000 LBP to the USD, the black-market rate was LBP 85,000 to the USD. 
+
+
+<br>
+
+
+
+```{r fig.height=6}
+
+lbn_food |> 
+  mutate(quantity = parse_number(unit),
+         unit = str_extract(unit, "[A-Za-z]+"), 
+         usdprice = as.numeric(usdprice), 
+         price = as.numeric(price)) |> 
+  filter(pricetype == "Retail") |> 
+  mutate(unit_price = usdprice / quantity, 
+         category_unit = paste0(category, " ", date)) |> 
+  group_by(commodity, category, unit, date) |>
+  summarise(unit_price = mean(unit_price, na.rm = TRUE), .groups = "drop") |> 
+  filter(!is.nan(unit_price)) |> 
+  group_by(commodity, category, date, unit) |> 
+  summarise(unit_price = mean(unit_price), .groups = "drop") |> 
+  filter(commodity %in% 
+           c("Eggs", "Oil (sunflower)", "Cheese (picon)", 
+             "Fuel (diesel)", "Fuel (gas)", "Fuel (petrol-gasoline, 95 octane)", 
+             "Beans (white)", "Bread (pita)", "Bulgur (brown)") | 
+           str_detect(commodity, "beef|tuna|sardine")) |>  
+  ggplot(aes(x = date, 
+             y = unit_price)) + 
+  geom_line(aes(colour = category), 
+            linewidth = .7, 
+            alpha = .9) + 
+  geom_vline(aes(xintercept=as.numeric(as.Date(dmy("04/10/2020")))), linetype=2, colour="salmon", 
+             alpha = .6, size = .4) +
+  facet_wrap(~ commodity, scales = "free_y") + 
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y") + 
+  labs(y = "USD price per unit (g, L, pc)", 
+       x = "", 
+       title = "Mean commodity prices in Lebanon, from WFP", 
+       subtitle = "Pink dotted line marks 2020 Beirut explosion", 
+       colour = "") + 
+  theme(axis.text.x = element_text(angle = 30, hjust = 1), 
+        strip.background = element_rect(fill = "black"), 
+        legend.position = "top") + 
+  guides(colour = guide_legend(override.aes = list(linewidth = 1.5), 
+                               nrow = 1))
+  
+  
+```
+
+<br> 
+
+For a better view of the currency devaluation and its effect on local prices, the charts below plot USD prices against LBP ones for a single, highly-monitored commodity with many observations -- petrol. Petrol peaked at almost USD 30/litre.  
+
+<br>
+
+```{r fig.height=6}
+lbn_food |> 
+  mutate(quantity = parse_number(unit),
+         unit = str_extract(unit, "[A-Za-z]+"), 
+         year = year(date), 
+         usdprice = as.numeric(usdprice), 
+         lbnprice = as.numeric(price)) |> 
+  select(-price) |> 
+  filter(pricetype == "Retail") |> 
+  pivot_longer(cols = c(usdprice, lbnprice), 
+               names_to = "currency2", 
+               values_to = "price") |> 
+  mutate(currency2 = str_to_upper(str_sub(currency2, 1, 3))) |> 
+  mutate(unit_price = price / quantity) |> 
+  filter(commodity == "Fuel (petrol-gasoline, 95 octane)") |> 
+  ggplot(aes(x = date, y = unit_price)) + 
+  geom_line() +
+  facet_wrap(~ currency2, scales = "free_y") + 
+  scale_x_date(date_breaks = "1 year", date_label = "%Y") + 
+  scale_y_continuous(labels = comma) + 
+  labs(y = "Price per litre", 
+       x = "",
+       title = "Mean price per litre of fuel (petrol-gasoline, 95 octane) as monitored by WFP") + 
+  theme(strip.background = element_rect(fill = "black"))
+  
+ 
+```
+
+<br>
+
+No Lebanese government, in recent history, has had the popular mandate or the political will to implement the sorely-needed structural economic reforms. 
+
+“As long as the economy is contracting and crisis conditions persist, living standards are set for further erosion, poverty will continue to spiral,” [said](https://www.worldbank.org/en/news/press-release/2023/05/16/lebanon-normalization-of-crisis-is-no-road-to-stabilization#:~:text=The%20currency%20lost%20more%20than,food%20and%20non%2Dalcoholic%20beverages.) Jean-Christophe Carret, World Bank Middle East Country Director. “Delays in the implementation of a comprehensive reform and recovery plan will only further compound human and social capital losses and render the recovery longer and more costly." 
+
+The last period with a contracting economy and high inflation was during the Lebanese civil war, as can be seen from the [IMF](https://www.imf.org/en/Countries/LBN#) chart below. Please also find some [lessons learnt from the civil war](https://www.files.ethz.ch/isn/189966/Alert_21_Lebanon_civil_war.pdf), drafted by the European Union Institute of Security Studies. 
+
+
+<img src="./plots/imf_lbn_gdp_inflation.png" alt="" width="600"/>
+
+
+<br><br><br>
+
+## Protests
+
+In this section, we explore the concerns of protesters in the Asia-Pacific. Below is a network graph of event descriptions of protests in Lebanon since 2016. Network graphs shows the connections between various observations (in this case, protest descriptors from Lebanon) and are commonly used to visualise social networks. 
+
+The links between each of the words indicate the strength of the relationship (transparency) and the number of times this word pair has occurred (thickness). Only the most common word pairs with correlations above 0.2 are included (for legibility). 
+
+Major protests topics include: political instability and dissatisfaction with the government, economic woes and the subsequent neglect of public infrastructure, the Israel-Palestinian conflict, legal and illegal detainees, and the port of Beirut explosion. 
+
+Protests in Lebanon have largely revolved around the severe economic and political instability which has plagued the country. We also note few descriptors related to sectarian violence (i.e Islam, Muslim, Sunni, Shi'ite, Christian), indicating that none of the various political and communal militias and groups are currently agitating (at a national level) for separatism, though we do see the words `factions` and `Syrians` mentioned in the orbit of `Palestinian`. Inflammatory rhetoric and discriminatory practices against Syrian and Palestinian refugees (especially in response to economic or political woes) should be monitored. 
+
+<br>
+
+
+```{r eval=FALSE}
+set.seed(234)
+
+lebanon_network_graph <- lebanon_protests |>
+  distinct(event_id_cnty, word) |> 
+  add_count(word) |> 
+  filter(n >= 75) |> 
+  pairwise_cor(word, event_id_cnty, sort = TRUE) |> 
+  filter(correlation >= .15) |> 
+  left_join(
+    lebanon_protests |> 
+      distinct(event_id_cnty, word) |> 
+      add_count(word) |> 
+      filter(n >= 75) |> 
+      pairwise_count(word, event_id_cnty, sort = TRUE), 
+    by = c("item1", "item2")
+  ) |> 
+  igraph::graph_from_data_frame() %>% 
+  ggraph(layout = "fr") + 
+  geom_edge_link(aes(alpha = correlation, edge_width = n), colour = "lightskyblue2", check_overlap = TRUE) +
+  scale_edge_width_continuous(range = c(.1, 2.5), trans = "log10") +
+  scale_alpha_continuous(range = c(0.01, 0.08)) +
+  geom_node_point(colour = "lightskyblue2", alpha = 0.2, size = .5) +
+  geom_node_text(aes(label = ifelse(name %in% 
+                                        c("port", "economic", "political", "palestinian", 
+                                          "detainees", "outages", "neglect"),
+                                      str_to_title(name),
+                                      "")), 
+                 size = 5, 
+                 alpha = .7, 
+                 colour = "goldenrod2") + 
+  geom_node_text(aes(label = name), size = 1.8) + 
+  theme(legend.position = "none", 
+        plot.caption = element_text(hjust = .5)) + 
+  labs(title = "Network graph of Lebanon protest descriptions", 
+       subtitle = "Line thickness indicates number of events involving those words, line transparency indicates the correlation between words. Selected words highlighted.", 
+       caption = "Source: www.acleddata.com")
+  
+
+ggsave(here("plots", "lebanon_network_graph.png"), 
+       width = 42.0, height = 29.7, units = "cm", dpi = 300)
+
+```
+
+
+[![](./plots/lebanon_network_graph.png)](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/plots/lebanon_network_graph.png)
+
+<br><br><br>
 
 ## Forecasts 
 
-Below are the three-, six- and twelve-month aggregate forecast for Lebanon and its neighbouring countries. Higher number or darker colours indicate higher levels of conflict. 
+Below are the three-, six- and twelve-month aggregate forecasts for Lebanon and its neighbouring countries. Higher values, and darker colours, indicate higher levels of conflict. 
 
-The RAH aggregate -- which has factored in ACLED, UCDP, VIEWS and CFB forecasts -- predicts a relatively high level of violence in Lebanon, but still lower than Israel, Palestine and Syria. The forecasts also expect conflict to lessen within 12 months. 
+The Risk Anticipation Hub's (RAH) conflict forecast aggregate has factored in ACLED, UCDP, VIEWS and CFB forecasts to create a weighted average. This was done to improve risk anticipation by means of predictive analytics that make use of machine learning. For best results, these aggregate forecasts should always be supplemented with qualitative assessments. 
+
+The RAH predicts a relatively high level of violence in Lebanon, but still lower than in Israel, Palestine and Syria. These forecasts also expect conflict to lessen within 12 months. However, these forecasts were also performed prior to the 2024 Lebanon Pager Explosions. Recent events will only be included in next month's forecasts. All figures have been normalised between 0 and 1 to aid in comparability. 
+
 
 <br>
 
@@ -544,11 +780,13 @@ forecasts |>
        subtitle = "From September 2024")
 
 ```
+
 <br>
 
-Of note, when viewing the individual three-month forecasts below, is the elevated risk of Explosions and Remote Violence in Lebanon. This is in line with what we have observed in earlier plots at the border with Israel. Explosive remnants of war (ERW) expertise will also be sorely needed. 
+When viewing the individual three-month forecasts below, the elevated risk of Explosions and Remote Violence in Lebanon is of note. This aligns with what we have observed in earlier plots at the border with Israel. Explosive remnants of war (ERW) expertise will also be sorely needed.
 
-My current read on these forecasts is that if the conflict with Israel expands beyond being primarily Explosions and Remote Violence, for instance, a ground invasion, we will need to redo these forecasts. Currently, the consensus for these forecasts seem to be de-escalation within 12 months. 
+It is currently read on these forecasts that if the conflict with Israel expands beyond being primarily Explosions and Remote Violence, for instance, a ground invasion, we will need to redo these forecasts. The current consensus for these forecasts is de-escalation within 12 months.
+
 
 <br>
 
@@ -585,7 +823,7 @@ forecasts |>
   theme(strip.background = element_rect(fill = "black"), 
         axis.text.x = element_blank(), 
         axis.text.y = element_blank()) + 
-  labs(title = "Conflict forecasts -- 6 months from 2024-09, Lebanon and its neighbours", 
+  labs(title = "Conflict forecasts -- 3 months from 2024-09, Lebanon and its neighbours", 
        fill = "Normalised\nValue")
 
 ```

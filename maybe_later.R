@@ -249,3 +249,36 @@ geom_point(aes(x = x, y = y), size = 2.5, data = lashio_captured,
     summarise(actors = mean(actors)) |> 
     arrange(desc(actors)) |> 
     pull(admin1)
+  
+  lbn_food |> 
+    mutate(quantity = parse_number(unit),
+           unit = str_extract(unit, "[A-Za-z]+"), 
+           usdprice = as.numeric(usdprice), 
+           price = as.numeric(price)) |> 
+    filter(pricetype == "Retail") |> 
+    mutate(unit_price = price / quantity, 
+           category_unit = paste0(category, " ", date)) |> 
+    group_by(commodity, category, unit, date) |>
+    summarise(unit_price = mean(unit_price, na.rm = TRUE), .groups = "drop") |> 
+    filter(!is.nan(unit_price)) |> 
+    group_by(commodity, category, date, unit) |> 
+    summarise(unit_price = mean(unit_price), .groups = "drop") |> 
+    filter(commodity %in% 
+             c("Eggs", "Oil (sunflower)", "Cheese (picon)", 
+               "Fuel (diesel)", "Fuel (gas)", "Fuel (petrol-gasoline, 95 octane)", 
+               "Beans (white)", "Bread (pita)", "Bulgur (brown)") | 
+             str_detect(commodity, "beef|tuna|sardine")) |>  
+    ggplot(aes(x = date, 
+               y = unit_price)) + 
+    geom_line(aes(colour = category), 
+              linewidth = .7, 
+              alpha = .9) + 
+    facet_wrap(~ commodity, scales = "free_y") + 
+    scale_x_date(date_breaks = "2 years", date_labels = "%Y") + 
+    labs(y = "LBP price per unit (g, L, pc)", 
+         x = "", 
+         title = "Mean commodity prices in Lebanon, from WFP", 
+         colour = "") + 
+    theme(axis.text.x = element_text(angle = 30, hjust = 1), 
+          strip.background = element_rect(fill = "black")) + 
+    guides(colour = guide_legend(override.aes = list(linewidth = 1.5)))
