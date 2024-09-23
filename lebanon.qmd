@@ -154,12 +154,10 @@ lbn_food <- read_csv(here("data", "wfp_food_prices_lbn.csv")) |>
 
 ```
 
-READ: sources on all plots. disclaimers on maps
-
 
 ## Introduction 
 
-This document is a primer on recent conflict in Lebanon, making use of the [Armed Conflict Location and Event Data (ACLED)](https://acleddata.com/). It seeks to provide an overview of political violence in Lebanon and is intended to be read together with other supporting documents (e.g. on demographics, civil society) when scenario planning for Lebanon. 
+This document is a primer on recent conflict and macroeconomic trends in Lebanon, making use of the [Armed Conflict Location and Event Data (ACLED)](https://acleddata.com/). It seeks to provide an overview of political violence in Lebanon and is intended to be read together with other supporting documents (e.g. on demographics, civil society) when scenario planning for Lebanon. 
 
 ACLED's data collection in Lebanon began on 1 January 2016. This report contains data up to 13 September 2024. The most recent violence -- the 2024 Lebanon pager explosions -- has yet to be reflected in the ACLED dataset. UCDP might have more years of data (though fewer recorded events): that dataset will be evaluated later; there is also a comparison of ACLED and UCDP [here](https://risk-anticipation-hub.github.io/conflict-trends-asia-pacific/acled_ucdp.html). 
 
@@ -170,21 +168,22 @@ However, the southern border of Lebanon with Israel has become a conflict hotspo
 <br>
 
 [![](./plots/lebanon_event_types_grey_months.gif)](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/plots/lebanon_event_types_grey_months.gif)
-*The designations employed and the presentation of the material on this map do not imply the expression of any opinion whatsoever on the part of the Secretariat of the United Nations concerning the legal status of any country, territory, city or area or of its authorities, or concerning the delimitation of its frontiers or boundaries. Every effort is made to ensure this map is free of errors but there is no warrant the map or its features are either spatially or temporally accurate or fit for a particular use. This map is provided without any warranty of any kind whatsoever, either express or implied.*
 
 <br>
 
 ### References for this report
 
-* Raleigh, C., Kishi, R. & Linke, A. Political instability patterns are obscured by conflict dataset scope conditions, sources, and coding choices. Humanit Soc Sci Commun 10,74 (2023). https://doi.org/10.1057/s41599-023-01559-4.
+* Raleigh, C., Kishi, R. & Linke, A. Political instability patterns are obscured by conflict dataset scope conditions, sources, and coding choices. Humanit Soc Sci Commun 10,74 (2023). https://doi.org/10.1057/s41599-023-01559-4
 
-* Runfola, D. et al. (2020) geoBoundaries: A global database of political administrative boundaries. PLoS ONE 15(4): e0231866. https://doi.org/10.1371/journal.pone.0231866.
+* Runfola, D. et al. (2020) geoBoundaries: A global database of political administrative boundaries. PLoS ONE 15(4): e0231866. https://doi.org/10.1371/journal.pone.0231866
 
-* ACLED, (2019). Armed Conflict Location & Event Data Project (ACLED) Codebook. https://www.acleddata.com/wp-content/uploads/dlm_uploads/2017/10/ACLED_Codebook_2019FINAL_pbl.pdf.
+* ACLED, (2019). Armed Conflict Location & Event Data Project (ACLED) Codebook. https://www.acleddata.com/wp-content/uploads/dlm_uploads/2017/10/ACLED_Codebook_2019FINAL_pbl.pdf
 
-* ACLED, (2022). ACLED data for Lebanon, Syria, Israel, Palestine & Jordan (2016-01-01 - 2024-09-13). https://acleddata.com.
+* ACLED, (2022). ACLED data for Lebanon, Syria, Israel, Palestine & Jordan (2016-01-01 - 2024-09-13). https://acleddata.com
 
-* Silge J, Robinson D (2016). tidytext: Text Mining and Analysis Using Tidy Data Principles in R. JOSS, 1(3). doi: 10.21105/joss.00037, http://dx.doi.org/10.21105/joss.00037.
+* Silge J, Robinson D (2016). tidytext: Text Mining and Analysis Using Tidy Data Principles in R. JOSS, 1(3). doi: 10.21105/joss.00037, http://dx.doi.org/10.21105/joss.00037
+
+* World Food Programme (2024). Global food prices. Extracted from https://data.humdata.org/m/dataset/global-wfp-food-prices? on 22 September 2024. 
 
 * World Food Programme (2019). World administrative boundaries -- countries and territories. Extracted from https://public.opendatasoft.com/explore/dataset/world-administrative-boundaries/information/ on 11 June 2024. 
 
@@ -201,7 +200,7 @@ From the chart below, sorted in order of number of **events** from political inc
 
 <br>
 
-```{r fig.height=6}
+```{r fig.height=6.5}
 lebanon |>
   mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
   group_by(country, event_type, quarter) |> 
@@ -238,7 +237,8 @@ lebanon |>
     guides(fill = guide_legend(nrow = 1)) + 
   labs(title = "Number of political incidents by event type over time", 
        subtitle = "Data from 2016-01-01 to 2024-09-13, black dotted line is 2023-10-07",
-       y = "Events by quarter")
+       y = "Events by quarter", 
+       caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com")
 ```
 
 
@@ -253,7 +253,7 @@ Since 7 October 2023, Iran and Jordan have seen less pressure on their governmen
 
 <br>
 
-```{r fig.height= 6}
+```{r fig.height= 6.5}
 lebanon |>
   filter(country != "Jordan") |> 
   mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
@@ -291,7 +291,8 @@ lebanon |>
     guides(fill = guide_legend(nrow = 1)) + 
   labs(title = "Number of political incident fatalities by event type over time", 
        subtitle = "Data from 2016-01-01 to 2024-09-13, black dotted line is 2023-10-07",
-       y = "Events by quarter")
+       y = "Fatalities by quarter", 
+       caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com")
 ```
 
 <br>
@@ -348,7 +349,8 @@ lebanon |>
   labs(title = "Political violence in Lebanon prior to and after October 7 2023", 
        colour = "Event type", 
        size = "Fatalities", 
-       x = "", y = "") + 
+       x = "", y = "", 
+       caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com") + 
   guides(colour = guide_legend(override.aes = list(size = 2, alpha = 1)))
 
 
@@ -519,7 +521,8 @@ lebanon |>
   labs(title = "Political violence in Lebanon, post-October 7 2023", 
        colour = "Event type", 
        size = "Fatalities", 
-       x = "", y = "") + 
+       x = "", y = "", 
+       caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com") + 
   guides(colour = guide_legend(override.aes = list(size = 2, alpha = 1)))  
 
 
@@ -544,7 +547,7 @@ lebanon |>
   select(governorate = admin1, events, `%events` = pc_events, fatalities, `%fatalities` = pc_fatalities) |> 
   arrange(desc(fatalities)) |> 
   kable(booktabs = TRUE, 
-        caption = "Breakdown of post Oct 7 2023 Explosions and Remote violence") |> 
+        caption = "Breakdown of post Oct 7 2023 Explosions and Remote violence, accledata.com") |> 
   kable_classic_2("striped", full_width = TRUE) 
 
 ```
@@ -590,7 +593,7 @@ lbn_wdi |>
        y = "Normalised value", 
        x = "", 
        title = "Macronomic indicators -- Lebanon and its neighbours", 
-       subtitle = "Source: World Development Indicators, World Bank")
+       caption = "Data source: World Development Indicators, World Bank")
 ```
 
 
@@ -638,7 +641,8 @@ lbn_food |>
        x = "", 
        title = "Mean commodity prices in Lebanon, from WFP", 
        subtitle = "Pink dotted line marks 2020 Beirut explosion", 
-       colour = "") + 
+       colour = "", 
+       caption = "Data source: WFP Global Food Prices.") + 
   theme(axis.text.x = element_text(angle = 30, hjust = 1), 
         strip.background = element_rect(fill = "black"), 
         legend.position = "top") + 
@@ -676,7 +680,8 @@ lbn_food |>
   scale_y_continuous(labels = comma) + 
   labs(y = "Price per litre", 
        x = "",
-       title = "Mean price per litre of fuel (petrol-gasoline, 95 octane) as monitored by WFP") + 
+       title = "Mean price per litre of fuel (petrol-gasoline, 95 octane)", 
+       caption = "Data source: WFP Global Food Prices.") + 
   theme(strip.background = element_rect(fill = "black"))
   
  
@@ -792,10 +797,12 @@ forecasts |>
   scale_fill_viridis_c(option = "magma", direction = -1) + 
   theme(strip.background = element_rect(fill = "black"), 
         axis.text.x = element_blank(), 
-        axis.text.y = element_blank()) + 
+        axis.text.y = element_blank(), 
+        plot.caption = element_text(hjust = .5, size = 4)) + 
   labs(fill = "Normalised\nvalue", 
        title = "Conflict forecasts -- RAH Aggregates", 
-       subtitle = "From September 2024")
+       subtitle = "From September 2024", 
+       caption = "The designations employed and the presentation of the material on this map do not imply the expression of any opinion whatsoever on the part of the Secretariat of the United Nations concerning the legal status\nof any country, territory, city or area or of its authorities, or concerning the delimitation of its frontiers or boundaries. This map is provided without any warranty of any kind whatsoever, either express or implied.")
 
 ```
 
@@ -840,9 +847,11 @@ forecasts |>
   scale_fill_viridis_c(option = "magma", direction = -1) + 
   theme(strip.background = element_rect(fill = "black"), 
         axis.text.x = element_blank(), 
-        axis.text.y = element_blank()) + 
+        axis.text.y = element_blank(), 
+        plot.caption = element_text(hjust = .5, size = 4)) + 
   labs(title = "Conflict forecasts -- 3 months from 2024-09, Lebanon and its neighbours", 
-       fill = "Normalised\nValue")
+       fill = "Normalised\nValue", 
+       caption = "The designations employed and the presentation of the material on this map do not imply the expression of any opinion whatsoever on the part of the Secretariat of the United Nations concerning the legal status\nof any country, territory, city or area or of its authorities, or concerning the delimitation of its frontiers or boundaries. This map is provided without any warranty of any kind whatsoever, either express or implied.")
 
 ```
 
