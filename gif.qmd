@@ -223,6 +223,10 @@ geom_sf(data = world_shape |> filter(str_detect(name, "Lebanon")),
 # Lebanon
 
 
+```{r}
+max(lebanon$event_date)
+```
+
 
 ```{r}
 
@@ -248,7 +252,7 @@ lebanon_event_types <- lebanon |>
   filter(event_date >= "2023-01-01") |> 
   mutate(month = floor_date(event_date, "month")) %>%
   select(event_id_cnty, event_type, longitude, latitude, event_type, month, fatalities) %>%
-  mutate(month = map(month, ~seq.Date(as.Date(.), as.Date("2024-09-13"), by = "month"))) |> 
+  mutate(month = map(month, ~seq.Date(as.Date(.), as.Date("2024-09-20"), by = "month"))) |> 
   unnest(month) |> 
   mutate(month = format_ISO8601(month, precision = "ym")) |> 
   ggplot() + 

@@ -282,3 +282,91 @@ geom_point(aes(x = x, y = y), size = 2.5, data = lashio_captured,
     theme(axis.text.x = element_text(angle = 30, hjust = 1), 
           strip.background = element_rect(fill = "black")) + 
     guides(colour = guide_legend(override.aes = list(linewidth = 1.5)))
+ 
+lebanon_actors |> 
+  filter(country == "Lebanon") |> 
+  group_by(actor_description) |> 
+  summarise(events = n_distinct(event_id_cnty), 
+            fatalities = sum(fatalities, na.rm = TRUE)) |> 
+  pivot_longer(cols = -actor_description, 
+               names_to = "type", 
+               values_to = "value") |> 
+  ggplot(aes(y = fct_rev(actor_description), x = value)) + 
+  geom_col() + 
+  facet_wrap(~type, scales = "free_x")
+  count(actor_description)
+
+
+
+Major protests topics include: political instability and dissatisfaction with the government, economic woes and the subsequent neglect of public infrastructure, the Israel-Palestinian conflict, legal and illegal detainees, and the port of Beirut explosion. 
+
+Protests in Lebanon have largely revolved around the severe economic and political instability which has plagued the country. We also note few descriptors related to sectarian violence (i.e ), indicating that none of the various political and communal militias and groups are currently agitating (at a national level) for separatism, 
+
+
+In this section, we explore the concerns of protesters in Lebanon. Below is a network graph of event descriptions of protests in Lebanon since 2016. Network graphs shows the connections between various observations (in this case, protest descriptors from Lebanon) and are commonly used to visualise social networks. 
+
+The links between each of the words indicate the strength of the relationship (transparency) and the number of times this word pair has occurred (thickness). Only the most common word pairs with correlations above 0.2 are included (for legibility). 
+
+The following major protest topics (from 2016-) have been identified from descriptions of protests events in Lebanon: 
+  
+  * Political instability and dissatisfaction with the government 
+* Economic woes and the subsequent neglect of public infrastructure
+* The Israel-Palestine conflict
+* Legal and illegal detentions, calls for release
+* Port of Beirut explosion 
+
+Relatively fewer descriptors related to sectarian violence (i.e. Islam, Muslim, Sunni, Shiite, Christian) were noted. 
+
+forecasts |> 
+  filter(str_detect(indicator, "Aggreg") & 
+           !str_detect(indicator, "Rank")) |> 
+  mutate(indicator = str_remove(indicator, "AggregMetric-"), 
+         indicator = str_replace(indicator, "m", " months")) |> 
+  arrange(indicator) |> 
+  filter(iso != "IRN") |> 
+  group_by(indicator) |> 
+  mutate(range = range_wna(value)) |> 
+  ungroup() |> 
+  left_join(world_shape |> filter(iso3 %in% c("ISR", "JOR", "LBN", "PSE", "SYR")), 
+            by = c("iso" = "iso3"), 
+            relationship = "many-to-many") |> 
+  st_as_sf() |> 
+  ggplot() +
+  geom_sf(aes(fill = value)) + 
+  facet_wrap(~ factor(indicator, 
+                      levels = c("3 months", "6 months", "12 months")), nrow = 1) + 
+  scale_fill_viridis_c(option = "magma", direction = -1) + 
+  theme(strip.background = element_rect(fill = "black"), 
+        axis.text.x = element_blank(), 
+        axis.text.y = element_blank(), 
+        plot.caption = element_text(hjust = .5, size = 6)) + 
+  labs(fill = "Normalised\nvalue", 
+       title = "Conflict forecasts -- RAH Aggregates", 
+       subtitle = "From September 2024", 
+       caption = "The designations employed and the presentation of the material on this map do not imply the expression of any opinion whatsoever on the part of the Secretariat of the United Nations concerning the legal status\nof any country, territory, city or area or of its authorities, or concerning the delimitation of its frontiers or boundaries. This map is provided without any warranty of any kind whatsoever, either express or implied.")
+
+forecasts |> 
+  filter(str_detect(indicator, "6m") & 
+           indicator %out% c("CAST-VaC_events-6m", 
+                             "CAST-Battles_events-6m", 
+                             "AggregMetric-6m", 
+                             "AggregRank-6m")) |> 
+  filter(iso != "IRN") |> 
+  select(iso, country, indicator, value) |> 
+  group_by(indicator) |> 
+  mutate(range = range_wna(value), 
+         indicator = str_replace(indicator, "ConfInt", "ConflictIntensity")) |> 
+  ungroup() |> 
+  left_join(world_shape |> filter(iso3 %in% c("ISR", "JOR", "LBN", "PSE", "SYR")), 
+            by = c("iso" = "iso3"), 
+            relationship = "many-to-many") |> 
+  st_as_sf() |> 
+  ggplot() +
+  geom_sf(aes(fill = range)) + 
+  facet_wrap(~indicator, nrow = 2) + 
+  scale_fill_viridis_c(option = "magma", direction = -1) + 
+  theme(strip.background = element_rect(fill = "black")) + 
+  labs(fill = "Normalised\nvalue", 
+       title = "Conflict forecasts -- 6 months from 2024-09")
+       
+       
