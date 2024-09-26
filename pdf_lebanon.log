@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.9.26)  26 SEP 2024 18:39
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.9.26)  26 SEP 2024 19:12
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -844,13 +844,13 @@ L3 programming layer <2024-09-10>
 Here is how much of TeX's memory you used:
  13623 strings out of 475539
  218004 string characters out of 5775638
- 646098 words of memory out of 5000000
+ 646029 words of memory out of 5000000
  35993 multiletter control sequences out of 15000+600000
  607586 words of font info for 78 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  89i,16n,93p,413b,512s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <c:/Users/seanywng/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx10.pfb><c:/Users/seanywng/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx12.pfb><c:/Users/seanywng/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr10.pfb><c:/Users/seanywng/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr12.pfb>
-Output written on pdf_lebanon.pdf (13 pages, 19650929 bytes).
+Output written on pdf_lebanon.pdf (13 pages, 19650170 bytes).
 PDF statistics:
  287 PDF objects out of 1000 (max. 8388607)
  227 compressed objects within 3 object streams
