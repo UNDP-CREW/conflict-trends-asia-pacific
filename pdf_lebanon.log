@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.9.26)  26 SEP 2024 18:27
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.9.26)  26 SEP 2024 18:39
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -569,14 +569,14 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 <./plots/lebanon_static.png, id=16, 2392.8597pt x 2560.5261pt>
 File: ./plots/lebanon_static.png Graphic file (type png)
 <use ./plots/lebanon_static.png>
-Package pdftex.def Info: ./plots/lebanon_static.png  used on input line 138.
+Package pdftex.def Info: ./plots/lebanon_static.png  used on input line 142.
 (pdftex.def)             Requested size: 469.72755pt x 502.64111pt.
 
 
 <UNDP-Logo-Blue-Large-Transparent.png, id=17, 302.46333pt x 460.38667pt>
 File: UNDP-Logo-Blue-Large-Transparent.png Graphic file (type png)
 <use UNDP-Logo-Blue-Large-Transparent.png>
-Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 140.
+Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 144.
 (pdftex.def)             Requested size: 23.48682pt x 35.74985pt.
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -588,11 +588,11 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 [1
 
 {c:/Users/seanywng/AppData/Roaming/TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{c:/Users/seanywng/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc} <./UNDP-Logo-Blue-Large-Transparent.png>]
-LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 145.
+LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 149.
 (c:/Users/seanywng/AppData/Roaming/TinyTeX/texmf-dist/tex/latex/lm/ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-Underfull \hbox (badness 10000) in paragraph at lines 145--149
+Underfull \hbox (badness 10000) in paragraph at lines 149--153
 \T1/lmr/m/n/10 acleddata . com / wp -[] content / uploads / dlm _ uploads / 2017 / 10 / ACLED _ Codebook _ 2019FINAL _ pbl .
  []
 
@@ -600,7 +600,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 145--149
 
 File: UNDP-Logo-Blue-Large-Transparent.png Graphic file (type png)
 <use UNDP-Logo-Blue-Large-Transparent.png>
-Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 160.
+Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 164.
 (pdftex.def)             Requested size: 23.48682pt x 35.74985pt.
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -610,25 +610,25 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-27.34988pt}.
 
 [2{c:/Users/seanywng/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc} <./plots/lebanon_static.png>]
-Underfull \hbox (badness 1735) in paragraph at lines 180--184
+Underfull \hbox (badness 1735) in paragraph at lines 184--188
 []\T1/lmr/m/n/10 World Food Pro-gramme (2019). World ad-min-is-tra-tive bound-aries -- coun-tries and ter-ri-to-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 180--184
+Underfull \hbox (badness 10000) in paragraph at lines 184--188
 \T1/lmr/m/n/10 ries. Ex-tracted from [][]$https : / / public . opendatasoft . com / explore / dataset / world -[] administrative -[]
  []
 
 <pdf_lebanon_files/figure-latex/unnamed-chunk-1-1.pdf, id=55, 758.835pt x 433.62pt>
 File: pdf_lebanon_files/figure-latex/unnamed-chunk-1-1.pdf Graphic file (type pdf)
 <use pdf_lebanon_files/figure-latex/unnamed-chunk-1-1.pdf>
-Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-1-1.pdf  used on input line 200.
+Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-1-1.pdf  used on input line 204.
 (pdftex.def)             Requested size: 469.76654pt x 268.43802pt.
 
 
 File: UNDP-Logo-Blue-Large-Transparent.png Graphic file (type png)
 <use UNDP-Logo-Blue-Large-Transparent.png>
-Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 205.
+Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 209.
 (pdftex.def)             Requested size: 23.48682pt x 35.74985pt.
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -641,18 +641,18 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 <pdf_lebanon_files/figure-latex/unnamed-chunk-2-1.pdf, id=75, 758.835pt x 469.755pt>
 File: pdf_lebanon_files/figure-latex/unnamed-chunk-2-1.pdf Graphic file (type pdf)
 <use pdf_lebanon_files/figure-latex/unnamed-chunk-2-1.pdf>
-Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-2-1.pdf  used on input line 225.
+Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-2-1.pdf  used on input line 229.
 (pdftex.def)             Requested size: 469.76654pt x 290.80785pt.
 <pdf_lebanon_files/figure-latex/unnamed-chunk-3-1.pdf, id=77, 758.835pt x 469.755pt>
 File: pdf_lebanon_files/figure-latex/unnamed-chunk-3-1.pdf Graphic file (type pdf)
 <use pdf_lebanon_files/figure-latex/unnamed-chunk-3-1.pdf>
-Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-3-1.pdf  used on input line 240.
+Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-3-1.pdf  used on input line 244.
 (pdftex.def)             Requested size: 469.76654pt x 290.80785pt.
 
 
 File: UNDP-Logo-Blue-Large-Transparent.png Graphic file (type png)
 <use UNDP-Logo-Blue-Large-Transparent.png>
-Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 242.
+Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 246.
 (pdftex.def)             Requested size: 23.48682pt x 35.74985pt.
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -665,13 +665,13 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 <pdf_lebanon_files/figure-latex/unnamed-chunk-4-1.pdf, id=91, 758.835pt x 469.755pt>
 File: pdf_lebanon_files/figure-latex/unnamed-chunk-4-1.pdf Graphic file (type pdf)
 <use pdf_lebanon_files/figure-latex/unnamed-chunk-4-1.pdf>
-Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-4-1.pdf  used on input line 250.
+Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-4-1.pdf  used on input line 254.
 (pdftex.def)             Requested size: 469.76654pt x 290.80785pt.
 
 
 File: UNDP-Logo-Blue-Large-Transparent.png Graphic file (type png)
 <use UNDP-Logo-Blue-Large-Transparent.png>
-Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 261.
+Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 265.
 (pdftex.def)             Requested size: 23.48682pt x 35.74985pt.
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -684,13 +684,13 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 <./plots/deadliest_actors.png, id=115, 1194.864pt x 844.8363pt>
 File: ./plots/deadliest_actors.png Graphic file (type png)
 <use ./plots/deadliest_actors.png>
-Package pdftex.def Info: ./plots/deadliest_actors.png  used on input line 276.
+Package pdftex.def Info: ./plots/deadliest_actors.png  used on input line 280.
 (pdftex.def)             Requested size: 469.7509pt x 332.14041pt.
 
 
 File: UNDP-Logo-Blue-Large-Transparent.png Graphic file (type png)
 <use UNDP-Logo-Blue-Large-Transparent.png>
-Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 298.
+Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 302.
 (pdftex.def)             Requested size: 23.48682pt x 35.74985pt.
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -703,18 +703,18 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 <pdf_lebanon_files/figure-latex/unnamed-chunk-5-1.pdf, id=122, 758.835pt x 469.755pt>
 File: pdf_lebanon_files/figure-latex/unnamed-chunk-5-1.pdf Graphic file (type pdf)
 <use pdf_lebanon_files/figure-latex/unnamed-chunk-5-1.pdf>
-Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-5-1.pdf  used on input line 299.
+Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-5-1.pdf  used on input line 303.
 (pdftex.def)             Requested size: 469.76654pt x 290.80785pt.
 <pdf_lebanon_files/figure-latex/unnamed-chunk-6-1.pdf, id=124, 758.835pt x 469.755pt>
 File: pdf_lebanon_files/figure-latex/unnamed-chunk-6-1.pdf Graphic file (type pdf)
 <use pdf_lebanon_files/figure-latex/unnamed-chunk-6-1.pdf>
-Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-6-1.pdf  used on input line 338.
+Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-6-1.pdf  used on input line 342.
 (pdftex.def)             Requested size: 469.76654pt x 290.80785pt.
 
 
 File: UNDP-Logo-Blue-Large-Transparent.png Graphic file (type png)
 <use UNDP-Logo-Blue-Large-Transparent.png>
-Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 340.
+Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 344.
 (pdftex.def)             Requested size: 23.48682pt x 35.74985pt.
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -727,7 +727,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 
 File: UNDP-Logo-Blue-Large-Transparent.png Graphic file (type png)
 <use UNDP-Logo-Blue-Large-Transparent.png>
-Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 378.
+Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 382.
 (pdftex.def)             Requested size: 23.48682pt x 35.74985pt.
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -740,18 +740,18 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 <pdf_lebanon_files/figure-latex/unnamed-chunk-8-1.pdf, id=154, 758.835pt x 469.755pt>
 File: pdf_lebanon_files/figure-latex/unnamed-chunk-8-1.pdf Graphic file (type pdf)
 <use pdf_lebanon_files/figure-latex/unnamed-chunk-8-1.pdf>
-Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-8-1.pdf  used on input line 396.
+Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-8-1.pdf  used on input line 400.
 (pdftex.def)             Requested size: 469.76654pt x 290.80785pt.
 <pdf_lebanon_files/figure-latex/unnamed-chunk-9-1.pdf, id=156, 758.835pt x 469.755pt>
 File: pdf_lebanon_files/figure-latex/unnamed-chunk-9-1.pdf Graphic file (type pdf)
 <use pdf_lebanon_files/figure-latex/unnamed-chunk-9-1.pdf>
-Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-9-1.pdf  used on input line 413.
+Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-9-1.pdf  used on input line 417.
 (pdftex.def)             Requested size: 469.76654pt x 290.80785pt.
 
 
 File: UNDP-Logo-Blue-Large-Transparent.png Graphic file (type png)
 <use UNDP-Logo-Blue-Large-Transparent.png>
-Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 415.
+Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 419.
 (pdftex.def)             Requested size: 23.48682pt x 35.74985pt.
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -764,18 +764,18 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 <pdf_lebanon_files/figure-latex/unnamed-chunk-10-1.pdf, id=170, 758.835pt x 433.62pt>
 File: pdf_lebanon_files/figure-latex/unnamed-chunk-10-1.pdf Graphic file (type pdf)
 <use pdf_lebanon_files/figure-latex/unnamed-chunk-10-1.pdf>
-Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-10-1.pdf  used on input line 420.
+Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-10-1.pdf  used on input line 424.
 (pdftex.def)             Requested size: 469.76654pt x 268.43802pt.
 <pdf_lebanon_files/figure-latex/unnamed-chunk-11-1.pdf, id=173, 758.835pt x 325.215pt>
 File: pdf_lebanon_files/figure-latex/unnamed-chunk-11-1.pdf Graphic file (type pdf)
 <use pdf_lebanon_files/figure-latex/unnamed-chunk-11-1.pdf>
-Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-11-1.pdf  used on input line 430.
+Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-11-1.pdf  used on input line 434.
 (pdftex.def)             Requested size: 469.76654pt x 201.3285pt.
 
 
 File: UNDP-Logo-Blue-Large-Transparent.png Graphic file (type png)
 <use UNDP-Logo-Blue-Large-Transparent.png>
-Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 432.
+Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 436.
 (pdftex.def)             Requested size: 23.48682pt x 35.74985pt.
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -788,13 +788,13 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 <pdf_lebanon_files/figure-latex/unnamed-chunk-12-1.pdf, id=193, 758.835pt x 325.215pt>
 File: pdf_lebanon_files/figure-latex/unnamed-chunk-12-1.pdf Graphic file (type pdf)
 <use pdf_lebanon_files/figure-latex/unnamed-chunk-12-1.pdf>
-Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-12-1.pdf  used on input line 477.
+Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-12-1.pdf  used on input line 481.
 (pdftex.def)             Requested size: 469.76654pt x 201.3285pt.
 
 
 File: UNDP-Logo-Blue-Large-Transparent.png Graphic file (type png)
 <use UNDP-Logo-Blue-Large-Transparent.png>
-Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 479.
+Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 483.
 (pdftex.def)             Requested size: 23.48682pt x 35.74985pt.
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -807,13 +807,13 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 <pdf_lebanon_files/figure-latex/unnamed-chunk-13-1.pdf, id=203, 758.835pt x 289.08pt>
 File: pdf_lebanon_files/figure-latex/unnamed-chunk-13-1.pdf Graphic file (type pdf)
 <use pdf_lebanon_files/figure-latex/unnamed-chunk-13-1.pdf>
-Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-13-1.pdf  used on input line 497.
+Package pdftex.def Info: pdf_lebanon_files/figure-latex/unnamed-chunk-13-1.pdf  used on input line 501.
 (pdftex.def)             Requested size: 469.76654pt x 178.95866pt.
 
 
 File: UNDP-Logo-Blue-Large-Transparent.png Graphic file (type png)
 <use UNDP-Logo-Blue-Large-Transparent.png>
-Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 499.
+Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 503.
 (pdftex.def)             Requested size: 23.48682pt x 35.74985pt.
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -826,7 +826,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 
 File: UNDP-Logo-Blue-Large-Transparent.png Graphic file (type png)
 <use UNDP-Logo-Blue-Large-Transparent.png>
-Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 545.
+Package pdftex.def Info: UNDP-Logo-Blue-Large-Transparent.png  used on input line 549.
 (pdftex.def)             Requested size: 23.48682pt x 35.74985pt.
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -844,13 +844,13 @@ L3 programming layer <2024-09-10>
 Here is how much of TeX's memory you used:
  13623 strings out of 475539
  218004 string characters out of 5775638
- 645098 words of memory out of 5000000
+ 646098 words of memory out of 5000000
  35993 multiletter control sequences out of 15000+600000
  607586 words of font info for 78 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  89i,16n,93p,413b,512s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <c:/Users/seanywng/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx10.pfb><c:/Users/seanywng/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx12.pfb><c:/Users/seanywng/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr10.pfb><c:/Users/seanywng/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr12.pfb>
-Output written on pdf_lebanon.pdf (13 pages, 19650735 bytes).
+Output written on pdf_lebanon.pdf (13 pages, 19650929 bytes).
 PDF statistics:
  287 PDF objects out of 1000 (max. 8388607)
  227 compressed objects within 3 object streams
