@@ -1,0 +1,261 @@
+---
+title: "Myanmar -- Government response capacity and conflict trends"
+author: "Risk Anticipation Hub"
+date-modified: "25 September 2024"
+toc: true
+toc-location: left
+toc-depth: 4
+format: 
+  html:
+    page-layout: full
+    code-tools: true
+    self-contained: true
+---
+
+```{r}
+
+```
+
+
+```{css, echo=FALSE}
+
+#TOC::before {
+  content: "";
+  display: block;
+  height: 100px;
+  margin: 1em 10px 10px 10px;
+  background-image: url("./plots/UNDP-Logo-Blue-Large-Transparent.png");
+  background-size: contain;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+```
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.width = 10.5)
+
+library(tidyverse)
+library(here)
+library(lubridate)
+library(patchwork)
+library(scales)
+library(sf)
+library(broom)
+library(treemapify)
+library(kableExtra) 
+library(ggstream)
+library(ggrepel)
+library(ggcorrplot)
+library(tidytext)
+library(ggtext)
+library(widyr)
+library(ggraph)
+library(janitor)
+library(treemapify)
+library(ggnewscale)
+
+`%out%` <- Negate(`%in%`)
+options(scipen = 100)
+theme_set(theme_light())
+
+range_wna <- function(x){(x-min(x, na.rm = TRUE))/(max(x, na.rm = TRUE)-min(x, na.rm = TRUE))}
+
+
+```
+
+
+## Background
+
+The Myanmar junta is uniquely sensitive to storms. [Public anger](https://www.hrw.org/report/2010/04/28/i-want-help-my-own-people/state-control-and-civil-society-burma-after-cyclone) at the mismanaged response to Cyclone Nargis (140,000 people died from a storm in the 21st century and aid to affected areas was blocked) weakened the Tatmadaw and contributed to the junta committing to the 2012 reforms. 
+
+In the summer right before elections in November 2015, massive floods and landslides affected Myanmar (132 dead, but 1.6 million displaced). The then-ruling party unprecedentedly asked for international aid, reforming the Ministry of Relief and Resettlement and the Emergency Operations Centre in the process in a bid to avoid another Nargis. The response was largely successful. 
+
+Nevertheless, the National League for Democracy was voted in. Recovery plans were not implemented due to lack of funds, institutional weakness and a lack of talented and trusted personnel. Despite this, the Tatmadaw is still likely to respond to typhoon Yagi in good faith, at least when no minorities are concerned. 
+
+The disenfranchisement of and discrimination against Rohingya persons were openly promoted by the state and its officers. This continued under the NLD administration. Anti-Muslim rhetoric and hate speech escalated tensions, the UN agreed to exclude the Rohingya from the census, the highest-ranking Muslim in government was assassinated and genocidal intent became genocidal action.  
+
+The plight of the Rohingya is important as whilst ethnic, communal and political militias are currently united in their attempts to defeat the Tatmadaw, there is no guarantee for peace should the Tatmadaw fall. [Myanmar's armed groups](https://mmpeacemonitor.org/1426/armed-ethnic-groups/) are all very diverse in their goals, the populations and territories they govern, the languages that they speak and in their ideologies. No solution has been presented which includes repatriation of and restitution for the Rohingya. Peace cannot begin until the most marginalised groups have been recognised and no figure has demonstrated that they are able to satisfactorily work with all minorities. 
+
+<br><br><br>
+
+## Current conflict situation
+
+The current conflict is very linear and concerned with the control of the road network. The highway network was constructed to link military garrisons, important [natural resources](https://adamsmithinternational.com/projects/governance-of-myanmars-extractive-industries/) (gems, ores, oil and gas), border crossings and, now, narcotics factories important to funding the war effort. The Tatmadaw have never been in full of Myanmar's territory and their ability to project power is now deeply compromised and, consequently, so is their economy. 
+
+Typhoon Yagi affected Mandalay, Naypyitaw, Bago and Shan East. Many of these areas are predominantly Bamar and still under Tatmadaw control. There are two major IDP sites -- in Meiktila, south of Mandalay, and Taunggyi, just north of Loikaw -- that are within the flood-affected areas. The current IDP population was, almost entirely, displaced due to conflict, with only around 15,000 persons having been displaced by natural disasters. IDPs have gathered in sites far from conflict, though accessing some of them will prove challenging ass they are behind the main front. 
+
+[Overland trade](https://thediplomat.com/2024/09/myanmars-border-trade-with-china-and-thailand-has-collapsed/) with China has fallen by 41% and by 87% with Thailand; the border crossing with India remains closed. Rebel groups are now preparing to siege Sittwe and Mandalay, the last major garrison before Naypyitaw. 
+
+Should the fall of the Tatmadaw seem imminent, all attempts must be made, through all channels, to prevent a free-for-all. Unrealistic as it seems, a peace conference must be called before the final push to Naypyitaw. A situation where the Tatmadaw feels that it has been forced into a "last stand" must be avoided at all costs. 
+
+Myanmar has never been stable. It had been stagnant for decades before becoming akin to a new economic wild west. That excitement dimmed when the country's institutions were not up to the task of governance. Whoever wins the civil war, will be in a worse position than even Assad in Syria, as the Myanmar state, its originally weak institutions and its civil service have been irreparably damaged.
+
+
+[![](./plots/roads_conflict_grey_red_combined.png)](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/plots/roads_conflict_grey_red_combined.png)
+
+
+```{r eval=FALSE}
+mmr_garrisons <- tribble(~x, ~y, ~name,
+  96.0785, 19.7633, "Naypyitaw", 
+  96.0891, 21.9588, "Mandalay", 
+  96.1735, 16.8409, "Yangon", 
+  95.1536, 22.1216, "Monywa", 
+  92.8677, 20.1528, "Sittwe", 
+  #97.7525, 22.9665, "Lashio", 
+  97.6440, 16.4543, "Mawlaymine", 
+  96.4344, 18.9398, "Taungoo", 
+  94.7381, 16.7754, "Pathein", 
+  97.3939, 25.3868, "Myitkyina", 
+  97.4057, 27.3182, "Puta-O"
+) |> 
+  st_as_sf(coords = c("x", "y"), crs = 4326)
+
+mmr_borders <- tribble(~x, ~y, ~name,
+                       97.9103, 23.9933, "Muse", 
+                       94.3103, 24.2199, "Tamu", 
+                       # 98.4797285, 16.6952072, "Myawaddy",
+                       99.8989, 20.4521, "Tachileik"
+                       
+                       ) |> 
+  st_as_sf(coords = c("x", "y"), crs = 4326)
+
+mmr_idp_points <- mmr_idp |> 
+  mutate(figure = as.numeric(figure)) |> 
+  group_by(y = latitude, x = longitude) |> 
+  summarise(IDPs = sum(figure)) |> 
+  st_as_sf(coords = c("x", "y"), crs = 4326)
+
+
+```
+
+```{r warning=FALSE, eval=FALSE}
+
+
+roads_conflict_black_grey <- myanmar |> 
+  filter(event_date > "2021-01-31") |> 
+  ggplot() +
+  geom_sf(size = .1, colour = "grey60", fill = "grey90", data = myanmar_adm1) + 
+  geom_sf(data = road_shape |> filter(Road_Type %out% c("Main")), 
+          linewidth = .12, colour = "blue", alpha = .9) +
+  geom_sf(data = road_shape |> filter(Road_Type %in% c("Main")), 
+          linewidth = .8, colour = "blue", alpha = .6) +
+  geom_sf_text(data = mmr_garrisons, aes(geometry = geometry, label = name), 
+            size = 6.5, alpha = .8) + 
+  geom_point(data = mmr_garrisons, aes(geometry = geometry, label = name), 
+            size = 7, alpha = .8, pch = 15, alpha = .8, stat = "sf_coordinates",
+            colour = "goldenrod2") + 
+  geom_sf_text(data = mmr_borders, aes(geometry = geometry, label = name), 
+            size = 6.5, alpha = .8) + 
+  geom_point(data = mmr_borders, aes(geometry = geometry, label = name), 
+            size = 7, alpha = .8, pch = 18, alpha = .8, stat = "sf_coordinates",
+            colour = "cornflowerblue") +
+  # Lashio
+  geom_point(aes(x = 97.7525, y = 22.9665), size = 7,
+             colour = "goldenrod2", pch = 15, alpha = .8) +
+  geom_text(aes(x = 97.7525, y = 22.9665), size = 6.5, label = "Lashio", colour = "seagreen") +
+  # Myawaddy
+  geom_point(aes(x = 98.4797285, y = 16.6952072), size = 7, 
+             colour = "cornflowerblue", pch = 15, alpha = .8) +
+  geom_text(aes(x = 98.4797285, y = 16.6952072), size = 6.5, label = "Myawaddy", colour = "seagreen") + 
+  geom_text(aes(x = 97.2114, y = 19.6740), size = 6.5, label = "Loikaw", colour = "seagreen") +
+    # cities and border crossing legends
+  geom_point(aes(x = 100.6, y = 29.3), size = 4, 
+             colour = "goldenrod2", pch = 15, alpha = .8) +
+  geom_point(aes(x = 100.6, y = 29.15), size = 4, 
+             colour = "cornflowerblue", pch = 15, alpha = .8) +
+  geom_text(aes(x = 100.6, y = 29), size = 4, label = "A",
+             colour = "seagreen", pch = 15, alpha = .8) +
+  geom_text(aes(x = 101.1, y = 29.3), size = 4, 
+             colour = "grey30", label = "Military command") +
+  geom_text(aes(x = 101.066, y = 29.15), size = 4, 
+             colour = "grey30", label = "Border crossing") +
+  geom_text(aes(x = 101.09, y = 29), size = 4,colour = "grey30", label = "Rebel-controlled") +
+  scale_size_continuous(range = c(.1, 20), breaks = c(0, 1000, 10000, 50000, 100000, 200000), labels = comma) +
+  geom_point(data = mmr_idp_points, aes(geometry = geometry, size = IDPs), alpha = .8, stat = "sf_coordinates",
+            colour = "lightblue") + 
+  geom_sf_text(data = mmr_idp_points, aes(geometry = geometry, label = comma(IDPs)), 
+               size = 2, colour = "grey20", stat = "sf_coordinates", alpha = .7) + 
+  # plotting the actual data
+  new_scale('size') +
+  geom_point(aes(x = longitude, y = latitude , size = fatalities, alpha = year), colour = "red") + 
+  scale_size(range = c(.1, 10), breaks = c(0, 10, 50, 100, 150)) +
+  scale_alpha_continuous(range = c(.05, .3), 
+                         breaks = c(2021, 2022, 2023, 2024)) + 
+  labs(size = "Fatalities",  
+       title = "Violent conflict in Myanmar since the 1 February 2021 coup, plotted over road network",
+       subtitle = "From 2021-02-01 to 2024-10-04. Road network in blue. Sources: acleddata.com, UN MIMU\nFighting, once more dispersed throughout the road network, is now concentrated in and around major cities and garrisons.\nThe main front in Sagaing and Mandalay is where rebels are trying to break through to Naypyitaw.", 
+       alpha = "Year") +
+  theme_void() + 
+  theme(plot.background = element_rect(fill = "white", colour = NA),
+        legend.position = c(0.03, 0.90), 
+        plot.title = element_text(size = 30, colour = "grey30"), 
+        plot.subtitle = element_text(size = 20, colour = "grey30"), 
+        strip.text = element_blank(), 
+        legend.text = element_text(size = 12, colour = "grey30"), 
+        legend.title = element_text(size = 15, colour = "grey30"), 
+        legend.key.width = unit(1, "cm"),
+        legend.key.height = unit(.8, "cm"), 
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(), 
+        plot.margin = unit(c(5, 3, 0, 3), "cm")) + 
+  guides(
+    
+    alpha = guide_legend(order = 3),
+    size = guide_legend(override.aes = list(alpha = 1, colour = "red")) 
+  ) 
+
+ggsave(here("plots", "roads_conflict_grey_red_time.png"), dpi = 300, width = 23.4, 
+       height = 35.8268, units = "in")
+```
+
+
+
+```{r fig.height=5.5, fig.width=10, eval=FALSE}
+actor_treemaps <- mmr_actors |> 
+  filter(event_date <= "2021-01-31") |> 
+  group_by(actor) |>
+  summarise(events = n_distinct(event_id_cnty), 
+            fatalities = sum(fatalities), 
+            .groups = "drop") |> 
+  mutate(pc = paste0(round(fatalities / sum(fatalities) * 100, digits = 2), "%")) |>
+  ggplot(aes(area = fatalities)) + 
+  geom_treemap(fill = "grey50", size = .1) +
+  geom_treemap_text(aes(label = pc), 
+                    colour = "white") +
+  labs(title = "% Fatalities by actor, pre-February 2021 coup", 
+       subtitle = "84 conflict actors between 2010 and 31 January 2021") + 
+  
+mmr_actors |> 
+  filter(event_date > "2021-01-31") |> 
+  group_by(actor) |>
+  summarise(events = n_distinct(event_id_cnty), 
+            fatalities = sum(fatalities), 
+            .groups = "drop") |> 
+  mutate(pc = paste0(round(fatalities / sum(fatalities) * 100, digits = 2), "%")) |>
+  ggplot(aes(area = fatalities)) + 
+  geom_treemap(fill = "grey30", size = .1) +
+  geom_treemap_text(aes(label = pc), 
+                    colour = "white") +
+  labs(title = "% Fatalities by actor, post-February 2021 coup", 
+       subtitle = "1,551 conflict actors in this period", 
+       caption = "Significant proliferation and fragmentation of conflict actors post-February 2021 coup.")
+  
+ 
+  
+```
+
+
+```{r warning=FALSE, eval=FALSE}
+roads_new_combined <- roads_conflict_black_grey + 
+  inset_element(actor_treemaps, 
+                0.05, 0.05, .56, .20, 
+                align_to = "full") 
+
+ggsave(here("plots", "roads_conflict_grey_red_combined.png"), dpi = 300, width = 23.4, 
+       height = 38, units = "in")
+
+```
+
+
