@@ -1,7 +1,7 @@
 ---
 title: "Myanmar -- Government response capacity and conflict trends"
 author: "Risk Anticipation Hub"
-date-modified: "25 September 2024"
+date-modified: "10 September 2024"
 toc: true
 toc-location: left
 toc-depth: 4
@@ -41,17 +41,9 @@ library(here)
 library(lubridate)
 library(patchwork)
 library(scales)
-library(sf)
 library(broom)
 library(treemapify)
 library(kableExtra) 
-library(ggstream)
-library(ggrepel)
-library(ggcorrplot)
-library(tidytext)
-library(ggtext)
-library(widyr)
-library(ggraph)
 library(janitor)
 library(treemapify)
 library(ggnewscale)
@@ -62,35 +54,48 @@ theme_set(theme_light())
 
 range_wna <- function(x){(x-min(x, na.rm = TRUE))/(max(x, na.rm = TRUE)-min(x, na.rm = TRUE))}
 
+myanmar <- readRDS(here("data", "myanmar.rds"))
 
 ```
 
+<br><br><br>
 
-## Background
+## Background and current conflict situation
+
+The current conflict is very linear and concerned with the control of the road network. The highway network was constructed to link military garrisons, important [natural resources](https://adamsmithinternational.com/projects/governance-of-myanmars-extractive-industries/) (gems, ores, oil and gas), border crossings and, now, narcotics factories important to funding the war effort. The Tatmadaw have never been in full of Myanmar's territory and their ability to project power is now deeply compromised and, consequently, so is their economy. 
+
+Typhoon Yagi affected Mandalay, Naypyitaw, Bago and Shan East. Many of these areas are predominantly Bamar and still under Tatmadaw control. There are two major IDP sites -- in Meiktila, south of Mandalay, and Taunggyi, north of Loikaw -- that are within the flood-affected areas. The current IDP population was, almost entirely, displaced due to conflict, with only around 15,000 persons having been displaced by natural disasters. IDPs have gathered in sites far from conflict, though accessing some of them will prove challenging ass they are behind the main front. 
+
+[Overland trade](https://thediplomat.com/2024/09/myanmars-border-trade-with-china-and-thailand-has-collapsed/) with China has fallen by 41% and by 87% with Thailand; the border crossing with India remains closed. Rebel groups are now preparing to siege Sittwe and Mandalay, the last major garrison before Naypyitaw. 
+
+Should the fall of the Tatmadaw seem imminent, all attempts must be made, through all channels, to prevent a free-for-all. Unrealistic as it seems, a peace conference must be called before the final push to Naypyitaw. A situation where the Tatmadaw feels that it has been forced into a "last stand" must be avoided at almost any cost. 
 
 The Myanmar junta is uniquely sensitive to storms. [Public anger](https://www.hrw.org/report/2010/04/28/i-want-help-my-own-people/state-control-and-civil-society-burma-after-cyclone) at the mismanaged response to Cyclone Nargis (140,000 people died from a storm in the 21st century and aid to affected areas was blocked) weakened the Tatmadaw and contributed to the junta committing to the 2012 reforms. 
 
 In the summer right before elections in November 2015, massive floods and landslides affected Myanmar (132 dead, but 1.6 million displaced). The then-ruling party unprecedentedly asked for international aid, reforming the Ministry of Relief and Resettlement and the Emergency Operations Centre in the process in a bid to avoid another Nargis. The response was largely successful. 
 
-Nevertheless, the National League for Democracy was voted in. Recovery plans were not implemented due to lack of funds, institutional weakness and a lack of talented and trusted personnel. Despite this, the Tatmadaw is still likely to respond to typhoon Yagi in good faith, at least when no minorities are concerned. 
+Nevertheless, the National League for Democracy was voted in. Recovery plans were not implemented due to lack of funds, institutional weakness and a lack of talented and trusted personnel. Despite this, the Tatmadaw is still likely to respond to typhoon Yagi in good faith, at least where no minorities are concerned. 
 
-The disenfranchisement of and discrimination against Rohingya persons were openly promoted by the state and its officers. This continued under the NLD administration. Anti-Muslim rhetoric and hate speech escalated tensions, the UN agreed to exclude the Rohingya from the census, the highest-ranking Muslim in government was assassinated and genocidal intent became genocidal action.  
+<br>
 
-The plight of the Rohingya is important as whilst ethnic, communal and political militias are currently united in their attempts to defeat the Tatmadaw, there is no guarantee for peace should the Tatmadaw fall. [Myanmar's armed groups](https://mmpeacemonitor.org/1426/armed-ethnic-groups/) are all very diverse in their goals, the populations and territories they govern, the languages that they speak and in their ideologies. No solution has been presented which includes repatriation of and restitution for the Rohingya. Peace cannot begin until the most marginalised groups have been recognised and no figure has demonstrated that they are able to satisfactorily work with all minorities. 
+```{r}
+myanmar |> 
+  filter(year == 2015) |> 
+  filter(sub_event_type != "Peaceful protest") |> 
+  group_by(month = floor_date(event_date, "month")) |> 
+  summarise(events = n_distinct(event_id_cnty)) |> 
+  ggplot(aes(x = month, y = events)) + 
+  geom_line() + 
+  labs(title = "Number of monthly conflict events in 2015, excludes peaceful protests", 
+       x = "", y = "Number of events", 
+       caption = "Data source: www.acleddata.com")
+  
+```
 
-<br><br><br>
+<br>
 
-## Current conflict situation
+Conflict fell in response to severe flooding in July 2015, but this had a limited and temporary effect. 
 
-The current conflict is very linear and concerned with the control of the road network. The highway network was constructed to link military garrisons, important [natural resources](https://adamsmithinternational.com/projects/governance-of-myanmars-extractive-industries/) (gems, ores, oil and gas), border crossings and, now, narcotics factories important to funding the war effort. The Tatmadaw have never been in full of Myanmar's territory and their ability to project power is now deeply compromised and, consequently, so is their economy. 
-
-Typhoon Yagi affected Mandalay, Naypyitaw, Bago and Shan East. Many of these areas are predominantly Bamar and still under Tatmadaw control. There are two major IDP sites -- in Meiktila, south of Mandalay, and Taunggyi, just north of Loikaw -- that are within the flood-affected areas. The current IDP population was, almost entirely, displaced due to conflict, with only around 15,000 persons having been displaced by natural disasters. IDPs have gathered in sites far from conflict, though accessing some of them will prove challenging ass they are behind the main front. 
-
-[Overland trade](https://thediplomat.com/2024/09/myanmars-border-trade-with-china-and-thailand-has-collapsed/) with China has fallen by 41% and by 87% with Thailand; the border crossing with India remains closed. Rebel groups are now preparing to siege Sittwe and Mandalay, the last major garrison before Naypyitaw. 
-
-Should the fall of the Tatmadaw seem imminent, all attempts must be made, through all channels, to prevent a free-for-all. Unrealistic as it seems, a peace conference must be called before the final push to Naypyitaw. A situation where the Tatmadaw feels that it has been forced into a "last stand" must be avoided at all costs. 
-
-Myanmar has never been stable. It had been stagnant for decades before becoming akin to a new economic wild west. That excitement dimmed when the country's institutions were not up to the task of governance. Whoever wins the civil war, will be in a worse position than even Assad in Syria, as the Myanmar state, its originally weak institutions and its civil service have been irreparably damaged.
 
 
 [![](./plots/roads_conflict_grey_red_combined.png)](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/plots/roads_conflict_grey_red_combined.png)
@@ -175,8 +180,8 @@ roads_conflict_black_grey <- myanmar |>
   scale_size_continuous(range = c(.1, 20), breaks = c(0, 1000, 10000, 50000, 100000, 200000), labels = comma) +
   geom_point(data = mmr_idp_points, aes(geometry = geometry, size = IDPs), alpha = .8, stat = "sf_coordinates",
             colour = "lightblue") + 
-  geom_sf_text(data = mmr_idp_points, aes(geometry = geometry, label = comma(IDPs)), 
-               size = 2, colour = "grey20", stat = "sf_coordinates", alpha = .7) + 
+  # geom_sf_text(data = mmr_idp_points, aes(geometry = geometry, label = comma(IDPs)), 
+  #              size = 2, colour = "grey20", stat = "sf_coordinates", alpha = .7) + 
   # plotting the actual data
   new_scale('size') +
   geom_point(aes(x = longitude, y = latitude , size = fatalities, alpha = year), colour = "red") + 
@@ -186,7 +191,8 @@ roads_conflict_black_grey <- myanmar |>
   labs(size = "Fatalities",  
        title = "Violent conflict in Myanmar since the 1 February 2021 coup, plotted over road network",
        subtitle = "From 2021-02-01 to 2024-10-04. Road network in blue. Sources: acleddata.com, UN MIMU\nFighting, once more dispersed throughout the road network, is now concentrated in and around major cities and garrisons.\nThe main front in Sagaing and Mandalay is where rebels are trying to break through to Naypyitaw.", 
-       alpha = "Year") +
+       alpha = "Year", 
+       caption = "The designations employed and the presentation of the material on this map do not imply the expression of any opinion whatsoever on the part of the Secretariat of the United Nations concerning the legal status\nof any country, territory, city or area or of its authorities, or concerning the delimitation of its frontiers or boundaries. This map is provided without any warranty of any kind whatsoever, either express or implied.") +
   theme_void() + 
   theme(plot.background = element_rect(fill = "white", colour = NA),
         legend.position = c(0.03, 0.90), 
@@ -199,7 +205,8 @@ roads_conflict_black_grey <- myanmar |>
         legend.key.height = unit(.8, "cm"), 
         axis.title.x = element_blank(), 
         axis.title.y = element_blank(), 
-        plot.margin = unit(c(5, 3, 0, 3), "cm")) + 
+        plot.margin = unit(c(5, 3, 0, 3), "cm"), 
+        plot.caption = element_text(hjust = .5, size = 9.5)) + 
   guides(
     
     alpha = guide_legend(order = 3),
@@ -243,19 +250,24 @@ mmr_actors |>
        caption = "Significant proliferation and fragmentation of conflict actors post-February 2021 coup.")
   
  
-  
+ggsave(here("plots", "actor_treemaps.png"), width = 29.7, height = 21, units = "cm", dpi = 300)  
 ```
 
 
 ```{r warning=FALSE, eval=FALSE}
 roads_new_combined <- roads_conflict_black_grey + 
   inset_element(actor_treemaps, 
-                0.05, 0.05, .56, .20, 
+                0.05, 0.05, .56, .19, 
                 align_to = "full") 
 
 ggsave(here("plots", "roads_conflict_grey_red_combined.png"), dpi = 300, width = 23.4, 
        height = 38, units = "in")
 
 ```
+
+
+
+
+
 
 
