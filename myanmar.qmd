@@ -60,7 +60,7 @@ myanmar <- readRDS(here("data", "myanmar.rds"))
 
 <br><br><br>
 
-## Background and current conflict situation
+## Background and current situation
 
 The current conflict is very linear and concerned with the control of the road network. The highway network was constructed to link military garrisons, important [natural resources](https://adamsmithinternational.com/projects/governance-of-myanmars-extractive-industries/) (gems, ores, oil and gas), border crossings and, now, narcotics factories important to funding the war effort. The Tatmadaw have never been in full of Myanmar's territory and their ability to project power is now deeply compromised and, consequently, so is their economy. 
 
@@ -96,7 +96,9 @@ myanmar |>
 
 Conflict fell in response to severe flooding in July 2015, but this had a limited and temporary effect. 
 
+<br><br><br>
 
+## Map
 
 [![](./plots/roads_conflict_grey_red_combined.png)](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/plots/roads_conflict_grey_red_combined.png)
 
