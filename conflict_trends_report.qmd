@@ -154,8 +154,6 @@ mmr_buffer <- st_read(here("data", "mmr_buffer", "mmr_buffer.shp"))
 
 kash_buffer <- st_read(here("data", "kash_buffer", "kash_buffer.shp"))
 
-acled_mmr <- readRDS(here("data", "acled_mmr.rds"))
-
 mmr_shape <- world_shape |> filter(str_detect(name, "Myanmar")) 
 
 
@@ -171,15 +169,11 @@ indo_adm1_pop <- read_csv(here("data", "idn_admpop_adm1_2020_v2.csv")) |>
     by = "adm1_pcode"
   )
 
-bangladesh <- readRDS(here("data", "bangladesh.rds"))
-
 ```
 
 ## Introduction
 
-This document is intended as an overview of observed conflict trends in the Asia-Pacific region in the past ten years. For that, we have used the ACLED (Armed Conflict Location and Event Data) dataset. The reasons for privileging this source over UCDP's Georefereced Event Dataset are detailed [here](https://risk-anticipation-hub.github.io/conflict-trends-asia-pacific/acled_ucdp.html). 
-
-Making sense of this data will require a deeper examination of the various contexts in this region. We have endeavoured to produce, rather than a template, more of a demonstration of what types of conflict analysis are possible, using ACLED data from the Asia-Pacific. 
+This report documents observed conflict trends in the Asia-Pacific region over the past ten years. The primary dataset used is the Armed Conflict Location and Event Data (ACLED). The reasons for privileging this source over UCDP's Georefereced Event Dataset are (detailed [here](https://risk-anticipation-hub.github.io/conflict-trends-asia-pacific/acled_ucdp.html)) were because ACLED has wider diversity of sources and records a wider range of conflict events. 
 
 The gif below displays cumulative conflict events collected by ACLED, over the past 10 years. This is a visualisation of all the data we are working with (or at least all observations or rows). 
 
@@ -191,7 +185,8 @@ Major conflict hotspots in the region are all quite clear: Afghanistan, Pakistan
 
 <br>
 
-This document is no way intended to be an exhaustive analysis of conflict in the region. And in our exploratory analysis of the data, we have found the following topics/sections to provide an reasonable overview of conflict trends in the region, corresponding largely to the sections of this report: 
+
+However, making sense of this data will require a deeper examination of the various contexts in this region. This document cannot be exhaustive, given the vastness of the Asia-Pacific and its mix of contexts. Instead, it is an exploratory analysis, limited to these topics:  
 
 * A review of conflict by event type: 5-year and 10-year summary charts and graphs. 
 
@@ -205,21 +200,17 @@ This document is no way intended to be an exhaustive analysis of conflict in the
 
 * Text mining of protest descriptions
 
-Data collection has not been uniform. ACLED is dependent on resources like any other agency and will expand their services if their capacity allows it -- we can see several countries pop in as conflict monitoring there comes "online". We accounted for this by both limiting timeframes (only plotting cross-border violence in Afghanistan and Pakistan for years where data collection was ongoing in both countries) and by making use of annual or quarterly means as well as per capita calculations to make for fair comparisons. 
+Data collection has not been uniform. ACLED, like any other agency, and will expand their services if their resources and capacity allow for it -- we can see several countries pop in as conflict monitoring there comes "online". We accounted for this by both limiting timeframes (only plotting cross-border violence in Afghanistan and Pakistan for years where data collection was ongoing in both countries) and by making use of annual or quarterly means as well as per capita calculations to make for fair comparisons. 
 
-Any analysis is limited by the knowledge of the subject matter expert and the time available. This means that there is much to be gained from both going larger (comparing regions, forms of government or economic blocs) and smaller (country-level or subnational) with this analysis. There are many definitely many avenues of exploration which we am not even aware of, given the vastness of the Asia-Pacific region and the contexts within it. This product doesn't supplant reports from in-country analysts -- who would be more accurate sources of information anyway -- as they can convey the "feel" of the situation on the ground, something necessary in conflict analysis, given how diverse political conflict can be. 
+ACLED has [regional overviews](https://acleddata.com/2024/09/06/asia-pacific-overview-august-2024/) but they tend to be more punctual, bird's eye and monthly products intended for different purposes. ACLED also adds value through its in-depth reports, such as this one on [Hindu nationalism](https://acleddata.com/2024/04/28/india-votes-2024-a-resurgent-hindu-nationalism-sets-the-stage-for-the-upcoming-elections-driving-communal-violence/) which highlight how country-level analysis tends to be very specific. In-depth reports from in-country analysts are far more accurate sources of information and can convey the "feel" of the situation on the ground, imparting their expert judgement. 
 
-ACLED has [regional overviews](https://acleddata.com/2024/09/06/asia-pacific-overview-august-2024/) but they tend to be more punctual, bird's eye and monthly products intended for different purposes. ACLED also adds value through its in-depth reports, such as this one on [Hindu nationalism](https://acleddata.com/2024/04/28/india-votes-2024-a-resurgent-hindu-nationalism-sets-the-stage-for-the-upcoming-elections-driving-communal-violence/) which highlight how country-level analysis tends to be very specific: 
+Nevertheless, this report does have some original research to offer, with relatively few overlaps with ACLED's current output. However, as opposed to an aid for decision making, this document serves more as a reasonable overview on conflict in the region. 
+
+However, any analysis is limited by the knowledge of the subject matter expert and the time available. This means that there is much to be gained from both going larger (comparing regions, forms of government or economic blocs) and smaller (country-level or subnational) with this type of analysis. 
+
+Any analysis is limited by the knowledge of the subject matter expert and the time available. This means that there is much to be gained from both going larger (comparing regions, forms of government or economic blocs) and smaller (country-level or subnational) with this analysis. There are definitely many more avenues of exploration, given the vastness of the Asia-Pacific and the diversity of the contexts within it. 
 
 
-<br>
-
-
-![](./plots/hindu_muslim_violence.png){width=60%}
-
-<br>
-
-Nevertheless, with this report, we are, at least, contributing original research, with relatively few overlaps with ACLED's current output. This is ultimately a living document and we seek feedback on its utility. I personally don't feel that it is "sharp" enough to be considered an aid for decision-making. It is more of a primer on conflict in the region.  
 
 <br><br><br>
 
@@ -526,10 +517,10 @@ event_type_streamgraph <- function(df, column_var) {
     geom_stream(aes(fill = event_type)) + 
     scale_fill_manual(values = c(
       "Battles" = "#9b2226",
-      "Violence against civilians" = "#bb3e03",
+      "Violence against civilians" = "#001219",
       "Explosions/Remote violence" = "#ee9b00",
       "Protests" = "#94d2bd",
-      "Strategic developments" = "#001219",
+      "Strategic developments" = "#e9d8a6",
       "Riots" = "#005f73"
     )) +
     facet_wrap(~ country, scales = "free_y") + 
@@ -569,7 +560,7 @@ event_stream_data |>
   filter(fatalities > 0) |>
   event_type_streamgraph(fatalities) + 
   labs(title = "Number of fatalities by event type over time", 
-       subtitle = "Data from 2014-01-01 to 2024-05-31, but not countries had full coverage during this period",
+       subtitle = "Data from 2014-01-01 to 2024-10-29, but not countries had full coverage during this period",
        y = "Fatalities per quarter")
 
 ```
@@ -586,11 +577,11 @@ The streamgraphs below show the number of political incidents per quarter broken
 
 It should be noted that in "stable" countries, the flavour of political conflict consists mainly of protests (which indicate widespread dissatisfaction but not that all nonviolent means have been exhausted). 
 
-Widespread dissatisfaction has manifested in Thailand in 2014 and in 2021. However, the Thai state has responded by firmly clamping down on its citizenry in both instances. Core issues have yet to be addressed and it is likely that unrest will flare up again. However, the share of protests compared to violent political incidents seems to be worsening, indicating that more actors (the state included) believe that non-violent means have been exhausted. 
+The Thai people manifested their dissatisfaction has manifested in 2014 and in 2021. However, the Thai state has responded by firmly clamping down on its citizenry in both instances, as can be seen from the swift decrease in events. This approach does not address the core issues behind the protests. Notably, the share of protests compared to violent political incidents seems to be worsening, indicating that more actors (the state included) believe that nonviolent solutions have been exhausted. 
 
-Bangladesh seems to have an outsized number of riots. Whilst protests are a natural feature of any democracy, riots are less so, given their disruptive and violent nature. Bangladesh seems to have a higher ratio of riots to protests than any other country except Papua New Guinea; this is not an esteemed group to be in, as it speaks to the inability of the state to maintain order and the ease of inciting the population (meaning that there are a multitude of injustices to inflame). 
+Bangladesh seems to have an outsized number of riots. Whilst protests are a natural feature of any democracy, riots are less so, given their disruptive and violent nature. Bangladesh seems to have a higher ratio of riots to protests than any other country except Papua New Guinea. This speaks to the inability of the state to maintain order and the ease of inciting the population to violence (which also means that there are injustices to inflame). 
 
-Political incidents in Bangladesh (as we will explore in later section) had been falling until they increased around 2018, around the time of the Rohingya genocide and the influx of 700,000 refugees into Cox's Bazaar. This, predictably, has been destabilising for the country, bringing to light many longstanding issues and grudges. 
+Political incidents in Bangladesh (as we will explore in later section) had been falling until they increased around 2018, around the time of the first quota reform protests.  
 
 <br> 
 
@@ -604,7 +595,7 @@ event_stream_data |>
   filter(country %out% c("Bhutan")) |> 
   event_type_streamgraph(events) + 
   labs(title = "Number of political incidents by event type over time", 
-       subtitle = "Data from 2014-01-01 to 2024-05-31, but not countries had full coverage during this period",
+       subtitle = "Data from 2014-01-01 to 2024-10-29, but not countries had full coverage during this period",
        y = "Events by quarter")
 ```
 
@@ -612,7 +603,7 @@ event_stream_data |>
 
 Let's take a closer look at some countries of interest and narrow down from a ten-year horizon to a five-year one:
 
-Myanmar and Afghanistan bear all the patterns of war. But what is surprising is the extent to which Philippine civil society has deteriorated due to damage from the drug war and the resulting political violence. When compared to other countries, their share of protests is abysmally low, lower even than Cambodia. Even as the drug war operations ceased and killings began to drop off sharply, the flavour of political unrest in the Philippines seems deeply changed, with its participatory democracy suffering massive setbacks. This is after all, not only the country of the EDSA revolution, but of the dictator Marcos as well. 
+Myanmar and Afghanistan bear all the patterns of war. But what is surprising is the extent to which Philippine civil society has deteriorated due to damage from the drug war and the resulting political violence. When compared to other countries, their share of protests is very low, lower even than Cambodia. Even as the drug war operations ceased and killings began to drop off sharply, the flavour of political unrest in the Philippines seems deeply changed, with its participatory democracy suffering massive setbacks. This is after all, not only the country of the EDSA revolution, but of the dictator Marcos as well. 
 
 <br>
 
@@ -626,15 +617,16 @@ event_stream_data |>
            quarter >= "2019-01-01") |>  
   event_type_streamgraph(events) + 
   labs(title = "Number of political incidents by event type over time", 
-       subtitle = "Data from 2019-01-01 to 2024-05-31",
+       subtitle = "Data from 2019-01-01 to 2024-10-29",
        y = "Events per quarter") + 
   theme(legend.position = "top") 
 ```
+
 <br>
 
-The Vietnamese state has seized the opportunity presented by COVID to advance state authority and clamp down on all types of political incidents (the clearest pattern of this in the region). China, for all the news of its vaunted lockdowns, only saw a more modest reduction in political incidents and is currently undergoing a mild increase in unrest related to labour and wage issues.
+From the dramatic decrease in political activity starting in 2020, it would appear that the Vietnamese state has seized the opportunity to presented by COVID to advance state authority and solidify its hold on the country. China saw a more modest reduction in political incidents, and is undergoing an increase in unrest related to labour and wage issues. 
 
-Indonesia is also experiencing an uptick in political incidents. The reasons behind this are to be explored. 
+Indonesia is has also seen a large increase in political incidents driven by economic woes, increasing state authoritarianism and violations of human rights and environmental and land rights. 
 
 In post-genocide Myanmar, with the longstanding civil war with ethnic and communal militias in the background, the population exploded in protests against the Tatmadaw's coup. However, nonviolent means were soon exhausted and the country is now in full civil war. 
 
@@ -644,7 +636,7 @@ With the victory of the Taliban, Afghanistan has seen a 96% reduction on conflic
 
 ## Protests 
 
-The most common form of political conflict is to protest. Protests are a non-violent form of political conflict which manifest when all legal and administrative avenues have been exhausted. Their existence indicates that people are able to express their support for or dissatisfaction with a given issue. But it also indicates a "hole" in governance which was previously unaddressed (and very might might continue to go unaddressed). 
+The most common form of political conflict is to protest. Protests are a non-violent form of political conflict which manifest when all legal and administrative avenues have been exhausted. Widespread protests indicate that "hole" in governance, given that such protests would only be possible if a significant proportion of the population not only agreed with them but also felt that the issue had gone unaddressed long enough or is egregious to manifest their outrage in public. 
 
 In this section, we explore the concerns of protesters in the Asia-Pacific. Below is a network graph of event descriptions of protests in the Asia-Pacific in the past 10 years. The links (edges) between each of the words indicate the strength of the relationship (transparency) and the number of times this word pair has occurred (thickness). Only the most common word pairs with correlations above 0.2 are included (for legibility). 
 
@@ -660,6 +652,8 @@ The main topics identified from the graph include (cross-border issues are in bo
 * *Service delivery and infrastructure:* Load shedding, Farms, Outages
 
 * **Coronavirus**
+
+These can be thought of as the prime destabilising factors for the region: in some cases, they have devolved into open conflict. Peace actors should seek the just resolution of issues and ensure that nonviolent options always remain open to people. 
 
 <br>
 
@@ -763,7 +757,8 @@ ggsave(here("plots", "protest_network_graph.png"),
 
 ### Indonesia
 
-Let's take a look at the graph for Indonesia: 
+Whilst the regional network graph provided a very broad overview and gave insight into common trends. A country-level one is far more interpretable. 
+
 
 <br>
 
@@ -824,17 +819,13 @@ ggsave(here("plots", "protest_network_graph_indonesia.png"),
 
 [![](./plots/protest_network_graph_indonesia.png)](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/plots/protest_network_graph_indonesia.png)
 
-<br>
-
-Whilst the regional network graph provided a very broad overview and gave insight into common trends. I'd argue that a more targeted network graph, like this one, at the country level is far more interpretable. 
-
 <br><br><br>
 
 ### Common protest topics
 
-The following charts, broken down by country show the (log of) odds that a word will appear in the event description (`notes`) for protest events in a given country. 
+The following charts, broken down by country show the (log of) odds that a word will appear in the event description for protest events in a given country. 
 
-As an example, the word most likely to appear in protest events in India is `BJP`. 
+As an example, the word most likely to appear in protest events in India is **BJP**. 
 
 Most topics are local or are place names (indicating significant protests in a specific area), but several common topics have been manually identified and are coloured in the chart below. 
 
@@ -920,15 +911,15 @@ protest_country_words |>
                                 country))) + 
   geom_col(aes(fill = word_group)) + 
   scale_fill_manual(values = c(
-    "economic" = "#f8766d",
-    "ethnic" = "#00bf7d",
-    "covid" = "#d89000",
-    "legislation" = "#9590ff",
-    "rural" = "#39b600",
-    "kashmir" = "#e76bf3",
-    "press" = "#00bfc4",
-    "state" = "#7A0403FF",
-    "student" = "#fde725ff",
+    "economic" = "#addc30",
+    "ethnic" = "#2c728e",
+    "covid" = "#21918c",
+    "legislation" = "#472d7b",
+    "rural" = "#28ae80",
+    "kashmir" = "#3b528b",
+    "press" = "#5ec962",
+    "state" = "#440154",
+    "student" = "#fde725",
     "other" = "grey50"
   )) +
   scale_y_reordered() + 
@@ -962,7 +953,8 @@ Are wage protests in China a sign of a slowing economy or is it that the only ac
 
 ```{r}
 
-acled_mmr |> 
+acled_filtered |> 
+  filter(country == "Myanmar") |> 
   mutate(pre_post_coup = case_when(
     event_date < "2016-10-09" ~ "Pre-Genocide",
                   event_date >= "2016-10-09" & event_date < "2021-02-01" ~ 
@@ -1142,10 +1134,10 @@ acled_filtered |>
   geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
   scale_fill_manual(values = c(
       "Battles" = "#9b2226",
-      "Violence against civilians" = "#bb3e03",
+      "Violence against civilians" = "#001219",
       "Explosions/Remote violence" = "#ee9b00",
       "Protests" = "#94d2bd",
-      "Strategic developments" = "#001219",
+      "Strategic developments" = "#e9d8a6",
       "Riots" = "#005f73"
     )) +
   scale_size_continuous(range = c(.1, 5)) + 
@@ -1191,10 +1183,10 @@ acled_filtered |>
   scale_x_continuous(breaks = c(2013, 2015, 2017, 2019, 2021, 2023)) + 
   scale_colour_manual(values = c(
       "Battles" = "#9b2226",
-      "Violence against civilians" = "#bb3e03",
+      "Violence against civilians" = "#001219",
       "Explosions/Remote violence" = "#ee9b00",
       "Protests" = "#94d2bd",
-      "Strategic developments" = "#001219",
+      "Strategic developments" = "#e9d8a6",
       "Riots" = "#005f73"
     )) +
   facet_wrap(~kashmir) + 
@@ -1263,10 +1255,10 @@ acled_filtered |>
   geom_line(aes(colour = event_type), lwd = 1) +
   scale_colour_manual(values = c(
       "Battles" = "#9b2226",
-      "Violence against civilians" = "#bb3e03",
+      "Violence against civilians" = "#001219",
       "Explosions/Remote violence" = "#ee9b00",
       "Protests" = "#94d2bd",
-      "Strategic developments" = "#001219",
+      "Strategic developments" = "#e9d8a6",
       "Riots" = "#005f73"
     )) + 
   scale_y_continuous(labels = comma) +
@@ -1309,10 +1301,10 @@ afpak_map <- function(tbl){
     geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
     scale_colour_manual(values = c(
       "Battles" = "#9b2226",
-      "Violence against civilians" = "#bb3e03",
+      "Violence against civilians" = "#001219",
       "Explosions/Remote violence" = "#ee9b00",
       "Protests" = "#94d2bd",
-      "Strategic developments" = "#001219",
+      "Strategic developments" = "#e9d8a6",
       "Riots" = "#005f73"
     )) +
     theme(plot.background = element_rect(fill = NA, colour = NA),
@@ -1418,10 +1410,10 @@ acled_afpak |>
   scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
   scale_colour_manual(values = c(
       "Battles" = "#9b2226",
-      "Violence against civilians" = "#bb3e03",
+      "Violence against civilians" = "#001219",
       "Explosions/Remote violence" = "#ee9b00",
       "Protests" = "#94d2bd",
-      "Strategic developments" = "#001219",
+      "Strategic developments" = "#e9d8a6",
       "Riots" = "#005f73"
     )) +
   facet_wrap(~afpak_border) + 
@@ -1453,10 +1445,10 @@ acled_afpak |>
   scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
   scale_colour_manual(values = c(
       "Battles" = "#9b2226",
-      "Violence against civilians" = "#bb3e03",
+      "Violence against civilians" = "#001219",
       "Explosions/Remote violence" = "#ee9b00",
       "Protests" = "#94d2bd",
-      "Strategic developments" = "#001219",
+      "Strategic developments" = "#e9d8a6",
       "Riots" = "#005f73"
     )) +
   facet_wrap(~afpak_border) + 
@@ -1472,116 +1464,235 @@ acled_afpak |>
 
 <br><br><br>
 
+## Bangladesh
 
 
-## Actors 
+The recent 2024 protests are unique in recent history -- this is apparent from the spike in fatalities in the plots below, which took place almost entirely during Sheikh Hasina's rule -- her second premiership began on 6 January 2009, before ACLED began data collection in Bangladesh.  
 
+In the plots below, the first grey line marks the start of the 2018 quota reform protests, and consequently, movement. The second grey line marks the overturn of the 2018 decision (which was in favour of the protesters) by the Supreme Court. 
 
-
-The plot below shows the activity (events per 100,000 persons) and lethality (fatalities per 100,000 persons) of the various conflict actor types in each country. The total size of each country's ISO code indicates the total amount of fatalities from events where each actor type was involved. 
+However, it should be noted that in contrast to before the 2018 protests, Bangladesh used to have a much higher ratio of riots to protests, though deaths from riots and violence against civilians seem to be a prevalent part of its political landscape. 
 
 <br>
 
-```{r fig.height=6, warning = FALSE}
-
-
-actor_order_list <- acled_actors |> 
-  mutate(quarter = floor_date(event_date, unit = "quarter")) |>
-  group_by(country, quarter) |> 
-  summarise(actors = n_distinct(actor), .groups = "drop") |> 
-  group_by(country) |> 
-  summarise(actors = mean(actors)) |> 
-  arrange(desc(actors)) |> 
-  pull(country)
-
-acled_actors |>
-  mutate(covid = ifelse(event_date >= "2020-03-11", "Post-covid", "Pre-covid"), 
-         covid = fct_relevel(covid, "Pre-covid", "Post-covid")) |>
-  group_by(actor_description, country, covid) |> 
-  summarise(events = n_distinct(event_id_cnty), 
-            fatalities = sum(fatalities, na.rm = TRUE), 
+```{r}
+acled_filtered |> 
+  filter(country == "Bangladesh") |> 
+  group_by(event_type, quarter = floor_date(event_date, unit = "quarter")) |> 
+  summarise(Events = n_distinct(event_id_cnty), 
+            Fatalities = sum(fatalities, na.rm = TRUE), 
             .groups = "drop") |> 
-  mutate(actor_description = fct_relevel(actor_description, 
-                                         c("Civilians", 
-                                           "State Forces",  
-                                           "Protesters",
-                                           "Identity Militias", 
-                                           "Rebel Groups", 
-                                           "Rioters", 
-                                           "Political Militias", 
-                                           "Other Forces"
-                                           ))) |>
-  left_join(
-    population_estimates |>
-      mutate(covid = ifelse(year >= 2020, "Post-covid", "Pre-covid")) |>
-      group_by(country, covid) |>
-      summarise(population = mean(population, na.rm = TRUE),
-                .groups = "drop"), 
-    by = c("country", "covid")
-  ) |> 
+  pivot_longer(cols = c(Events, Fatalities), 
+               names_to = "type", 
+               values_to = "value") |>
+  ggplot(aes(x = quarter, y = value)) + 
+  geom_vline(aes(xintercept=as.numeric(as.Date(dmy("17/2/2018")))), linetype=4, colour="black", 
+             alpha = .5, size = .5) +
+  geom_vline(aes(xintercept=as.numeric(as.Date(dmy("1/4/2024")))), linetype=4, colour="black", 
+             alpha = .5, size = .5) +
+  geom_area(aes(fill = event_type), 
+            size = .75) + 
+  scale_fill_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#001219",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#e9d8a6",
+      "Riots" = "#005f73"
+    )) +
+  facet_wrap(~ type, scales = "free_y", ncol = 1) + 
+  scale_y_continuous(labels = comma) + 
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y") + 
+  theme(strip.background = element_rect(fill = "black"), 
+        legend.position = "top") + 
+  labs(x = "", y = "",
+       title = "Conflict events and fatalities in Bangladesh, 2010-2024", 
+       fill = "") + 
+  guides(fill = guide_legend(nrow = 1))
+```
+
+<br>
+
+The driving forces behind these protests and riots is also clear. The plot below has, on the y-axis, words found in descriptions of protests and riots in Bangladesh and on the x-axis, the odds that a word is likely to appear in protest or riot descriptions. The plot has also been faceted to before and after the 2018 quota reform protests to examine if there has been a change in rhetoric and motivating factors behind public dissatisfaction. 
+
+Post-2018, whilst covid topics are predominant, so are words related to the incumbent: `resignation` and `government` are also prominent, in addition to `quota` and `reform`. Quota reform protests did spark larger-scale protests and brought additional grievances against the ruling administration to light. 
+
+<br>
+
+```{r}
+bangladesh_quota_words <- acled_filtered |> 
+  filter(country == "Bangladesh") |>  
+  filter(event_type %in% c("Protests", "Riots")) |> 
+  mutate(quota = ifelse(event_date <= "2018-02-17", "Pre-2018 protests", "Post-2018 protests")) |> 
+  select(event_id_cnty, notes, quota) |> 
+  unnest_tokens(word, notes) |> 
+  anti_join(stop_words, by = "word") |> 
+  filter(str_detect(word, "[a-z]")) |> 
+  filter(word %out% c("township", "district", "city", "village", 
+                      "region", "town", "coded", "province", "county", 
+                      "pradesh", "prefecture", "regency", 
+                      "barangay", "upazila", "january", "february", 
+                      "march", "april", "may",
+                        "june", "july", "august", "september", "october",
+                        "november", "december", 
+                        "report")) |> 
+  mutate(stem = SnowballC::wordStem(word, language = "porter"))   
+```
+
+```{r}
+bangladesh_quota_words |> 
+  count(word, quota, sort = TRUE) |> 
+  bind_tf_idf(quota, word, n) |> 
+  tidylo::bind_log_odds(quota, word, n) |> 
   mutate(
-    events_100k = events / population * 100000, 
-    fatalities_100k = fatalities / population * 100000, 
-    covid = fct_relevel(covid, c("Pre-covid", "Post-covid"))
+    word_group = case_when(
+      str_detect(
+        word,
+        "worker|arrear|wage|factori|union|kctu|picket|pension|affili|retire|commod|labor|price|cpi|employer|economic|financial|strike|owe|increase|inflation|company|salary|liveli|compensation")
+      ~ "economic",
+      str_detect(word, "tamil|hindu|nadu|indian") ~ "ethnic",
+      str_detect(word, "corona|lockdown|restrict|home|pandem|outbreak") ~ "covid",
+      str_detect(word, "omni|congress|articl|law|legco|sabha")  ~ "legislation",
+      str_detect(word, "provin|local|farmer|skm|bku|regen|farm|tribal") ~ "rural",
+      str_detect(word, "resignation|awami|government|police|arrest") ~ "state",
+      str_detect(word, "quota|reform|discrimination|reinstatement|abolition") ~ "quota",
+      str_detect(word, "ransacked|editor|media") ~ "riots",
+      str_detect(word, "jei|ics|shibir|bombs|crude|azam") ~ "terrorism",
+      str_detect(word, "blockaders|hartal|ganatantra|bnp|elections") ~ "opposition", 
+      str_detect(word, 
+                 "military|coup|lese|maj|president|release|oli|kpk") 
+      ~ "state", 
+      str_detect(word, "student|university|youth|teacher|education|school") ~ "student", 
+     TRUE ~ "other"),
+    word_group = fct_relevel(word_group, 
+                             c("state", "incumbent", "ethnic", "covid", 
+                               "opposition", "terrorism", "riots", "quota", 
+                               "other"))
   ) |>
+  filter(word %out% c("front", "conference", "demanding", 
+                      "including", "support", "demand", 
+                      "staged", "protest", "emerging", "sadar", 
+                      "demonstration", "movement", "people", 
+                      "brought", "leaving", "amid", "anti", 
+                      "rally")) |> 
+  arrange(desc(log_odds_weighted)) |> 
+  group_by(quota) |> 
+  slice(1:20) |> 
+  ungroup() |>
+  mutate(quota = fct_rev(quota)) |> 
+  ggplot(aes(x = log_odds_weighted, 
+             y = reorder_within(str_sub(word, 1, 25), 
+                                log_odds_weighted, 
+                                quota))) + 
+  geom_col(aes(fill = word_group)) + 
+  scale_fill_manual(values = c(
+    "terrorism" = "#addc30",
+    "covid" = "#2c728e",
+    "riots" = "#472d7b",
+    "opposition" = "#28ae80",
+    "incumbent" = "#5ec962",
+    "state" = "#440154",
+    "quota" = "#fde725",
+    "other" = "grey50"
+  )) +
+  scale_y_reordered() + 
+  facet_wrap(~ quota, scales = "free") + 
+  labs(title = "Descriptors of protests and riots in Bangladesh, 2010-2024", 
+       y = "", 
+       x = "Log-odds weighted", 
+       fill = "") + 
+  theme(strip.background = element_rect(fill = "black"))
+```
 
-  left_join(country_iso3, by = c("country" = "name")) |> 
-  ggplot(aes(x = events_100k + 0.0001, y = fatalities_100k + 0.0001)) + 
-  geom_hline(yintercept = 0.0001, lwd = .2, linetype = "dashed", alpha = .5) + 
-  geom_vline(xintercept = 0.0001, lwd = .2, linetype = "dashed", alpha = .5) + 
-  geom_point(alpha = 0, aes(size = fatalities, colour = actor_description)) + 
-  geom_text_repel(aes(label = iso3,  size = fatalities, colour = actor_description), 
-                  show.legend = FALSE, max.overlaps = 17, 
-                  box.padding = .1, 
-                  label.padding = .1, 
-                  label.r = .1, 
-                  force = .5,
-                  force_pull = .5, 
-                  vjust = "inward") + 
-  facet_wrap(~ covid) + 
-  scale_x_log10() +
-  scale_y_log10() + 
-  scale_color_manual(values = c(
-      "Civilians" = "#fde725ff",
-      "State Forces" = "#7A0403FF",
-      "Protesters" = "#4AC16DFF",
-      "Identity Militias" = "#4777EFFF",
-      "Rebel Groups" = "#FE9B2DFF",
-      "Rioters" = "#1BD0D5FF",
-      "Political Militias" = "#D3436EFF",
-      "Other Forces" = "grey30")) +
-  scale_size_continuous(range = c(1, 5)) +
-  guides(colour = guide_legend(override.aes = list(alpha = 1, 
-                                                   size = 1.8)), 
-         size = guide_legend(override.aes = list(alpha = 1, 
-                                                 colour = "grey"))) + 
- labs(x = "No. of Events per 100k", 
-      y = "No. of Fatalities per 100k",
-      title = "Conflict actor types by number of events and fatalities", 
-      size = "Fatalities", 
-      colour = "Actor type", 
-      caption = "Source: www.acleddata.com") + 
- theme(plot.caption = element_text(hjust = .5), 
-       strip.background = element_rect(fill = "black"), 
-       strip.text = element_text(face = "bold"), 
-       legend.text = element_text(size = 6), 
-       legend.title = element_text(size = 7)) 
 
-ggsave(here("plots", "actor_type_plot.png"), height = 7, width = 11, unit = "in", dpi =)
+```{r}
+bangladesh_quota_words |> 
+  filter(word == "aegis") |> 
+  sample_n(5) |> 
+  pull(event_id_cnty)
+```
+
+```{r}
+acled_filtered |> 
+  filter(event_id_cnty == "BGD25855") |> 
+  pull(notes)
+```
+
+
+
+<br><br><br>
+
+
+### Sub-national variations 
+
+```{r}
+bangladesh_admin2 <- acled_filtered |> 
+  filter(country == "Bangladesh") |> 
+  group_by(admin2) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE), 
+            events = n_distinct(event_id_cnty), 
+            .groups = "drop") |> 
+  arrange(desc(fatalities)) |> 
+  head(20) |> pull(admin2)
+```
+
+
+```{r}
+bangladesh_summary <- acled_filtered |> 
+  filter(country == "Bangladesh") |>   
+  mutate(quarter = floor_date(event_date, "quarter")) |> 
+  group_by(quarter, admin2) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE), 
+            events = n_distinct(event_id_cnty), 
+            .groups = "drop") |>
+  pivot_longer(cols = c(fatalities, events), 
+               names_to = "type", 
+               values_to = "value") |> 
+  mutate(admin2 = fct_relevel(admin2, bangladesh_admin2), 
+         type = fct_rev(type)) 
+
+bangladesh_summary |> 
+  filter(admin2 %in% c("Dhaka", "Chittagong", "Cox's Bazar", "Jessore")) |> 
+  ggplot(aes(x = quarter, y = value)) + 
+  geom_vline(aes(xintercept=as.numeric(quarter[c(145)])), linetype=4, colour="black", 
+             alpha = .5, 
+             size = .5) +
+  geom_line(aes(colour = type)) + 
+  facet_wrap(~admin2, scales = "free_y") + 
+  scale_x_date(date_breaks = "2 years", label = date_format("%Y")) + 
+  
+  theme(axis.text.x = element_text(size = 5), 
+        strip.background = element_rect(fill = "black")) + 
+  labs(title = "Top 4 districts (admin2) in Bangladesh, political incidents and resulting fatalities", 
+       subtitle = "Grey line marks Rohingya genocide", 
+       y = "", x = "")
 
 ```
 
 <br>
 
-Judging by the frequency of protest events in countries not at war, pre-covid, the countries and territories with the most dissatisfied populations were Nepal, Hong Kong, Pakistan, Sri Lanka, Cambodia and Bangladesh (with its predominance of riots). Post-covid, populations in Pakistan and Sri Lanka are still voicing their dissatisfaction. For the most part, protests seem to be less lethal after covid, though Pakistani protesters had almost as high a fatality rate as protesters in Myanmar.  
+Whilst widespread protests and riots and Dhaka are well-known, Cox's Bazaar has also become one of the most dangerous places in Bangladesh. Fatalities per event there and Jessore seem to be higher than in other areas. The genocide and consequent flight of 700,000 Rohingya refugees have no doubt been destabilising for the entire region. 
 
-Protests have increased in India and Indonesia, though riots are still at the roughly the same levels as before. Maldivians (at the bottom right) are protesting at greater levels than even pre-covid Hong Kong. Pre-covid, Cambodian protesters died at the highest rate of al lother protesters. 
+More testing is needed on how related unrest in Cox's Bazaar is to the rest of the country. 
 
-Pre-covid, the most prominent actors in Afghanistan, Pakistan and Myanmar indicated that these countries were experiencing open warfare, given the high activity and lethality experienced amongst state forces, rebel groups, political militias and civilians (any event involving a combatant and a civilian ends predictably). Bangladeshi and Thai actors border these most prolific actors, indicating significant instability and unrest in those countries. 
+Further destablilisation from Cox's Bazaar
 
-Post-covid, we see a rapid increase of deaths in Afghanistan and Myanmar, due to intensifying battles leading to victory for the Taliban and the post-coup civil war respectively. 
+```{r}
+genocide_t_test <- bangladesh_summary |> 
+  mutate(rohingya = ifelse(quarter < "2017-08-25", 
+                           "pre_genocide", 
+                           "post_genocide")) |> 
+  filter(type == "fatalities") |> 
+  select(-type) |> 
+  group_by(admin2, rohingya) |> 
+  summarise(mean_value = mean(value, na.rm = TRUE), 
+            .groups = "drop") |> 
+  pivot_wider(values_from = mean_value, 
+              names_from = rohingya)  %>%
+  t.test(.$post_genocide, .$pre_genocide, data = .) |> 
+  broom::tidy()
+```
 
-Papua New Guinea, where data collection began in `r acled_filtered |> filter(country == "Papua New Guinea")  %>% {min(.$event_date)}`, has showed itself to be one of the most violent countries in the Asia-Pacific. 
 
 
 

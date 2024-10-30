@@ -160,14 +160,14 @@ For Afghanhistan, basically, create a line approximating the border, then
 
 
 ```{r}
-asia_pacific_event_types <- acled_filtered |>  
+asia_pacific_event_types <- acled_filtered |>
   # filter(sub_event_type %out% c("Agreement", 
   #                               "Change to group/activity", 
   #                               "Headquarters or base established", 
   #                               "Non-violent transfer of territory")) |> 
   mutate(quarter = floor_date(event_date, "quarter")) %>%
   select(event_id_cnty, event_type, longitude, latitude, event_type, quarter, fatalities) %>%
-  mutate(quarter = map(quarter, ~seq.Date(as.Date(.), as.Date("2024-05-15"), by = "quarter"))) |> 
+  mutate(quarter = map(quarter, ~seq.Date(as.Date(.), as.Date("2024-10-29"), by = "quarter"))) |> 
   unnest(quarter) |> 
   mutate(quarter = format_ISO8601(quarter, precision = "ym")) %>%
   ggplot() + 
@@ -176,23 +176,24 @@ asia_pacific_event_types <- acled_filtered |>
   
   coord_sf(xlim = c(44, 180), 
            ylim = c(-44, 52)) + 
-  scale_colour_manual(
-    values = c("Battles" = "#7A0403FF", 
-      "Explosions/Remote violence" = "#FABA39FF", 
-      "Protests" = "#72FE5EFF", 
-      "Riots" = "#36AAF9FF", 
-      "Strategic developments" = "#30123BFF", 
-      "Violence against civilians" = "#FCFDBFFF")
-  ) + 
+  scale_colour_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#001219",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#e9d8a6",
+      "Riots" = "#005f73"
+    )) +
   scale_size_continuous(range = c(.1, 6), breaks = c(0, 10, 50, 100, 150)) +
   theme_void() +
-  guides(colour = guide_legend(override.aes = list(alpha = 1, size = 2.7)), 
+  guides(colour = guide_legend(override.aes = list(alpha = 1, size = 3.5)), 
          size = guide_legend(override.aes = list(alpha = 1, 
                                                  colour = "grey"))) +
   theme(plot.background = element_rect(fill = "grey99", colour = "grey99"), 
         rect = element_rect(fill = NA, colour = NA), 
-        legend.title = element_text(face = "bold", size = 16),
-        legend.position = c(0.07, 0.2), 
+        legend.title = element_text(face = "bold", size = 18),
+        legend.text = element_text(size = 15), 
+        legend.position = c(0.1, 0.2), 
         legend.box.background = element_blank(),
         legend.key = element_rect(colour = NA, fill = NA), 
         plot.caption = element_text(hjust = 0.5), 
@@ -200,7 +201,8 @@ asia_pacific_event_types <- acled_filtered |>
   gganimate::transition_manual(quarter) + 
   labs(title = "Asia-Pacific conflict events in { current_frame }", 
        caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com",
-       colour = "Event type")
+       colour = "Event type", 
+       size = "Fatalities")
 
 
 gganimate::animate(asia_pacific_event_types, width = 3240, height = 2160, res = 150, duration = 60, 

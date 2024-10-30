@@ -368,5 +368,177 @@ forecasts |>
   theme(strip.background = element_rect(fill = "black")) + 
   labs(fill = "Normalised\nvalue", 
        title = "Conflict forecasts -- 6 months from 2024-09")
+
+
+"Civilians" = "#fde725ff",
+"State Forces" = "#7A0403FF",
+"Protesters" = "#4AC16DFF",
+"Identity Militias" = "#4777EFFF",
+"Rebel Groups" = "#FE9B2DFF",
+"Rioters" = "#1BD0D5FF",
+"Political Militias" = "#D3436EFF",
+"Other Forces" = "grey30"
+
+```{r}
+bng_protests <- bangladesh |> 
+  filter(event_type %in% c("Protests", "Riots")) |> 
+  mutate(covid = ifelse(event_date >= "2020-03-11", "post-covid", "pre-covid")) |> 
+  select(event_id_cnty, notes, covid) |> 
+  unnest_tokens(word, notes) |> 
+  anti_join(stop_words, by = "word") |> 
+  filter(str_detect(word, "[a-z]")) |> 
+  filter(word %out% c("township", "district", "city", "village", 
+                      "region", "town", "coded", "province", "county", 
+                      "pradesh", "prefecture", "regency", 
+                      "barangay", "upazila", "january", "february", 
+                      "march", "april", "may",
+                      "june", "july", "august", "september", "october",
+                      "november", "december", 
+                      "report")) |> 
+  mutate(stem = SnowballC::wordStem(word, language = "porter")) 
+
+
+set.seed(234)
+
+protest_riot_network_graph_bangladesh <- bng_protests |>
+  filter(str_detect(event_id_cnty, "IDN")) |> 
+  # filter(covid == "post-covid") |> 
+  distinct(event_id_cnty, word) |> 
+  add_count(word) |> 
+  filter(n >= 100) |> 
+  pairwise_cor(word, event_id_cnty, sort = TRUE) |> 
+  filter(correlation >= .15) |> 
+  left_join(
+    acled_protests |> 
+      distinct(event_id_cnty, word) |> 
+      add_count(word) |> 
+      filter(n >= 100) |> 
+      pairwise_count(word, event_id_cnty, sort = TRUE), 
+    by = c("item1", "item2")
+  ) |> 
+  igraph::graph_from_data_frame() %>% 
+  ggraph(layout = "fr") + 
+  geom_edge_link(aes(alpha = correlation, edge_width = n), colour = "lightskyblue2", check_overlap = TRUE) +
+  scale_edge_width_continuous(range = c(.1, 2.5), trans = "log10") +
+  scale_alpha_continuous(range = c(0.01, 0.08)) +
+  geom_node_point(colour = "lightskyblue2", alpha = 0.2, size = .5) +
+  geom_node_text(aes(label = ifelse(name %in% 
+                                      c("myanmar", "laundering", "coronavirus",
+                                        "citizenship", "union", "load", "farm", 
+                                        "prices", "arrears", "palestine", "kashmir", 
+                                        "pension", "fukushima", "majeste",
+                                        "arrested", "oli", "manipur", "korea", 
+                                        "football", "rights", 
+                                        "incumbent", "drivers", "dispute", 
+                                        "papua", "kpk"),
+                                    str_to_title(name),
+                                    "")), 
+                 size = 4.3, 
+                 alpha = .7, 
+                 colour = "goldenrod2") + 
+  geom_node_text(aes(label = name), size = 1.5) + 
+  theme(legend.position = "none", 
+        plot.caption = element_text(hjust = .5)) + 
+  labs(title = "Network graph of protest descriptions in Indonesia 2014-2024", 
+       subtitle = "Line thickness indicates number of events involving those words, line transparency indicates the correlation between words. Selected words highlighted.", 
+       caption = "Source: www.acleddata.com")
+
+
+actor_order_list <- acled_actors |> 
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |>
+  group_by(country, quarter) |> 
+  summarise(actors = n_distinct(actor), .groups = "drop") |> 
+  group_by(country) |> 
+  summarise(actors = mean(actors)) |> 
+  arrange(desc(actors)) |> 
+  pull(country)
+
+acled_actors |>
+  mutate(covid = ifelse(event_date >= "2020-03-11", "Post-covid", "Pre-covid"), 
+         covid = fct_relevel(covid, "Pre-covid", "Post-covid")) |>
+  group_by(actor_description, country, covid) |> 
+  summarise(events = n_distinct(event_id_cnty), 
+            fatalities = sum(fatalities, na.rm = TRUE), 
+            .groups = "drop") |> 
+  mutate(actor_description = fct_relevel(actor_description, 
+                                         c("Civilians", 
+                                           "State Forces",  
+                                           "Protesters",
+                                           "Identity Militias", 
+                                           "Rebel Groups", 
+                                           "Rioters", 
+                                           "Political Militias", 
+                                           "Other Forces"
+                                         ))) |>
+  left_join(
+    population_estimates |>
+      mutate(covid = ifelse(year >= 2020, "Post-covid", "Pre-covid")) |>
+      group_by(country, covid) |>
+      summarise(population = mean(population, na.rm = TRUE),
+                .groups = "drop"), 
+    by = c("country", "covid")
+  ) |> 
+  mutate(
+    events_100k = events / population * 100000, 
+    fatalities_100k = fatalities / population * 100000, 
+    covid = fct_relevel(covid, c("Pre-covid", "Post-covid"))
+  ) |>
+  
+  left_join(country_iso3, by = c("country" = "name")) |> 
+  ggplot(aes(x = events_100k + 0.0001, y = fatalities_100k + 0.0001)) + 
+  geom_hline(yintercept = 0.0001, lwd = .2, linetype = "dashed", alpha = .5) + 
+  geom_vline(xintercept = 0.0001, lwd = .2, linetype = "dashed", alpha = .5) + 
+  geom_point(alpha = 0, aes(size = fatalities, colour = actor_description)) + 
+  geom_text_repel(aes(label = iso3,  size = fatalities, colour = actor_description), 
+                  show.legend = FALSE, max.overlaps = 17, 
+                  box.padding = .1, 
+                  label.padding = .1, 
+                  label.r = .1, 
+                  force = .5,
+                  force_pull = .5, 
+                  vjust = "inward") + 
+  facet_wrap(~ covid) + 
+  scale_x_log10() +
+  scale_y_log10() + 
+  scale_color_manual(values = c(
+    
+    "Civilians" = "#FCFFA4FF",
+    "State Forces" = "#000004FF",
+    "Protesters" = "#FAC127FF",
+    "Identity Militias" = "#9F2A63FF",
+    "Rebel Groups" = "#F57D15FF",
+    "Rioters" = "#65156EFF",
+    "Political Militias" = "#D44842FF",
+    "Other Forces" = "#280B54FF")) +
+  scale_size_continuous(range = c(1, 5)) +
+  guides(colour = guide_legend(override.aes = list(alpha = 1, 
+                                                   size = 1.8)), 
+         size = guide_legend(override.aes = list(alpha = 1, 
+                                                 colour = "grey"))) + 
+  labs(x = "No. of Events per 100k", 
+       y = "No. of Fatalities per 100k",
+       title = "Conflict actor types by number of events and fatalities", 
+       size = "Fatalities", 
+       colour = "Actor type", 
+       caption = "Source: www.acleddata.com") + 
+  theme(plot.caption = element_text(hjust = .5), 
+        strip.background = element_rect(fill = "black"), 
+        strip.text = element_text(face = "bold"), 
+        legend.text = element_text(size = 6), 
+        legend.title = element_text(size = 7)) 
+
+Actors 
+
+
+"The plot below shows the activity (events per 100,000 persons) and lethality (fatalities per 100,000 persons) of the various conflict actor types in each country. The total size of each country's ISO code indicates the total amount of fatalities from events where each actor type was involved. 
        
-       
+Judging by the frequency of protest events in countries not at war, pre-covid, the countries and territories with the most dissatisfied populations were Nepal, Hong Kong, Pakistan, Sri Lanka, Cambodia and Bangladesh (with its predominance of riots). Post-covid, populations in Pakistan and Sri Lanka are still voicing their dissatisfaction. For the most part, protests seem to be less lethal after covid, though Pakistani protesters had almost as high a fatality rate as protesters in Myanmar.  
+
+Protests have increased in India and Indonesia, though riots are still at the roughly the same levels as before. Maldivians (at the bottom right) are protesting at greater levels than even pre-covid Hong Kong. Pre-covid, Cambodian protesters died at the highest rate of al lother protesters. 
+
+Pre-covid, the most prominent actors in Afghanistan, Pakistan and Myanmar indicated that these countries were experiencing open warfare, given the high activity and lethality experienced amongst state forces, rebel groups, political militias and civilians (any event involving a combatant and a civilian ends predictably). Bangladeshi and Thai actors border these most prolific actors, indicating significant instability and unrest in those countries. 
+
+Post-covid, we see a rapid increase of deaths in Afghanistan and Myanmar, due to intensifying battles leading to victory for the Taliban and the post-coup civil war respectively. 
+
+Papua New Guinea, where data collection began in `r acled_filtered |> filter(country == "Papua New Guinea")  %>% {min(.$event_date)}`, has showed itself to be one of the most violent countries in the Asia-Pacific." 
+

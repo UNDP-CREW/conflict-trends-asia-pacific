@@ -137,72 +137,82 @@ mmr_idp_points <- mmr_idp |>
 
 ```
 
+```{r}
+mmr_floods <- st_read(here("data", "FL20240912MMR_SHP", "S1_20240903_20240923_FloodExtent.shp"))
+
+mmr_floods |> 
+  ggplot() + 
+  geom_sf(size = .1, colour = "grey60", fill = "#edf2f4", data = myanmar_adm1) + 
+  geom_sf(size = .1, colour = "blue", fill = "blue")
+```
+
+
 ```{r warning=FALSE, eval=FALSE}
 
 
 roads_conflict_black_grey <- myanmar |> 
   filter(event_date > "2021-01-31") |> 
   ggplot() +
-  geom_sf(size = .1, colour = "grey60", fill = "grey90", data = myanmar_adm1) + 
+  geom_sf(size = .1, colour = "grey60", fill = "#edf2f4", data = myanmar_adm1) + 
   geom_sf(data = road_shape |> filter(Road_Type %out% c("Main")), 
-          linewidth = .12, colour = "blue", alpha = .9) +
+          linewidth = .12, colour = "#2b2d42", alpha = .9) +
   geom_sf(data = road_shape |> filter(Road_Type %in% c("Main")), 
-          linewidth = .8, colour = "blue", alpha = .6) +
+          linewidth = .8, colour = "#2b2d42", alpha = .6) +
+  geom_sf(data = mmr_floods, size = .1, colour = "#00b4d8", fill = "#00b4d8") + 
   geom_sf_text(data = mmr_garrisons, aes(geometry = geometry, label = name), 
             size = 6.5, alpha = .8) + 
   geom_point(data = mmr_garrisons, aes(geometry = geometry, label = name), 
-            size = 7, alpha = .8, pch = 15, alpha = .8, stat = "sf_coordinates",
-            colour = "goldenrod2") + 
+            size = 8, alpha = .8, pch = 15, alpha = .8, stat = "sf_coordinates",
+            colour = "#e09f3e") + 
   geom_sf_text(data = mmr_borders, aes(geometry = geometry, label = name), 
             size = 6.5, alpha = .8) + 
   geom_point(data = mmr_borders, aes(geometry = geometry, label = name), 
-            size = 7, alpha = .8, pch = 18, alpha = .8, stat = "sf_coordinates",
-            colour = "cornflowerblue") +
+            size = 8, alpha = .8, pch = 15, alpha = .8, stat = "sf_coordinates",
+            colour = "#5f0f40") +
   # Lashio
-  geom_point(aes(x = 97.7525, y = 22.9665), size = 7,
-             colour = "goldenrod2", pch = 15, alpha = .8) +
+  geom_point(aes(x = 97.7525, y = 22.9665), size = 8,
+             colour = "#e09f3e", pch = 15, alpha = .8) +
   geom_text(aes(x = 97.7525, y = 22.9665), size = 6.5, label = "Lashio", colour = "seagreen") +
   # Myawaddy
-  geom_point(aes(x = 98.4797285, y = 16.6952072), size = 7, 
-             colour = "cornflowerblue", pch = 15, alpha = .8) +
+  geom_point(aes(x = 98.4797285, y = 16.6952072), size = 8, 
+             colour = "#5f0f40", pch = 15, alpha = .8) +
   geom_text(aes(x = 98.4797285, y = 16.6952072), size = 6.5, label = "Myawaddy", colour = "seagreen") + 
   geom_text(aes(x = 97.2114, y = 19.6740), size = 6.5, label = "Loikaw", colour = "seagreen") +
     # cities and border crossing legends
-  geom_point(aes(x = 100.6, y = 29.3), size = 4, 
-             colour = "goldenrod2", pch = 15, alpha = .8) +
-  geom_point(aes(x = 100.6, y = 29.15), size = 4, 
-             colour = "cornflowerblue", pch = 15, alpha = .8) +
-  geom_text(aes(x = 100.6, y = 29), size = 4, label = "A",
+  geom_point(aes(x = 99.1, y = 29.3), size = 10, 
+             colour = "#e09f3e", pch = 15, alpha = .8) +
+  geom_point(aes(x = 99.1, y = 29), size = 10, 
+             colour = "#5f0f40", pch = 15, alpha = .8) +
+  geom_point(aes(x = 99.1, y = 28.7), size = 10, 
+             colour = "#00b4d8", pch = 15, alpha = .8) +  
+  geom_text(aes(x = 99.1, y = 28.4), size = 10, label = "B",
              colour = "seagreen", pch = 15, alpha = .8) +
-  geom_text(aes(x = 101.1, y = 29.3), size = 4, 
+  geom_text(aes(x = 100.3, y = 29.3), size = 10, 
              colour = "grey30", label = "Military command") +
-  geom_text(aes(x = 101.066, y = 29.15), size = 4, 
+  geom_text(aes(x = 100.24, y = 29), size = 10, 
              colour = "grey30", label = "Border crossing") +
-  geom_text(aes(x = 101.09, y = 29), size = 4,colour = "grey30", label = "Rebel-controlled") +
-  scale_size_continuous(range = c(.1, 20), breaks = c(0, 1000, 10000, 50000, 100000, 200000), labels = comma) +
-  geom_point(data = mmr_idp_points, aes(geometry = geometry, size = IDPs), alpha = .8, stat = "sf_coordinates",
-            colour = "lightblue") + 
+  geom_text(aes(x = 100.12, y = 28.7), size = 10, 
+             colour = "grey30", label = "Flooded area") +
+  geom_text(aes(x = 100.29, y = 28.4), size = 10, colour = "grey30", 
+            label = "Rebel-controlled") +
+  geom_point(data = mmr_idp_points, aes(geometry = geometry, size = IDPs), alpha = .5, stat = "sf_coordinates",
+            colour = "#335c67") + 
+  scale_size_continuous(range = c(.1, 50), breaks = c(0, 1000, 10000, 50000, 100000, 200000), labels = comma) +
   # geom_sf_text(data = mmr_idp_points, aes(geometry = geometry, label = comma(IDPs)), 
   #              size = 2, colour = "grey20", stat = "sf_coordinates", alpha = .7) + 
   # plotting the actual data
   new_scale('size') +
-  geom_point(aes(x = longitude, y = latitude , size = fatalities, alpha = year), colour = "red") + 
-  scale_size(range = c(.1, 10), breaks = c(0, 10, 50, 100, 150)) +
-  scale_alpha_continuous(range = c(.05, .3), 
-                         breaks = c(2021, 2022, 2023, 2024)) + 
-  labs(size = "Fatalities",  
-       title = "Violent conflict in Myanmar since the 1 February 2021 coup, plotted over road network",
-       subtitle = "From 2021-02-01 to 2024-10-04. Road network in blue. Sources: acleddata.com, UN MIMU\nFighting, once more dispersed throughout the road network, is now concentrated in and around major cities and garrisons.\nThe main front in Sagaing and Mandalay is where rebels are trying to break through to Naypyitaw.", 
-       alpha = "Year", 
-       caption = "The designations employed and the presentation of the material on this map do not imply the expression of any opinion whatsoever on the part of the Secretariat of the United Nations concerning the legal status\nof any country, territory, city or area or of its authorities, or concerning the delimitation of its frontiers or boundaries. This map is provided without any warranty of any kind whatsoever, either express or implied.") +
+  geom_point(aes(x = longitude, y = latitude , size = fatalities), colour = "#d90429", alpha = .2) + 
+  scale_size(range = c(.1, 20), breaks = c(0, 10, 50, 100, 150)) +
+  labs(size = "Fatalities") +
   theme_void() + 
   theme(plot.background = element_rect(fill = "white", colour = NA),
-        legend.position = c(0.03, 0.90), 
+        legend.position = c(0.03, 0.80), 
         plot.title = element_text(size = 30, colour = "grey30"), 
         plot.subtitle = element_text(size = 20, colour = "grey30"), 
         strip.text = element_blank(), 
-        legend.text = element_text(size = 12, colour = "grey30"), 
-        legend.title = element_text(size = 15, colour = "grey30"), 
+        legend.text = element_text(size = 40, colour = "grey30"), 
+        legend.title = element_text(size = 40, colour = "grey30"), 
         legend.key.width = unit(1, "cm"),
         legend.key.height = unit(.8, "cm"), 
         axis.title.x = element_blank(), 
@@ -210,15 +220,56 @@ roads_conflict_black_grey <- myanmar |>
         plot.margin = unit(c(5, 3, 0, 3), "cm"), 
         plot.caption = element_text(hjust = .5, size = 9.5)) + 
   guides(
-    
-    alpha = guide_legend(order = 3),
-    size = guide_legend(override.aes = list(alpha = 1, colour = "red")) 
+    size = guide_legend(override.aes = list(alpha = 1, colour = "#d90429")) 
   ) 
 
 ggsave(here("plots", "roads_conflict_grey_red_time.png"), dpi = 300, width = 23.4, 
-       height = 35.8268, units = "in")
+       height = 38.376, units = "in")
+
+#title = "Violent conflict in Myanmar since the 1 February 2021 coup, plotted over road network",
+#       subtitle = "From 2021-02-01 to 2024-10-04. Road network in dark grey. Sources: acleddata.com, UN MIMU\nFighting, once more #dispersed throughout the road network, is now concentrated in and around major cities and garrisons.\nThe main front in Sagaing and #Mandalay is where rebels are trying to break through to Naypyitaw.", 
+#       caption = "The designations employed and the presentation of the material on this map do not imply the expression of any #opinion whatsoever on the part of the Secretariat of the United Nations concerning the legal status\nof any country, territory, city #or area or of its authorities, or concerning the delimitation of its frontiers or boundaries. This map is provided without any #warranty of any kind whatsoever, either express or implied.\nThe flooded area is based on a preliminary analysis and has not yet been #validated in the field. Please send ground feedback to UNOSAT."
+
 ```
 
+
+```{r eval=FALSE}
+roads_conflict_simple <- myanmar |> 
+  filter(event_date > "2021-01-31") |> 
+  ggplot() +
+  geom_sf(colour = "#2b2d42", fill = "#edf2f4", data = myanmar_adm1) + 
+  geom_sf_text(data = myanmar_adm1, aes(geometry = geometry, label = state), 
+            size = 10.5, alpha = .8) +
+  geom_sf(data = mmr_floods, size = .1, colour = "#00b4d8", fill = "#00b4d8") + 
+  geom_point(aes(x = 90, y = 26.7), size = 15, 
+             colour = "#00b4d8", pch = 15, alpha = .8) +
+  geom_text(aes(x = 91.2, y = 26.7), size = 13, 
+             colour = "grey30", label = "Flooded area") +
+  new_scale('size') +
+  geom_point(aes(x = longitude, y = latitude , size = fatalities), colour = "#d90429", alpha = .2) + 
+  scale_size(range = c(.1, 20), breaks = c(0, 10, 50, 100, 150)) +
+  labs(size = "Fatalities") +
+  theme_void() + 
+  theme(plot.background = element_rect(fill = "white", colour = NA),
+        legend.position = c(0.09, 0.80), 
+        plot.title = element_text(size = 30, colour = "grey30"), 
+        plot.subtitle = element_text(size = 20, colour = "grey30"), 
+        strip.text = element_blank(), 
+        legend.text = element_text(size = 40, colour = "grey30"), 
+        legend.title = element_text(size = 40, colour = "grey30"), 
+        legend.key.width = unit(1, "cm"),
+        legend.key.height = unit(.8, "cm"), 
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(), 
+        plot.margin = unit(c(5, 3, 0, 3), "cm"), 
+        plot.caption = element_text(hjust = .5, size = 9.5)) + 
+  guides(
+    size = guide_legend(override.aes = list(alpha = 1, colour = "#d90429"))) 
+
+ggsave(here("plots", "roads_conflict_simple.png"), dpi = 300, width = 23.4, 
+       height = 38.376, units = "in")
+
+```
 
 
 ```{r fig.height=5.5, fig.width=10, eval=FALSE}
@@ -262,8 +313,8 @@ roads_new_combined <- roads_conflict_black_grey +
                 0.05, 0.05, .56, .19, 
                 align_to = "full") 
 
-ggsave(here("plots", "roads_conflict_grey_red_combined.png"), dpi = 300, width = 23.4, 
-       height = 38, units = "in")
+ggsave(here("plots", "roads_conflict_grey_red_combined_no_title.png"), dpi = 300, width = 23.4, 
+       height = 38.376, units = "in")
 
 ```
 

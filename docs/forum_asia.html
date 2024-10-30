@@ -3306,9 +3306,7 @@ border: 0;
   <li><a href="#dataset" id="toc-dataset" class="nav-link active" data-scroll-target="#dataset">Dataset</a>
   <ul>
   <li><a href="#questions-about-how-the-data-was-encoded" id="toc-questions-about-how-the-data-was-encoded" class="nav-link" data-scroll-target="#questions-about-how-the-data-was-encoded">Questions about how the data was encoded</a></li>
-  </ul></li>
-  <li><a href="#network-graph-of-event-tags" id="toc-network-graph-of-event-tags" class="nav-link" data-scroll-target="#network-graph-of-event-tags">Network graph of event tags</a>
-  <ul>
+  <li><a href="#network-graph-of-event-tags" id="toc-network-graph-of-event-tags" class="nav-link" data-scroll-target="#network-graph-of-event-tags">Network graph of event tags</a></li>
   <li><a href="#perpetrators" id="toc-perpetrators" class="nav-link" data-scroll-target="#perpetrators">Perpetrators</a></li>
   </ul></li>
   <li><a href="#next-steps" id="toc-next-steps" class="nav-link" data-scroll-target="#next-steps">Next steps</a></li>
@@ -3538,7 +3536,7 @@ $ published                &lt;chr&gt; &quot;Published&quot;, &quot;Published&qu
 </div>
 </div>
 <p><br></p>
-<p>It should definitely be argued that these <code>hrd |&gt; filter(serial_number %in% one_type_of_tag) |&gt; nrow()</code> reports should be recoded so that detail is not lost when using the <code>rights_concerned</code>, <code>violations</code> or <code>hrd</code> columns.</p>
+<p>It should definitely be argued that these 265 reports should be recoded so that detail is not lost when using the <code>rights_concerned</code>, <code>violations</code> or <code>hrd</code> columns.</p>
 <p>Let us expand our search to look at some samples of events with a low number of tags, outside of the ones mentioned above:</p>
 <p><br></p>
 <div class="cell">
@@ -3595,9 +3593,8 @@ $ published                &lt;chr&gt; &quot;Published&quot;, &quot;Published&qu
 <p>As the other entries above show, this is more widespread in the dataset than initially thought and reports with low numbers of tags should be revisited.</p>
 <p><br><br><br></p>
 </section>
-</section>
-<section id="network-graph-of-event-tags" class="level2">
-<h2 class="anchored" data-anchor-id="network-graph-of-event-tags">Network graph of event tags</h2>
+<section id="network-graph-of-event-tags" class="level3">
+<h3 class="anchored" data-anchor-id="network-graph-of-event-tags">Network graph of event tags</h3>
 <p>Below is a network graph of event tags. These span the columns <code>rights_concerned</code>, <code>violations</code> and <code>hrd</code> in the original dataset.</p>
 <p>The thickness of each line represents how many events were reported with both tags; the transparency indicates the strength of the correlation between each tag.</p>
 <p>The dimensions of human rights, human rights violations and human rights defenders are not separate in the slightest. There is an argument to having these three columns in the original collapsed into an <code>event_tag</code> column.</p>
@@ -3640,9 +3637,10 @@ $ published                &lt;chr&gt; &quot;Published&quot;, &quot;Published&qu
 </div>
 </div>
 <p><br><br><br></p>
+</section>
 <section id="perpetrators" class="level3">
 <h3 class="anchored" data-anchor-id="perpetrators">Perpetrators</h3>
-<p>From the table of perpetrators identified in the FORUM-ASIA, the majority of perpetrators have not been coded: this is distinct from them being unknown, since <code>Unknown</code> has already been included as options.</p>
+<p>From the table of perpetrators identified in the FORUM-ASIA, the majority of perpetrators have not been coded: this is distinct from them being unknown, since <code>Unknown</code> has already been included as an option.</p>
 <p><br></p>
 <div class="cell">
 <div class="cell-output-display">
@@ -3714,7 +3712,7 @@ $ published                &lt;chr&gt; &quot;Published&quot;, &quot;Published&qu
 </div>
 </div>
 <p><br></p>
-<p>As with the other variables, let us take a sample of the data, this time from where where the perpetrator is blank:</p>
+<p>As with the other variables, let us take a sample of the data, this time from where where there is no perpetrator specified:</p>
 <p><br></p>
 <div class="cell">
 <div class="cell-output-display">
@@ -4399,7 +4397,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb2-178"><a href="#cb2-178" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-179"><a href="#cb2-179" aria-hidden="true" tabindex="-1"></a>&lt;br&gt;</span>
 <span id="cb2-180"><a href="#cb2-180" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-181"><a href="#cb2-181" aria-hidden="true" tabindex="-1"></a>It should definitely be argued that these <span class="in">`hrd |&gt; filter(serial_number %in% one_type_of_tag) |&gt; nrow()`</span> reports should be recoded so that detail is not lost when using the <span class="in">`rights_concerned`</span>, <span class="in">`violations`</span> or <span class="in">`hrd`</span> columns. </span>
+<span id="cb2-181"><a href="#cb2-181" aria-hidden="true" tabindex="-1"></a>It should definitely be argued that these <span class="in">`r hrd |&gt; filter(serial_number %in% one_type_of_tag) |&gt; nrow()`</span> reports should be recoded so that detail is not lost when using the <span class="in">`rights_concerned`</span>, <span class="in">`violations`</span> or <span class="in">`hrd`</span> columns. </span>
 <span id="cb2-182"><a href="#cb2-182" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-183"><a href="#cb2-183" aria-hidden="true" tabindex="-1"></a>Let us expand our search to look at some samples of events with a low number of tags, outside of the ones mentioned above: </span>
 <span id="cb2-184"><a href="#cb2-184" aria-hidden="true" tabindex="-1"></a></span>
@@ -4434,7 +4432,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb2-215"><a href="#cb2-215" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-216"><a href="#cb2-216" aria-hidden="true" tabindex="-1"></a>&lt;br&gt;&lt;br&gt;&lt;br&gt;</span>
 <span id="cb2-217"><a href="#cb2-217" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-218"><a href="#cb2-218" aria-hidden="true" tabindex="-1"></a><span class="fu">## Network graph of event tags</span></span>
+<span id="cb2-218"><a href="#cb2-218" aria-hidden="true" tabindex="-1"></a><span class="fu">### Network graph of event tags</span></span>
 <span id="cb2-219"><a href="#cb2-219" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-220"><a href="#cb2-220" aria-hidden="true" tabindex="-1"></a>Below is a network graph of event tags. These span the columns <span class="in">`rights_concerned`</span>, <span class="in">`violations`</span> and <span class="in">`hrd`</span> in the original dataset. </span>
 <span id="cb2-221"><a href="#cb2-221" aria-hidden="true" tabindex="-1"></a></span>
@@ -4511,7 +4509,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb2-294"><a href="#cb2-294" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-295"><a href="#cb2-295" aria-hidden="true" tabindex="-1"></a><span class="fu">### Perpetrators</span></span>
 <span id="cb2-296"><a href="#cb2-296" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-297"><a href="#cb2-297" aria-hidden="true" tabindex="-1"></a>From the table of perpetrators identified in the FORUM-ASIA, the majority of perpetrators have not been coded: this is distinct from them being unknown, since <span class="in">`Unknown`</span> has already been included as options. </span>
+<span id="cb2-297"><a href="#cb2-297" aria-hidden="true" tabindex="-1"></a>From the table of perpetrators identified in the FORUM-ASIA, the majority of perpetrators have not been coded: this is distinct from them being unknown, since <span class="in">`Unknown`</span> has already been included as an option. </span>
 <span id="cb2-298"><a href="#cb2-298" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-299"><a href="#cb2-299" aria-hidden="true" tabindex="-1"></a>&lt;br&gt;</span>
 <span id="cb2-300"><a href="#cb2-300" aria-hidden="true" tabindex="-1"></a></span>
@@ -4545,7 +4543,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb2-330"><a href="#cb2-330" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-331"><a href="#cb2-331" aria-hidden="true" tabindex="-1"></a>&lt;br&gt;</span>
 <span id="cb2-332"><a href="#cb2-332" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-333"><a href="#cb2-333" aria-hidden="true" tabindex="-1"></a>As with the other variables, let us take a sample of the data, this time from where where the perpetrator is blank: </span>
+<span id="cb2-333"><a href="#cb2-333" aria-hidden="true" tabindex="-1"></a>As with the other variables, let us take a sample of the data, this time from where where there is no perpetrator specified: </span>
 <span id="cb2-334"><a href="#cb2-334" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-335"><a href="#cb2-335" aria-hidden="true" tabindex="-1"></a>&lt;br&gt;</span>
 <span id="cb2-336"><a href="#cb2-336" aria-hidden="true" tabindex="-1"></a></span>
