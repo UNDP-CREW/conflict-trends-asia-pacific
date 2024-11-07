@@ -1,6 +1,6 @@
 ---
 title: "Exploratory data analysis of Asia-Pacific conflict trends"
-author: "Sean Ng"
+author: "Risk Anticipation Hub"
 date: "30 August 2024"
 toc: true
 toc-location: left
@@ -953,8 +953,25 @@ Are wage protests in China a sign of a slowing economy or is it that the only ac
 
 ```{r}
 
+sf_use_s2(FALSE)
+
 acled_filtered |> 
-  filter(country == "Myanmar") |> 
+  filter(!is.na(longitude) & !is.na(latitude) & 
+             country %in% 
+           c("Myanmar", "China", "Bangladesh", "Laos", "Thailand")) |>
+  left_join(
+    acled_filtered |> 
+      filter(!is.na(longitude) & !is.na(latitude) & 
+             country %in% 
+           c("Myanmar", "China", "Bangladesh", "Laos", "Thailand")) |>
+      st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |>
+              st_intersection(mmr_buffer) |>
+              st_make_valid() |> 
+              st_drop_geometry() |>
+              mutate(mmr_border = "Myanmar border") |>
+              select(event_id_cnty, mmr_border), 
+            by = "event_id_cnty") |> 
+  mutate(mmr_border = ifelse(is.na(mmr_border), "Non-border", mmr_border)) |> 
   mutate(pre_post_coup = case_when(
     event_date < "2016-10-09" ~ "Pre-Genocide",
                   event_date >= "2016-10-09" & event_date < "2021-02-01" ~ 
