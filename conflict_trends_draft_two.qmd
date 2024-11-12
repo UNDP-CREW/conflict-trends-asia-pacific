@@ -39,7 +39,7 @@ library(janitor)
 options(scipen = 100)
 theme_set(theme_light())
 
-
+range_wna <- function(x){(x-min(x, na.rm = TRUE))/(max(x, na.rm = TRUE)-min(x, na.rm = TRUE))}
 ```
 
 ```{r data, include=FALSE}
@@ -171,13 +171,11 @@ indo_adm1_pop <- read_csv(here("data", "idn_admpop_adm1_2020_v2.csv")) |>
 
 ```
 
-## 1. Introduction 
+## 1. Introduction and broad trends 
 
 This report documents observed conflict trends in the Asia-Pacific region over the past ten years, exploring trends relating to events, fatalities, conflict types and conflict actors using ACLED data^[The primary dataset used is the Armed Conflict Location and Event Data (ACLED). The primary reason for privileging this source over UCDP’s Georeferenced Event Dataset is because ACLED has a wider diversity of sources and records a wider range of conflict events.]. 
 
 This report is in line with ACLED's [metholodology](https://acleddata.com/knowledge-base/codebook/)^[The ACLED codebook contains all the documentation, including coding decisions and explanations of all recorded variables] and its categorisation of conflict events, which encompasses protests, riots, battles, explosions and remote violence and strategic development (such as arrests of key figures). 
-
-### 1.1 Conflict events and fatalities (broad trends)
 
 below displays cumulative conflict events over the past 10 years (2014-2023). 
 
@@ -194,9 +192,101 @@ Major conflict-affected countries in the region are all quite clear: Afghanistan
 
 <br>
 
-Looking back at a 10-year horizon (note that ACLED used to monitor a smaller set of countries) in @tbl-summary10, although the number of events is much higher than 10 years ago, the majority of countries have seen declines in the number of fatalities associated with political conflict. 
+However, both the magnitude (number of events or fatalities, as displayed above) and the severity (events and fatalities per capita) provide important perspectives on conflict: India may have a very large number of conflict events, but as can be seen from @fig-percapita below, on a per-capita basis (in this case the denominator per 100,000 persons), it sits sin the middle of the pack. 
 
-The exception to is being Myanmar (civil war and post-coup escalation). Nepal also saw an increase in fatalities, but the number remains too small to draw any strong conclusions. 
+The plot below is of the number of events per 100,000 persons per annum against the number of conflict fatalities per 100,000 persons per annum. The number of events is represented by the size of each point and the colour represents the total conflict fatalities experienced by each country over the past 10 years. 
+
+
+
+
+
+<br>
+
+```{r fig.height=6.5}
+
+#| label: fig-percapita
+
+acled_filtered |>
+  filter(year < 2024 & year > 2013) |> 
+  group_by(country, year) |> 
+  summarise(events = n_distinct(event_id_cnty), 
+            fatalities = sum(fatalities, na.rm = TRUE), 
+            .groups = "drop") |> 
+  left_join(
+    population_estimates, 
+    by = c("country", "year")
+  ) |> 
+  mutate(events_100k = events / population * 100000, 
+         fatalities_100k = fatalities / population * 100000) |> 
+  group_by(country) |> 
+  summarise(events_100k = mean(events_100k, na.rm = TRUE), 
+            fatalities_100k = mean(fatalities_100k, na.rm = TRUE), 
+            events = sum(events), 
+            fatalities = sum(fatalities)) |> 
+  arrange(desc(events_100k)) |> 
+  ggplot(aes(x = events_100k + 0.01, 
+             y = fatalities_100k + 0.01)) + 
+  #geom_segment(aes(x = .04, xend = .02, y = 2, yend = 2), arrow = arrow(), 
+               #size = .1, lwd = 1.2, colour = "lightsteelblue", alpha = .1) + 
+  #geom_segment(aes(x = .6, xend = .6, y = 11, yend = 35), arrow = arrow(), 
+               #size = .1, lwd = 1.2, colour = "bisque3", alpha =.1) + 
+  geom_smooth(method = "lm",formula = y ~ splines::bs(x, 2), se = FALSE, lwd = 1) + 
+  geom_hline(yintercept = 0.01, lwd = .2, linetype = "dashed", alpha = .5) + 
+  geom_vline(xintercept = 0.01, lwd = .2, linetype = "dashed", alpha = .5) + 
+  geom_hline(yintercept = 1.01, lwd = .9, linetype = "dashed", alpha = .4, colour = "cornflowerblue") + 
+  geom_vline(xintercept = 1.01, lwd = .9, linetype = "dashed", alpha = .4, colour = "cornflowerblue") + 
+  geom_point(aes(colour = fatalities, 
+                 size = events), alpha = .8) + 
+  # geom_text(aes(label = country), vjust = "inward") +
+  ggrepel::geom_text_repel(aes(label = country), size = 3, vjust = "inward", 
+                           max.overlaps = 20) +
+  scale_x_log10(breaks=c(0.01, 0.11, 1.01, 2.01, 5.01, 10.01), labels=\(x) x-0.01) + 
+  scale_y_log10(breaks=c(0.01, 0.11, 0.31, 1.01, 3.01, 10.01, 50.01), labels=\(x) x-0.01) +
+  scale_size_continuous(range = c(1, 9), breaks = c(100, 1000, 10000, 100000), 
+                        labels = comma) + 
+  scale_colour_viridis_c(option = "magma", direction = -1, end = .85, labels = comma) + 
+  labs(x = "Events per 100k", 
+       y = "Fatalities per 100k", 
+       title = "Severity and lethality of political conflict in the Asia-Pacific, 2014-2023", 
+       subtitle = "Mean annual events and fatalities per country per 100,000 persons", 
+       caption = "Source: www.accleddata.com", 
+       size = "No. Events", 
+       colour = "Fatalities") + 
+  theme(plot.caption = element_text(hjust = .5))
+
+
+
+```
+
+<br> 
+
+Make this a gif? 
+
+Whilst the immensity and diversity of the Asia-Pacific demand exceptions to every rule, we can identify a central tendency (the solid blue line) that most countries in the region seem to sit on. On one end of the line are disproportionately quiet autocracies (or their approximations) and on the other are countries where violence has spun out of state control. 
+
+Myanmar and Afghanistan have separated themselves from this central curve as a consequence of open warfare. Philippines, Papua New Guinea and Pakistan are all at risk or were at risk of doing the same in the past 10 years. The blue dotted reference lines were chosen based on a visual inspection of the data. 
+
+At the bottom of the plot, on either side of the reference line at `x = 1`, we see on one side, autocracies and on the other, democracies. These democratic countries have exited the central tendency as well. In these countries, an increase in political participation and conflict is not associated with an increase in fatalities. 
+
+Furthermore, all have populations who actively participate in the political process -- even the least protest-inclined of this group, Fiji and Japan, have higher rates of participation (i.e. number of events per 100k) than Indonesia or Malaysia, or even pre-2024 Bangladesh. 
+
+ACLED does not capture all conflict. The number of fatalities per 100,000 here is for comparison amongst countries within the ACLED dataset. Were we looking for the actual mortality rate, there are [preferred sources](https://www.who.int/data/gho/data/themes/mortality-and-global-health-estimates/ghe-leading-causes-of-death), which put the mortality rate in Afghanistan from ["collective violence and legal intervention"](https://data.who.int/countries/004) at 122 per 100,000 in 2021. The value for ACLED in Afghanistan in 2021 was 106 per 100,000. The homicide rate in Southeast Asia in four per 100,000, the [road traffic death rate](https://www.who.int/data/gho/data/indicators/indicator-details/GHO/estimated-road-traffic-death-rate-per-100-000-population) is 16.
+
+Over the course of this document, as we explore trends and drivers of conflict in the region, it is important to recall that there is no optimal amount of political conflict. Too little indicates suppression and too much, widespread dissatisfaction and, in some cases, open revolt amongst the populace. 
+
+But until we identify why and how countries can exit the central tendency and join the peaceful countries in the bottom-right corner, the majority of countries in the region will oscillate between upheavals and crackdowns, between disarray and abuses of state power.
+
+To paraphrase Martin Luther King, Jr., without justice, there is no peace, only order. 
+
+
+<br><br><br>
+
+
+### 1.1 Conflict events and fatalities (summary tables)
+
+Looking back at a 10-year horizon (note that ACLED used to monitor a smaller set of countries) in @tbl-summary10, although the number of events is much higher than 10 years ago, the majority of countries have seen declines in the number of fatalities associated with political conflict. However, most of these countries have also seen increases in the number of events, indicating increased that whilst there is more conflict, it is less bloody than before (except in Myanmar).
+
+<br>
 
 ```{r}
 summary_stats <- acled_filtered |> 
@@ -241,6 +331,8 @@ fatalities_diff_spec_2014 <- summary_stats |>
 ```
 
 
+
+
 <br>
 
 <style>
@@ -280,7 +372,9 @@ summary_stats |>
                                  "Pakistan", "Thailand", "Vietnam", "Cambodia", "Total"))) |> 
   arrange(country) |> 
   select(country, events_2014, events_2023, `events_diff%` = event_diff_pc, 
-         fatalities_2014, fatalities_2023, `fatalities_diff%` = fatalities_diff_pc) |> 
+         fatalities_2014, fatalities_2023, `fatalities_diff%` = fatalities_diff_pc) %>% 
+  select_all(~ gsub("_", " ", .)) %>%
+  select_all(~ str_to_title(.)) |> 
   kable(booktabs = TRUE, 
         caption = "10 years of conflict: comparison 2014 and 2023", 
         format.args = list(big.mark = ",")) |> 
@@ -297,9 +391,9 @@ summary_stats |>
 
 <br>
 
-Across a five-year horizon, about half the countries have seen a decrease in the number of events. The largest drop in political activity was in Vietnam. Afghanistan and the Philippines also saw de-escalations in their respective conflicts.  
+Across a five-year horizon, with more countries included in the comparison, the number of events and fatalities is down in most countries, though regional totals are boosted by Myanmar.  
 
-Myanmar, Indonesia, Iran and Bangladesh have all experienced a significant increase in unrest in the past five years. Though unrest in these countries is less bloody than before, with the exceptions of Myanmar and Pakistan. Developed democracies such as South Korea and Japan also saw large increases in political conflict, but these activities were not associated with any deaths. 
+Afghanistan saw the largest decline in political conflict, followed by Vietnam. Myanmar, Indonesia, Iran and Bangladesh have each experienced a significant increase in unrest in the past five years. As mentioned before, though countries like South Korea and Japan also large increases in political conflict, these activities were not associated with any deaths. 
 
 <br>
 
@@ -382,7 +476,9 @@ summary_stats |>
                                  "Total"))) |> 
   arrange(country) |> 
   select(country, events_2019, events_2023, `events_diff%` = event_diff_pc, 
-         fatalities_2019, fatalities_2023, `fatalities_diff%` = fatalities_diff_pc) |>
+         fatalities_2019, fatalities_2023, `fatalities_diff%` = fatalities_diff_pc) %>%
+  select_all(~ gsub("_", " ", .)) %>%
+  select_all(~ str_to_title(.)) |> 
   kable(caption = "5 years of conflict: comparison 2019 and 2023", 
         format.args = list(big.mark = ",")) |> 
   kable_classic_2("striped", full_width = TRUE) |> 
@@ -397,44 +493,328 @@ summary_stats |>
 
 <br>
 
-The increase in the number of events -- especially if it was due primarily to protests -- is not an immediate cause for concern. South Koreans have managed to enact several changes through their protests (like the removal of President Park Geun-hye), as have Malaysians and Nepalese. 
+As mentioned, the increase in the number of conflict events -- especially if they were primarily due to protests -- is not an immediate cause for concern. South Koreans have managed to enact several changes through their protests (like the removal of President Park Geun-hye), as have Malaysians and Nepalese. 
 
-However, with reference to the trendlines in @fig-fatalitiesline, conflict fatalities are down for almost all countries. Just like an increase in conflict events is not always associated with an increases in injustice and violence, a reduction in political conflict only indicates stabilisation or suppression, not that any underlying issues have been resolved. 
+With reference to the trendlines in @fig-eventsfatalitiesline, conflict fatalities are down for almost all countries. However, just like an increase in conflict events is not always associated with an increases in injustice and violence, a reduction in political conflict only indicates stabilisation or suppression, not that any underlying issues have been resolved. 
+
+Afghanistan, China, Vietnam, Cambodia, Laos, Hong Kong, Philippines and the Solomon Islands have each seen a drastic fall in conflict events and fatalities over the past 10 years. Fatalities in Pakistan and Bangladesh were trending upwards, at the end of 2023 (2024 has not yet concluded and for this comparison, we have elected to use only full years of data). 
+
+The remaining countries each experience periodic spikes in conflict -- the clearest example of which is Iran where the crest of various protest movements is immediately visible. 
 
 <br>
 
-```{r fig.height= 6.5}
-#| label: fig-fatalitiesline
+```{r events-fatalities-line, warning = FALSE, fig.height= 6.5}
+
+#| label: fig-eventsfatalitiesline
+
 
 acled_filtered |> 
-  filter(year > 2013 & year <= 2025) |> 
+  filter(year > 2013 & year <= 2025) |>
   filter(country %in% most_fatalities_list) |> 
   filter(country %out% c("Singapore", "Bhutan", "Fiji", "Maldives", 
                          "South Korea", "New Zealand", "Vanuatu")) |> 
   group_by(country, year) |> 
-  summarise(fatalities = sum(fatalities, na.rm = TRUE), 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE),
+            events = n_distinct(event_id_cnty), 
             .groups = "drop") |> 
-  left_join(population_estimates, 
-            by = c("country", "year")) |>
-  mutate(date = as.Date(paste(year, 1, 1, sep="-")), 
-         fatalities_100k = fatalities / population * 100000, 
-         country = fct_relevel(country, most_fatalities_list)) |>
-  
-  ggplot(aes(x = date, y = fatalities)) + 
-  geom_smooth(alpha = .1, colour = "salmon") + 
-  geom_line(aes(group = country)) + 
-  scale_x_date(date_labels = "%Y", 
-               date_breaks = "2 years") + 
+  pivot_longer(cols = c(fatalities, events), 
+               names_to = "indicator", 
+               values_to = "value") |> 
+  group_by(country, indicator) |> 
+  mutate(value_range = range_wna(value)) |> 
+  ungroup() |> 
+  mutate(date = as.Date(paste(year, 1, 1, sep="-"))) |> 
+  mutate(country = fct_relevel(country, most_fatalities_list), 
+         indicator = str_to_title(indicator)) |>
+  ggplot(aes(x = date, y = value)) + 
+  geom_smooth(aes(colour = indicator), 
+              se = FALSE) + 
   facet_wrap(~ country, 
              scales = "free_y") +
   scale_y_continuous(labels = comma) +
+  scale_colour_manual(values = c("Events" = "#264653", 
+                                 "Fatalities" = "#e76f51")) +
   theme(axis.text.x = element_text(angle = 60, hjust = 1), 
-        strip.background = element_rect(fill = "black")) + 
+        strip.background = element_rect(fill = "black"), 
+        legend.position = "top", 
+        legend.key.height = unit(.3, "cm")) + 
   labs(title = "Political incident fatalities by country in descending order, 2014-2023", 
-       subtitle = "Black are the actual events, the trend line is in pink",
+       subtitle = "Events are in dark blue, fatalities in red",
        y = "Annual fatalities", 
-       x = "")
+       x = "", 
+       colour = "")
+    
 ```
+
 
 <br><br><br>
 
+
+### 1.2 Event type streamgraphs
+
+
+
+```{r event-stream-data}
+event_stream_data <- acled_filtered |> 
+  mutate(quarter = floor_date(event_date, unit = "quarter")) |> 
+  group_by(country, event_type, quarter) |> 
+  summarise(events = n_distinct(event_id_cnty), 
+            fatalities = sum(fatalities, na.rm = TRUE), 
+            .groups = "drop") 
+
+event_type_streamgraph <- function(df, column_var) {
+  
+  column_var <- enquo(column_var)
+  
+  df |>
+    ggplot(aes(x = quarter, y = !!column_var, fill = event_type)) + 
+    geom_stream(aes(fill = event_type)) + 
+    scale_fill_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#001219",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#e9d8a6",
+      "Riots" = "#005f73"
+    )) +
+    facet_wrap(~ country, scales = "free_y") + 
+    labs(fill = "", 
+         x = "") +
+    theme(legend.position = "top",
+          legend.key.width = unit(.3, "cm"), 
+          legend.key.height = unit(.3, "cm"),
+          legend.text = element_text(size = 5), 
+          axis.text.y = element_text(size = 4), 
+          axis.text.x = element_text(size = 4, angle = 30, hjust = 1, vjust = 1), 
+          strip.text = element_text(size = 7), 
+          strip.background = element_rect(fill = "black"), 
+          plot.title = element_text(size = 13), 
+          plot.subtitle = element_text(size = 11)) + 
+    guides(fill = guide_legend(nrow = 1))
+}
+
+```
+
+
+#### 1.2.1 Fatalities over time 
+
+The charts below are streamgraphs, where values over time -- in the case below, quarterly conflict fatalities -- are represented by the area. Though there are negative values shown, the Y-axis values are absolute; a streamgraph makes spikes in violence (from elections, for instance) much more visible. 
+
+From @fig-fatalitiesstream, sorted in order of number of **fatalities** from political incidents per quarter, it is clear that Afghanistan, Myanmar, Pakistan and Philippines have experienced severe political unrest, ranging from war, terrorism and political killings. Conflict in Afghanistan and Philippines has fallen significantly since its peak, but Myanmar is still in full conflagration and Pakistan is on the upswing: 
+
+<br>
+
+```{r fig.height = 6.5}
+
+#| label: fig-fatalitiesstream
+
+
+event_stream_data |> 
+  mutate(country = fct_relevel(country, most_fatalities_list)) |>
+  filter(country %out% c("Australia", "Japan", "Mongolia", 
+                         "New Zealand", "Vanuatu", "Timor-Leste", 
+                         "Maldives")) |> 
+  filter(fatalities > 0) |>
+  event_type_streamgraph(fatalities) + 
+  labs(title = "Number of fatalities by event type over time", 
+       subtitle = "Data from 2014-01-01 to 2024-10-29, but not countries had full coverage during this period",
+       y = "Fatalities per quarter")
+
+```
+
+<br>
+
+It appears that Indonesia, Iran, Nepal and Cambodia each have experienced much cyclical political violence related to elections and mass protest movements. Though in Cambodia, the deaths associated with protests in 2018 might have served as a strong deterrent. 
+
+
+<br><br>
+
+#### Events over time
+
+@fig-eventsstream shows the number of political incidents per quarter broken down by event type, sorted in order by the **number of political** incidents. 
+
+It should be noted that in "stable" countries, the flavour of political conflict consists mainly of protests (which indicate widespread dissatisfaction but also that not all nonviolent means have been exhausted). 
+
+The Thai people manifested their dissatisfaction has manifested in 2014 and in 2021. However, the Thai state responded by firmly clamping down on its citizenry in both instances, as can be seen from the swift decrease in events. This approach does not address the core issues behind the protests. Notably, the share of protests compared to violent political incidents seems to be worsening, possibly indicating that more actors (the state included) believe that nonviolent solutions have been exhausted. 
+
+Bangladesh seems to have an outsized number of riots. Whilst protests are a natural feature of any democracy, riots are less so, given their disruptive and violent nature. Bangladesh seems to have a higher ratio of riots to protests than any other country except Papua New Guinea. This speaks to the inability of the state to maintain order and the ease of inciting the population to violence (which speaks to the existence of many instances of injustice and hurt to inflame). 
+
+Political incidents in Bangladesh (as we will explore in later section) had been falling until they increased around 2018, around the time of the first quota reform protests.  
+
+<br> 
+
+
+
+
+```{r fig.height = 6.5}
+
+#| label: fig-eventsstream
+
+event_stream_data |> 
+  mutate(country = fct_relevel(country, most_events_list)) |>
+  filter(country %out% c("Bhutan")) |> 
+  event_type_streamgraph(events) + 
+  labs(title = "Number of political incidents by event type over time", 
+       subtitle = "Data from 2014-01-01 to 2024-10-29, but not countries had full coverage during this period",
+       y = "Events by quarter")
+```
+
+<br>
+
+Let's take a closer look at some countries of interest and narrow down from a ten-year horizon to a five-year one:
+
+Myanmar and Afghanistan bear all the patterns of war. But what is surprising is the extent to which Philippine civil society has deteriorated due to damage from the drug war and the resulting political violence. When compared to other countries, their share of protests is very low, lower even than Cambodia. Even as the drug war operations ceased and killings began to drop off sharply, the flavour of political unrest in the Philippines seems deeply changed, with its participatory democracy suffering massive setbacks. This is after all, not only the country of the EDSA revolution, but of the dictator Marcos as well. 
+
+<br>
+
+```{r fig.height = 6}
+event_stream_data |> 
+  mutate(country = fct_relevel(country, most_events_list)) |>
+  filter(country %in% c("Myanmar", "Afghanistan", 
+                        "Philippines", "China", 
+                        "Indonesia", "Vietnam"
+                        ) & 
+           quarter >= "2019-01-01") |>  
+  event_type_streamgraph(events) + 
+  labs(title = "Number of political incidents by event type over time", 
+       subtitle = "Data from 2019-01-01 to 2024-10-29",
+       y = "Events per quarter") + 
+  theme(legend.position = "top") 
+```
+
+<br>
+
+From the dramatic decrease in political activity starting in 2020, it would appear that the Vietnamese state has seized the opportunity to presented by COVID to advance state authority and solidify its hold on the country. China saw a more modest reduction in political incidents, and is undergoing an increase in unrest related to labour and wage issues. 
+
+Indonesia is has also seen a large increase in political incidents driven by economic woes, increasing state authoritarianism and violations of human rights and environmental and land rights. 
+
+In post-genocide Myanmar, with the longstanding civil war with ethnic and communal militias in the background, the population exploded in protests against the Tatmadaw's coup. However, nonviolent means were soon exhausted and the country is now in full civil war. 
+
+With the victory of the Taliban, Afghanistan has seen a 96% reduction on conflict fatalities and a 83% drop in conflict events since 2019 levels. However, civil society has by no means recovered, nor does Afghanistan bear any of the hallmarks of a participatory democracy. 
+
+<br><br><br>
+
+## Protests 
+
+The most common form of political conflict is to protest. Protests are a non-violent form of political conflict which manifest when all legal and administrative avenues have been exhausted. Widespread protests indicate that "hole" in governance, given that such protests would only be possible if a significant proportion of the population not only agreed with them but also felt that the issue had gone unaddressed long enough or is egregious to manifest their outrage in public. 
+
+In this section, we explore the concerns of protesters in the Asia-Pacific. Below is a network graph of event descriptions of protests in the Asia-Pacific in the past 10 years. The links (edges) between each of the words indicate the strength of the relationship (transparency) and the number of times this word pair has occurred (thickness). Only the most common word pairs with correlations above 0.2 are included (for legibility). 
+
+
+The main topics identified from the graph include (cross-border issues are in bold): 
+
+* *Contentious territories:* **Myanmar**, **Palestine**, Korea, Manipur, **Kashmir**, **Fukushima**
+
+* *Legislation and state overreach:* Citizenship amendment, Lese majeste, Oli (Nepal), Arrest, **Money laundering**
+
+* *Economic concerns and service delivery:* Unions, **Prices**, Arrears, Pensions, Hikes, Load shedding, Farms, Outages
+
+* **Coronavirus**
+
+These can be thought of as the prime destabilising factors for the region: in some cases, they have devolved into open conflict. Peace actors should seek the just resolution of issues and ensure that nonviolent options always remain open to people. 
+
+Regional tensions, state overreach and bread and butter issues are the issues that people in the Asia-Pacific protested the most about. 
+
+Though inflation seems to have been arrested, the poverty rate in these countries should be monitored very carefully. 
+
+The predominance of bread-and-butter concerns like the economy and the basic service delivery still dominate
+
+<br>
+
+```{r}
+protest_country_words <- acled_filtered |> 
+  filter(event_type == "Protests") |> 
+  mutate(covid = ifelse(event_date >= "2020-03-11", "post-covid", "pre-covid")) |> 
+  select(event_id_cnty, country, notes, covid) |> 
+  unnest_tokens(word, notes) |>
+  anti_join(stop_words, by = "word") |> 
+  filter(str_detect(word, "[a-z]")) |> 
+  filter(word %out% c("township", "district", "city", "village", 
+                      "region", "town", "coded", "province", "county", 
+                      "pradesh", "prefecture", "regency", 
+                      "barangay", "upazila") & 
+           word %out% c("january", "february", "march", "april", "may", 
+         "june", "july", "august", "september", "october", 
+         "november", "december")) |> 
+  mutate(stem = SnowballC::wordStem(word, language = "porter"))
+
+```
+
+
+```{r}
+acled_protests <- acled_filtered |> 
+  filter(event_type == "Protests") |> 
+  mutate(covid = ifelse(event_date >= "2020-03-11", "post-covid", "pre-covid")) |> 
+  select(event_id_cnty, notes, covid) |> 
+  unnest_tokens(word, notes) |> 
+  anti_join(stop_words, by = "word") |> 
+  filter(str_detect(word, "[a-z]")) |> 
+  filter(word %out% c("township", "district", "city", "village", 
+                      "region", "town", "coded", "province", "county", 
+                      "pradesh", "prefecture", "regency", 
+                      "barangay", "upazila", "january", "february", 
+                      "march", "april", "may",
+                        "june", "july", "august", "september", "october",
+                        "november", "december", 
+                        "report")) |> 
+  mutate(stem = SnowballC::wordStem(word, language = "porter")) 
+```
+
+
+```{r eval=FALSE}
+
+set.seed(234)
+
+protest_network_graph <- acled_protests |>
+  # filter(covid == "post-covid") |> 
+  distinct(event_id_cnty, word) |> 
+  add_count(word) |> 
+  filter(n >= 425) |> 
+  pairwise_cor(word, event_id_cnty, sort = TRUE) |> 
+  filter(correlation >= .207) |> 
+  left_join(
+    acled_protests |> 
+      distinct(event_id_cnty, word) |> 
+      add_count(word) |> 
+      filter(n >= 425) |> 
+      pairwise_count(word, event_id_cnty, sort = TRUE), 
+    by = c("item1", "item2")
+  ) |> 
+  igraph::graph_from_data_frame() %>% 
+  ggraph(layout = "fr") + 
+  geom_edge_link(aes(alpha = correlation, edge_width = n), colour = "cornflowerblue", check_overlap = TRUE) +
+  scale_edge_width_continuous(range = c(.1, 2.5), trans = "log10") +
+  scale_alpha_continuous(range = c(0.01, 0.08)) +
+  geom_node_point(colour = "cornflowerblue", alpha = 0.2, size = .5) +
+  geom_node_text(aes(label = ifelse(name %in% 
+                                        c("myanmar", "laundering", "coronavirus",
+                                          "citizenship", "union", "electricity", "farm", 
+                                          "prices", "wage", "palestine", "kashmir", 
+                                          "pension", "fukushima", "majeste",
+                                          "arrest", "oli", "manipur", "kctu"),
+                                      str_to_title(name),
+                                      "")), 
+                 size = 4.5, 
+                 alpha = .7, 
+                 colour = "goldenrod2") + 
+  geom_node_text(aes(label = name), size = 1.5) + 
+  theme(legend.position = "none", 
+        plot.caption = element_text(hjust = .5)) + 
+  labs(title = "Network graph of post-covid protest descriptions", 
+       subtitle = "Line thickness indicates number of events involving those words, line transparency indicates the correlation between words. Selected words highlighted.", 
+       caption = "Source: www.acleddata.com")
+  
+
+ggsave(here("plots", "protest_network_graph.png"), 
+       width = 42.0, height = 29.7, units = "cm", dpi = 300)
+
+```
+
+
+
+
+[![](./plots/protest_network_graph.png)](https://github.com/risk-anticipation-hub/conflict-trends-asia-pacific/raw/main/plots/protest_network_graph.png)
+
+
+
+<br><br><br>

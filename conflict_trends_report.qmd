@@ -39,7 +39,7 @@ library(janitor)
 options(scipen = 100)
 theme_set(theme_light())
 
-
+range_wna <- function(x){(x-min(x, na.rm = TRUE))/(max(x, na.rm = TRUE)-min(x, na.rm = TRUE))}
 ```
 
 ```{r data, include=FALSE}
@@ -1622,19 +1622,6 @@ bangladesh_quota_words |>
 ```
 
 
-```{r}
-bangladesh_quota_words |> 
-  filter(word == "aegis") |> 
-  sample_n(5) |> 
-  pull(event_id_cnty)
-```
-
-```{r}
-acled_filtered |> 
-  filter(event_id_cnty == "BGD25855") |> 
-  pull(notes)
-```
-
 
 
 <br><br><br>
@@ -1692,7 +1679,6 @@ Whilst widespread protests and riots and Dhaka are well-known, Cox's Bazaar has 
 
 More testing is needed on how related unrest in Cox's Bazaar is to the rest of the country. 
 
-Further destablilisation from Cox's Bazaar
 
 ```{r}
 genocide_t_test <- bangladesh_summary |> 
