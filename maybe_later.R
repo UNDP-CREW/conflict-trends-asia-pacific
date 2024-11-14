@@ -542,3 +542,7 @@ Post-covid, we see a rapid increase of deaths in Afghanistan and Myanmar, due to
 
 Papua New Guinea, where data collection began in `r acled_filtered |> filter(country == "Papua New Guinea")  %>% {min(.$event_date)}`, has showed itself to be one of the most violent countries in the Asia-Pacific." 
 
+As noted earlier, with most countries moving up and down the axis of state control 
+When faced with economic woes 
+
+Despite all the violence in Pakistan, `load shedding` still appears in the words most likely to be associated with protests in Pakistan, perhaps indicating that their infrastructure is in a truly dire state, even when compared to countries of similar income levels. 
