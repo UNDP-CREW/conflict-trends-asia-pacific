@@ -12,9 +12,7 @@ format:
     self-contained: true
 ---
 
-```{r}
 
-```
 
 
 ```{css, echo=FALSE}
@@ -54,13 +52,19 @@ theme_set(theme_light())
 
 range_wna <- function(x){(x-min(x, na.rm = TRUE))/(max(x, na.rm = TRUE)-min(x, na.rm = TRUE))}
 
-myanmar <- readRDS(here("data", "myanmar.rds"))
+myanmar <- readRDS(here("data", "acled_filtered.rds")) |> 
+  filter(country == "Myanmar")
+
+
 
 ```
 
 <br><br><br>
 
 ## Background and current situation
+
+WRITE NEW DOCUMENT
+You have used this as working
 
 The current conflict is very linear and concerned with the control of the road network. The highway network was constructed to link military garrisons, important [natural resources](https://adamsmithinternational.com/projects/governance-of-myanmars-extractive-industries/) (gems, ores, oil and gas), border crossings and, now, narcotics factories important to funding the war effort. The Tatmadaw have never been in full of Myanmar's territory and their ability to project power is now deeply compromised and, consequently, so is their economy. 
 
@@ -128,16 +132,18 @@ mmr_borders <- tribble(~x, ~y, ~name,
                        ) |> 
   st_as_sf(coords = c("x", "y"), crs = 4326)
 
+road_shape <-  st_read(here("data", 
+                            "mmr_rdsl_mimu_250k", 
+                            "mmr_rdsl_mimu_250k.shp")) |>   
+  st_as_sf(
+
 mmr_idp_points <- mmr_idp |> 
   mutate(figure = as.numeric(figure)) |> 
   group_by(y = latitude, x = longitude) |> 
   summarise(IDPs = sum(figure)) |> 
   st_as_sf(coords = c("x", "y"), crs = 4326)
 
-road_shape <-  st_read(here("data", 
-                            "mmr_rdsl_mimu_250k", 
-                            "mmr_rdsl_mimu_250k.shp")) |>   
-  st_as_sf()  
+)  
 
 
 ```
@@ -321,6 +327,42 @@ ggsave(here("plots", "roads_conflict_grey_no_idp.png"), dpi = 300, width = 23.4,
 
 ```
 
+```{r fig.height=1.3, fig.width=8}
+
+fatalities_over_time <- acled_filtered |> 
+  filter(country == "Myanmar") |> 
+  filter(event_date > "2021-01-31") |> 
+  filter(event_date <= "2024-09-30") |> 
+  mutate(month = floor_date(event_date, unit = "month")) |> 
+  group_by(month) |> 
+  summarise(fatalities = sum(fatalities)) |> 
+  ggplot(aes(x = month, y = fatalities)) + 
+  geom_line(colour = "#F85441") +
+  scale_y_continuous(labels = comma) + 
+  theme_minimal() + 
+  labs(x = "", y = "", 
+       title = "Fatalities by month") + 
+  theme(plot.background = element_rect(fill = "grey98", colour = NA), 
+        panel.grid = element_line(linewidth = .1, colour = "grey30"),
+        axis.text.y = element_text(size = 8, colour = "#F85441"),
+        axis.text.x = element_text(size = 10, colour = "#F85441"),
+        plot.title = element_text(colour = "#F85441", size = 25))
+  
+```
+
+
+
+```{r warning=FALSE}
+roads_new_combined <- roads_conflict_black_grey + 
+  inset_element(fatalities_over_time, 
+                0.05, 0.825, .51, .9, 
+                align_to = "full")
+
+ggsave(here("plots", "roads_conflict_new_combined.png"), dpi = 300, width = 20.5, 
+       height = 44.376, units = "in")
+
+```
+
 ```{r eval=FALSE}
 roads_conflict_simple <- myanmar |> 
   filter(event_date > "2021-01-31") |> 
@@ -328,7 +370,6 @@ roads_conflict_simple <- myanmar |>
   geom_sf(colour = "#2b2d42", fill = "#edf2f4", data = myanmar_adm1) + 
   geom_sf_text(data = myanmar_adm1, aes(geometry = geometry, label = state), 
             size = 10.5, alpha = .8) +
-  geom_sf(data = mmr_floods, size = .1, colour = "#00b4d8", fill = "#00b4d8") + 
   geom_point(aes(x = 90, y = 26.7), size = 15, 
              colour = "#00b4d8", pch = 15, alpha = .8) +
   geom_text(aes(x = 91.2, y = 26.7), size = 13, 
@@ -350,9 +391,14 @@ roads_conflict_simple <- myanmar |>
         axis.title.x = element_blank(), 
         axis.title.y = element_blank(), 
         plot.margin = unit(c(5, 3, 0, 3), "cm"), 
-        plot.caption = element_text(hjust = .5, size = 9.5)) + 
+        plot.caption = element_text(hjust = .5, size = 12)) + 
   guides(
-    size = guide_legend(override.aes = list(alpha = 1, colour = "#d90429"))) 
+    size = guide_legend(override.aes = list(alpha = 1, colour = "#d90429"))) +
+  labs(size = "Fatalities", 
+       title = "Myanmar Civil War, plotted over road network", 
+       subtitle = "2021-02-01 to 2024-10-29. Source: www.accleddata.com",
+       caption = "The designations employed and the presentation of the material on this map do not imply the expression of any #opinion whatsoever on the part of the Secretariat of the United Nations concerning the legal status\nof any country, territory, city #or area or of its authorities, or concerning the delimitation of its frontiers or boundaries. This map is provided without any #warranty of any kind whatsoever, either express or implied.")
+  
 
 ggsave(here("plots", "roads_conflict_simple.png"), dpi = 300, width = 23.4, 
        height = 38.376, units = "in")
@@ -410,5 +456,18 @@ ggsave(here("plots", "roads_conflict_grey_red_combined_no_title.png"), dpi = 300
 
 
 
+```{r eval=FALSE}
+require(cowplot) 
 
+p1 <- ggdraw() + draw_image(here("plots", "Ethnologue_Map_Main_Spoken_Languages_of_MyanmarNeighbour_MIMU1300v03_7Jan2019_A1_1.png"))
+
+p2 <- ggdraw() + draw_image(here("plots", "roads_conflict_grey_no_idp.png"))
+
+combined <- plot_grid(p1, p2, ncol = 2, rel_widths = c(11512, 9932))
+
+ggsave(here("plots", "myanmar_composite.png"), dpi = 300, height = 11.7, 
+       width = 16.5, units = "in")
+
+
+```
 

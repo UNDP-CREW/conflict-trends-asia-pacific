@@ -545,4 +545,79 @@ Papua New Guinea, where data collection began in `r acled_filtered |> filter(cou
 As noted earlier, with most countries moving up and down the axis of state control 
 When faced with economic woes 
 
-Despite all the violence in Pakistan, `load shedding` still appears in the words most likely to be associated with protests in Pakistan, perhaps indicating that their infrastructure is in a truly dire state, even when compared to countries of similar income levels. 
+Despite all the violence in Pakistan, `load shedding` still appears in the words most likely to be associated with protests in Pakistan, perhaps indicating that their infrastructure is in a truly dire state, even when compared to countries of similar income levels.
+
+actors_conf_int <- acled_actors |>
+  group_by(country) |> 
+  add_count(actor) |> 
+  ungroup() |>
+  filter(n > 20) %>% 
+  nest(-actor) %>% 
+  mutate(model = map(data, ~ t.test(.$fatalities))) |> 
+  unnest_legacy(map(model,tidy))
+
+actors_conf_int %>% 
+  left_join(acled_actors %>% 
+              group_by(actor, actor_description, country) %>% 
+              summarise(fatalities = sum(fatalities), .groups = "drop"), 
+            by = "actor") %>%
+  mutate(actor = fct_reorder(actor, estimate), 
+         actor = str_replace_all(actor, "Forces of ", ""), 
+         actor = str_replace_all(actor, "People's Defense Force", "PDF"),
+          actor = str_replace_all(actor, "the Philippines", "Philippines"),
+         actor = str_sub(actor, start = 1L, end = 40L), 
+         country = fct_relevel(country, most_fatalities_list), 
+         sort = (estimate / sum(estimate)) + (fatalities / sum(fatalities))) %>% 
+  mutate(actor = ifelse(str_detect(actor, "Myanmar|Arakan|Kachin") | 
+                          country == "Myanmar", 
+                        paste0("<span style='color:#FF0000'>", actor, "</span>"),
+                        actor)) |> 
+  arrange(desc(sort)) |> 
+  group_by(country) |> 
+  slice(1:10) |> 
+  ungroup() |> 
+  filter(country %out% c("Bhutan", "Fiji", "Timor-Leste",
+                         "Singapore", "New Zealand", "Mongolia", 
+                         "Japan", "Hong Kong", "Maldives", "South Korea",
+                         "Australia", "Solomon Islands")) |> 
+  mutate(actor_description = fct_relevel(actor_description,
+                                         c(
+                                           "Civilians", "State Forces", 
+                                           "Protesters", "Identity Militias", 
+                                           "Rebel Groups", "Rioters", 
+                                           "Political Militias", "Other Forces")))  |> 
+  ggplot(aes(x = estimate, y = reorder_within(actor, estimate, country), colour = actor_description)) + 
+  geom_point(aes(size = fatalities)) + 
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0.15) + 
+  scale_x_continuous(trans = "log10") +
+  scale_size_continuous(range = c(1, 5)) + 
+  scale_colour_manual(
+    values = c(
+      "Civilians" = "#FCFFA4FF",
+      "State Forces" = "#000004FF",
+      "Protesters" = "#FAC127FF",
+      "Identity Militias" = "#9F2A63FF",
+      "Rebel Groups" = "#F57D15FF",
+      "Rioters" = "#65156EFF",
+      "Political Militias" = "#D44842FF",
+      "Other Forces" = "#280B54FF")) +
+  # scale_colour_brewer(palette = "Dark2") + 
+  scale_y_reordered() + 
+  facet_wrap(~country, scales = "free", ncol = 4) +
+  labs(x = "Estimate: Fatalities per conflict event (log scale)",
+      y = "", 
+      title = "Top 10 'deadliest' actors per country in order of fatalities per event, 2014-2023", 
+      subtitle = "Only actors involved more than 20 conflict events. Size indicates number of fatalities associated with actor. Red actors are from Myanmar.", 
+      caption = "Data source: Armed Conflict Location & Event Data Project (ACLED); acleddata.com",
+      colour = "", size = "") + 
+  guides(size = "none") + 
+  theme(plot.caption = element_text(hjust = 0.5), 
+        legend.text = element_text(size = 9), 
+        legend.position = "top",
+        axis.text = element_text(size = 4), 
+        axis.text.y = element_markdown(size = 6)) +
+  guides(colour = guide_legend(nrow = 1)) 
+
+The Philippine police is more lethal than anti-drug vigilantes and the New People's Army. Similarly, in China, civilians seem to be involved in more fatalities per event than even the police, or rioters, indicating problems with violence against civilians (as fatalities from an incident where one party were civilians and the other combatants).
+
+South Korea here should be counterpoint to the Philippines, Vietnam and China, especially in terms of the lethality of state actors. In spite of how much Koreans protest, neither their protesters nor their state actors are amongst those who have suffered the most casualties.

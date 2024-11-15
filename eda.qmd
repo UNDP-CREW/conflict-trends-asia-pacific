@@ -1043,9 +1043,88 @@ data(land, World)
 ```
 
 
-## Cross-border
+# Cross-border
 
-### India-Pakistan
+## Myanmar
+
+```{r}
+
+  ggplot() + 
+  geom_sf()
+```
+
+
+```{r}
+bgd_adm2 <- st_read(here("data", 
+                         "bgd_adm2_bbs_20201113", 
+                         "bgd_admbnda_adm2_bbs_20201113.shp")) |> 
+  clean_names()
+
+mmr_adm2 <- st_read(here("data", 
+                         "mmr_adm_250k_mimu_20240215_ab_shp", 
+                         "mmr_polbnda_adm2_250k_mimu_20240215.shp")) |> 
+  clean_names()
+
+mmr_border <- mmr_adm2 |> 
+  filter(adm2_en %in% c("Maungdaw", "Sittwe", "Mrauk-U"))  
+
+cxb <- bgd_adm2 |> 
+  filter(adm2_en %in% c("Cox's Bazar", "Bandarban")) 
+
+rak_cxb <- mmr_border |> 
+  select(-adm1_altpc, -adm2_my, -adm1_my, -adm0_my, -area_sqkm) |> 
+  rbind(
+    cxb |> 
+      select(-adm2_ref, -adm2alt1en, -adm2alt2en)) |> 
+  select(-date, -valid_to, -valid_on, -shape_leng, -shape_area) |> 
+      st_transform(4326)
+
+st_write(rak_cxb, here("data", "mmr_border", "rak_cxb.shp"))
+
+bgd_adm2 |> 
+  st_drop_geometry() |> 
+  count(adm1_en, adm2_en)
+
+cxb |> ggplot() + geom_sf() + geom_sf_text(aes(label = adm2_en))
+
+
+
+ind <- st_read(here("data", "geoBoundaries-IND-ADM2-all", "geoBoundaries-IND-ADM2.shp"))
+
+mizoram <- ind |>  
+  filter(shapeName %in% c("Saiha", "Lawngtlai"))  
+  ggplot() + geom_sf() + geom_sf_text(aes(label = shapeName))
+  
+mizoram |> 
+  rename(adm2_en = shapeName, 
+         adm0_pcode = shapeGroup) |> 
+  mutate(adm1_en = "Mizoram", 
+         adm0_en = "India", 
+         adm2_pcode = NA_character_, 
+         adm1_pcode = NA_character_) |> 
+  select(-shapeISO, -shapeID, -shapeType) |>
+  st_transform(4326)
+```
+
+
+```{r}
+rak_cxb |> ggplot() + geom_sf()
+
+mizoram |> 
+  rename(adm2_en = shapeName, 
+         adm0_pcode = shapeGroup) |> 
+  mutate(adm1_en = "Mizoram", 
+         adm0_en = "India", 
+         adm2_pcode = NA_character_, 
+         adm1_pcode = NA_character_) |> 
+  select(-shapeISO, -shapeID, -shapeType) |>
+  st_transform(4326)
+```
+
+
+
+
+## India-Pakistan
 
 ```{r}
 
