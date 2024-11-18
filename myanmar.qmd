@@ -323,7 +323,7 @@ ggsave(here("plots", "roads_conflict_grey_no_idp.png"), dpi = 300, width = 23.4,
 
 #title = "Violent conflict in Myanmar since the 1 February 2021 coup, plotted over road network",
 #       subtitle = "From 2021-02-01 to 2024-10-04. Road network in dark grey. Sources: acleddata.com, UN MIMU\nFighting, once more #dispersed throughout the road network, is now concentrated in and around major cities and garrisons.\nThe main front in Sagaing and #Mandalay is where rebels are trying to break through to Naypyitaw.", 
-#       caption = "The designations employed and the presentation of the material on this map do not imply the expression of any #opinion whatsoever on the part of the Secretariat of the United Nations concerning the legal status\nof any country, territory, city #or area or of its authorities, or concerning the delimitation of its frontiers or boundaries. This map is provided without any #warranty of any kind whatsoever, either express or implied.\nThe flooded area is based on a preliminary analysis and has not yet been #validated in the field. Please send ground feedback to UNOSAT."
+#       caption = "The designations employed and the presentation of the material on this map do not imply the expression of any opinion whatsoever on the part of the Secretariat of the United Nations concerning the legal status\nof any country, territory, city or area or of its authorities, or concerning the delimitation of its frontiers or boundaries. This map is provided without any warranty of any kind whatsoever, either express or implied.\nThe flooded area is based on a preliminary analysis and has not yet been #validated in the field. Please send ground feedback to UNOSAT."
 
 ```
 

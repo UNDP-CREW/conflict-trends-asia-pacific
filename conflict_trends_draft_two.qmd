@@ -2,6 +2,7 @@
 title: "Exploratory data analysis of Asia-Pacific political incident and conflict trends"
 author: "Risk Anticipation Hub"
 date: "30 August 2024"
+number-sections: true
 toc: true
 toc-location: left
 toc-depth: 4
@@ -212,7 +213,7 @@ wdi <- read_csv(here("data", "wdi_extract_Data.csv")) |>
 
 
 
-# 1. Introduction and broad trends
+# Introduction and broad trends {#sec-introduction}
 
 This report documents observed conflict trends in the Asia-Pacific region over the past ten years, exploring trends relating to events, fatalities, conflict types and conflict actors using ACLED data[^1].
 
@@ -321,7 +322,7 @@ To paraphrase Martin Luther King, Jr., without justice, there is no peace, only 
 
 <br><br><br>
 
-## 1.1 Conflict events and fatalities (summary tables)
+## Conflict events and fatalities (summary tables)
 
 Looking back at a 10-year horizon (note that ACLED used to monitor a smaller set of countries) in @tbl-summary10, although the number of events is much higher than 10 years ago, the majority of countries have seen declines in the number of fatalities associated with political conflict. However, most of these countries have also seen increases in the number of events, indicating increased that whilst there is more conflict, it is less bloody than before (except in Myanmar).
 
@@ -419,7 +420,7 @@ summary_stats |>
   column_spec(4, color = "grey50", background = 
                 spec_color(event_diff_spec_2014$event_diff_pc[1:9], direction = -1, end = .95, 
                            option = "plasma")) |> 
-  column_spec(7, color = "grey30", background =
+  column_spec(7, color = "grey40", background =
                 spec_color(fatalities_diff_spec_2014$fatalities_diff_pc[1:9], 
                                                            direction = -1, end = .95, 
                            option = "plasma")) 
@@ -518,10 +519,10 @@ summary_stats |>
   kable(caption = "Five years of conflict: comparison 2019 and 2023", 
         format.args = list(big.mark = ",")) |> 
   kable_classic_2("striped", full_width = TRUE) |> 
-  column_spec(4, color = "grey30", background = 
+  column_spec(4, color = "grey40", background = 
                 spec_color(event_diff_spec_2019$event_diff_pc[1:21], direction = -1, end = .9, 
                            option = "plasma")) |> 
-  column_spec(7, color = "grey30", background =
+  column_spec(7, color = "grey40", background =
                 spec_color(fatalities_diff_spec_2019$fatalities_diff_pc[1:21], 
                                                            direction = -1, end = .9, 
                            option = "plasma"))
@@ -597,7 +598,7 @@ A number of territories -- China, Nepal, Hong Kong, Japan, Mongolia and South Ko
 
 <br><br><br>
 
-## 1.2 Event type streamgraphs
+## Event type streamgraphs
 
 ```{r event-stream-data}
 event_stream_data <- acled_filtered |> 
@@ -658,7 +659,7 @@ Bangladesh seems to have an outsized number of riots. Whilst protests are a natu
 
 ::: {#fig-eventsstream}
 
-```{r fig.height = 7}
+```{r fig.height = 8}
 
 event_stream_data |> 
   mutate(country = fct_relevel(country, most_events_list)) |>
@@ -712,13 +713,13 @@ With the victory of the Taliban, Afghanistan has seen a 96% reduction on conflic
 
 <br><br><br>
 
-# 2. Protests
+# Protests {#sec-protests}
 
 The most common form of political conflict is to protest. Protests are a non-violent form of political conflict which manifest when all legal and administrative avenues have been exhausted. Widespread protests indicate a "hole" in governance, given that such protests would only be possible if a significant proportion of the population not only agreed with them but also felt that the issue had gone unaddressed long enough or is egregious to manifest their outrage in public.
 
 <br>
 
-## 2.1 Common protest topics
+## Common protest topics 
 
 @fig-protestwordbars below shows the (log of) odds that a word will appear in post-COVID event descriptions for protests events in that country. For example, the word with the highest odds of appearing in protest events in India is **BJP**.
 
@@ -893,7 +894,7 @@ protest_country_words |>
         strip.background = element_rect(fill = "black")) + 
   labs(x = "Log odds weighted", 
        y = "", 
-       fill = "Topic", 
+       fill = "", 
        title = "Most common post-COVID protest descriptions by country, in order of protest events per capita") + 
   guides(fill = guide_legend(nrow = 1))
 
@@ -904,7 +905,7 @@ protest_country_words |>
 
 <br>
 
-The Philippines has less protests per capita than Afghanistan. Protesters there are not in an enviable position if they believe protesting is riskier than it is in Afghanistan.
+The Philippines has less protests per capita than Afghanistan. Protesters there are not in an enviable position if they believe protesting there is riskier than it is in Afghanistan.
 
 South Korea, Hong Kong, the Maldives and Nepal all experienced significant protest events. New Zealand is currently experiencing a political crisis, but people there might just be more politically active in general, given that in addition to Maori rights, they seem to be fairly responsive to geopolitical events.
 
@@ -912,7 +913,7 @@ The people of Iran, in spite of their government being party to numerous content
 
 <br><br><br>
 
-## 2.2 Use of force against protesters
+## Use of force against protesters
 
 This section is concerned with protests where individuals who are peacefully protesting are targeted with violence, including that which results in serious injuries or death. @fig-protestsuppressed charts the countries where protests are most likely to be met with violence.
 
@@ -993,15 +994,15 @@ acled_filtered |>
 
 <br>
 
-The level of suppression is indicative of both the priorities of the state (how committed it is to free expression) as well as the ability of the state to enforce its authority. The New Zealand and Australian government's responses to protests was swift and forceful, especially during COVID. On the other hand, South Korea and post-COVID Japan both seem to be much more permissive towards protesters. However, this does not mean that the government of Pakistan is more permissive to protesters than that of Australia, just that the authority of the state there is too weak to do.
+The level of suppression is indicative of both the priorities of the state (how committed it is to free expression) as well as the ability of the state to enforce its authority. The New Zealand and Australian government's responses to protests was swift and forceful, especially during COVID. On the other hand, South Korea and post-COVID Japan both seem to be much more permissive towards protesters. However, this does not mean that the government of Pakistan is more permissive to protesters than that of Australia, more likely, it is that the authority of the state there is too weak to do the same.
 
-Likewise, the number of protests met with violence in Bangladesh decreased from about 10% pre-COVID, to just over 5% post-COVID whilst the number of total protests has doubled: given that the quota reform movement and the resulting government response there began before COVID, the Bangladeshi state was likely unable to intervene in any more protests than it already was doing.
+Similarly, the number of protests met with violence in Bangladesh decreased from about 10% pre-COVID, to just over 5% post-COVID whilst the number of total protests has doubled: given that the quota reform movement and the resulting government response there began before COVID, the Bangladeshi state was likely unable to intervene in any more protests than it already was doing.
 
 <br><br><br>
 
-# 3. Country spotlights
+# Country spotlights 
 
-## 3.1 Myanmar
+## Myanmar {#sec-myanmar}
 
 The current conflict is very linear and concerned with the control of the road network. The highway network was constructed to link military garrisons, important [natural resources](https://adamsmithinternational.com/projects/governance-of-myanmars-extractive-industries/) (gems, ores, oil and gas), border crossings and, now, narcotics factories important to funding the war effort. The Tatmadaw have never been in full of Myanmar's territory and their ability to project power is now deeply compromised and, consequently, so is their economy.
 
@@ -1013,7 +1014,7 @@ This has given rise to the very linear pattern of violence as both sides contest
 
 ::: {#fig-myanmarroads}
 
-[![](./plots/roads_conflict_new_combined.png)](https://github.com/UNDP-CREW/conflict-trends-asia-pacific/raw/main/plots/roads_conflict_new_combined.png){width=10%}
+[![](./plots/roads_conflict_new_combined.png)](https://github.com/UNDP-CREW/conflict-trends-asia-pacific/raw/main/plots/roads_conflict_new_combined.png){width=5%}
 
 :::
 
@@ -1093,7 +1094,7 @@ acled_actors |>
 
 <br><br><br>
 
-### 3.1.1 "Deadliest" actors
+### "Deadliest" actors
 
 @fig-deadliestactors plots conflict actors by their lethality: on the x-axis is the number of fatalities per event each actor is involved in and on the y-axis is the total number of fatalities from all events each actor was involved in. Actors involved in conflicts outside of their country of origin have their extraterritorial exploits recorded separately (i.e. the Taliban operating in Pakistan is recorded separately from the Taliban operating in Afghanistan).
 
@@ -1108,6 +1109,16 @@ The number of civilian deaths in Myanmar exceeds all other countries in the regi
 ::: {#fig-deadliestactors}
 
 ```{r fig.height=6.5}
+
+actors_conf_int <- acled_actors |>
+  group_by(country) |> 
+  add_count(actor) |> 
+  ungroup() |>
+  filter(n > 20) %>% 
+  nest(-actor) %>% 
+  mutate(model = map(data, ~ t.test(.$fatalities))) |> 
+  unnest_legacy(map(model,tidy))
+
 actors_conf_int %>% 
   left_join(acled_actors %>% 
               group_by(actor, actor_description, country) %>% 
@@ -1154,11 +1165,11 @@ actors_conf_int %>%
 
 The widespread nature of protests, riots and violent incursions related to Myanmar. Even though armed conflict in Myanmar is largely contained within its borders, a war of this size is destabilising for the region as a whole.
 
-In addition to the 1 million Rohingya in Bangladesh (that will be discussed shortly), there are also millions of refugees and economic migrants in other parts of the region. The [ILO](https://www.ilo.org/media/558626/download) noted that there were 2.2 million Myanmar migrants in Thailand and Malaysia alone in 2019. It is unclear how much more that number has grown since the start of the civil war but the [Bangkok Post](https://www.bangkokpost.com/opinion/opinion/2866687/solving-the-myanmar-migrant-surge) called it a "surge" that shows "no signs of abating soon", further highlighting: "the irregular migrant situation could become a ticking time bomb for the country". 
+In addition to the 1 million Rohingya in Bangladesh (that will be discussed shortly), there are also millions of refugees and economic migrants in other parts of the region. The [ILO](https://www.ilo.org/media/558626/download) noted that there were 2.2 million Myanmar migrants in Thailand and Malaysia alone in 2019. It is unclear how much more that number has grown since the start of the civil war but the [Bangkok    Post](https://www.bangkokpost.com/opinion/opinion/2866687/solving-the-myanmar-migrant-surge) called it a "surge" that shows "no signs of abating soon", further highlighting: "the irregular migrant situation could become a ticking time bomb for the country". 
 
 <br><br><br>
 
-## 3.2 Bangladesh
+## Bangladesh
 
 
 The recent 2024 protests are unique in recent history -- this is apparent from the spike in fatalities in the plots below, which took place almost entirely during Sheikh Hasina's rule -- her second premiership began on 6 January 2009, before ACLED began data collection in Bangladesh.  
@@ -1201,7 +1212,8 @@ acled_filtered |>
   facet_wrap(~ type, scales = "free_y", ncol = 1) + 
   scale_y_continuous(labels = comma) + 
   scale_x_date(date_breaks = "2 years", date_labels = "%Y") + 
-  theme(strip.background = element_rect(fill = "black"), 
+  theme(strip.background = element_rect(fill = "black"),
+        strip.text = element_text(size = 10), 
         legend.position = "top") + 
   labs(x = "", y = "",
        title = "Conflict events and fatalities in Bangladesh, 2010-2024", 
@@ -1313,13 +1325,60 @@ bangladesh_quota_words |>
 <br><br><br>
 
 
-### 3.2.1 Rohingya and Cox's Bazaar
+### Rohingya and Cox's Bazar
+
+::: {#fig-cxbbordermap}
+
+```{r}
+acled_filtered |> 
+  filter(event_date > "2017-08-25") |> 
+  filter(latitude > 19.5 & latitude < 22 & 
+           longitude < 93.5 & longitude > 91.7) |>
+  filter(admin2 %out% c("Mrauk-U", "Kyauphyu", "Mindat", "Matupi", "Sittwe")) |> 
+  ggplot() + 
+  geom_sf(data = rak_cxb, aes(fill = adm0_en)) +
+  scale_fill_manual(values = c("Myanmar" = "grey95", 
+                               "Bangladesh" = "grey99", 
+                               "India" = "grey85")) +
+  geom_sf_text(aes(label = adm2_en), data = rak_cxb, size = 3) + 
+  geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities),
+             alpha = .5) +
+  scale_size_continuous(range = c(1, 10)) +
+  scale_colour_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#001219",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#e9d8a6",
+      "Riots" = "#005f73"
+    )) + 
+  labs(title = "Conflict events at the Bangladesh-Myanmar border",
+       subtitle = "Post-Rohingya genocide, 25 August 2017", 
+       colour = "Event type", 
+       fill = "Country", 
+       size = "Fatalities", 
+       caption = "The designations employed and the presentation of the material on this map do not imply the expression of any \nopinion whatsoever on the part of the Secretariat of the United Nations concerning the legal status of any\ncountry, territory, city or area or of its authorities, or concerning the delimitation of its frontiers or boundaries. \nThis map is provided without any warranty of any kind whatsoever, either express or implied.") + 
+  theme_void() + 
+  theme(plot.caption = element_text(hjust = .2, size = 7)) + 
+  guides(colour = guide_legend(override.aes = list(alpha = 1,  size = 3
+  )))
+```
+
+:::
+
+<br>
+
 
 The flight of 700,000 Rohingya refugees into Bangladesh has been tremendously destabilising for Bangladesh and the rest of the region. With Myanmar as it currently is, there is currently no party to even capable of offering restitution. 
 
+Even with anti-govenrment protests embroiling the rest of the country, Cox's Bazar was still one of the most dangerous districts in the whole of Bangladesh, as can be seen from @fig-bangladeshadm2, which compares events and fatalities in the the top four districts with highest conflict fatalities.   
 
+<br>
+
+::: {#fig-bangladeshadm2}
 
 ```{r}
+
 bangladesh_admin2 <- acled_filtered |> 
   filter(country == "Bangladesh") |> 
   group_by(admin2) |> 
@@ -1328,10 +1387,7 @@ bangladesh_admin2 <- acled_filtered |>
             .groups = "drop") |> 
   arrange(desc(fatalities)) |> 
   head(20) |> pull(admin2)
-```
 
-
-```{r}
 bangladesh_summary <- acled_filtered |> 
   filter(country == "Bangladesh") |>   
   mutate(quarter = floor_date(event_date, "quarter")) |> 
@@ -1346,32 +1402,41 @@ bangladesh_summary <- acled_filtered |>
          type = fct_rev(type)) 
 
 bangladesh_summary |> 
+  mutate(type = fct_rev(str_to_title(type))) |> 
   filter(admin2 %in% c("Dhaka", "Chittagong", "Cox's Bazar", "Jessore")) |> 
+  filter(quarter != "2024-10-01") |> 
   ggplot(aes(x = quarter, y = value)) + 
-  geom_vline(aes(xintercept=as.numeric(quarter[c(145)])), linetype=4, colour="black", 
-             alpha = .5, 
-             size = .5) +
-  geom_line(aes(colour = type)) + 
+  geom_vline(aes(xintercept=as.numeric(quarter[c(145)])), linetype=4, colour="red", 
+             alpha = .5, size = .5) +
+  geom_vline(aes(xintercept=as.numeric(quarter[c(165)])), linetype=4, colour="black", 
+             alpha = .5, size = .5) +
+  geom_line(aes(colour = type), linewidth = .75) + 
   facet_wrap(~admin2, scales = "free_y") + 
   scale_x_date(date_breaks = "2 years", label = date_format("%Y")) + 
+  scale_colour_manual(values = c("Events" = "#264653", 
+                                 "Fatalities" = "#e76f51")) +
   
   theme(axis.text.x = element_text(size = 5), 
-        strip.background = element_rect(fill = "black")) + 
+        strip.background = element_rect(fill = "black"), 
+        legend.position = "top") + 
   labs(title = "Top 4 districts (admin2) in Bangladesh in terms of conflict fatalities", 
-       subtitle = "Grey line marks Rohingya genocide", 
-       y = "", x = "")
+       subtitle = "Red line marks Rohingya genocide; black line marks the 2018 quota reform protests", 
+       y = "", x = "", 
+       colour = "")
 
-```
+``` 
+
+:::
 
 <br>
 
+The number of fatalities per event seems very high in Cox's Bazar -- territories where the number of fatalities is as high or higher than the number of events are typically at war. Other examples include Afghanistan and Myanmar (see @fig-eventsfatalitiesline) for more. 
 
-Whilst widespread protests and riots and Dhaka are well-known, Cox's Bazaar has also become one of the most dangerous places in Bangladesh. Fatalities per event there and Jessore seem to be higher than in other areas. The genocide and consequent flight of 700,000 Rohingya refugees have no doubt been destabilising for the entire region. 
+For more detail, the streamgraphs (@fig-coxstream) below show the number of events broken down by event type within Cox's Bazar and in the rest of Bangladesh. Bangladesh as a whole has an outsized number of riots, when compared to other countries. The main event types in Cox's Bazar are battles and violence against civilians: it is clear that political violence in Cox's Bazar is on a different trajectory than the rest of Bangladesh. 
 
-More testing is needed on how related unrest in Cox's Bazaar is to the rest of the country. 
+<br>
 
-
-
+::: {#fig-coxstream}
 
 ```{r}
 acled_filtered |> 
@@ -1379,7 +1444,7 @@ acled_filtered |>
   group_by(event_type, quarter = floor_date(event_date, unit = "quarter")) |> 
   summarise(events = n_distinct(event_id_cnty), 
             .groups = "drop") |> 
-  mutate(type = "Cox's Bazaar") |> 
+  mutate(type = "Cox's Bazar") |> 
   rbind(
     
     acled_filtered |>
@@ -1416,52 +1481,72 @@ acled_filtered |>
 
 ```
 
+:::
 
+<br>
 
+This is made even more apparent when we examine the 10 most lethal actors in Cox's Bazar, post-Rohingya genocide: 
+
+<br>
 
 ```{r}
-genocide_t_test <- bangladesh_summary |> 
-  mutate(rohingya = ifelse(quarter < "2017-08-25", 
-                           "pre_genocide", 
-                           "post_genocide")) |> 
-  filter(type == "fatalities") |> 
-  select(-type) |> 
-  group_by(admin2, rohingya) |> 
-  summarise(mean_value = mean(value, na.rm = TRUE), 
-            .groups = "drop") |> 
-  pivot_wider(values_from = mean_value, 
-              names_from = rohingya)  %>%
-  t.test(.$post_genocide, .$pre_genocide, data = .) |> 
-  broom::tidy()
+
+#| label: tbl-cxbactors
+
+cxb_actors <- acled_filtered |> 
+  filter(event_date > "2017-08-25") |>
+  filter(admin2 == "Cox's Bazar") |> 
+  group_by(actor1, actor2) |> 
+  summarise(events = n_distinct(event_id_cnty), 
+            fatalities = sum(fatalities, na.rm = TRUE), 
+            .groups = "drop") |>
+  arrange(desc(fatalities)) 
+  
+  
+cxb_actors |>
+  slice(1:10) |> 
+  select_all(~ str_to_title(.)) |> 
+  kable(caption = "Most lethal conflict actors in Cox's Bazar, post-genocide", 
+        format.args = list(big.mark = ",")) |> 
+  kable_classic_2("striped", full_width = TRUE) |> 
+  column_spec(3, color = "grey40", background = 
+                spec_color(cxb_actors$events[1:10], direction = -1, end = .8, 
+                           option = "plasma")) |> 
+  column_spec(4, color = "grey40", background =
+                spec_color(cxb_actors$events[1:10],direction = -1, end = .8, 
+                           option = "plasma"))
 ```
 
+<br>
+
+There has been a heavy predominance of Arakan Rohingya Salvation Army (ARSA), recognised as a terrorist group in Myanmar, in Cox's Bazar. However, of late, they have been [collaborating with the Tatmadaw](https://thediplomat.com/2024/08/captured-myanmar-soldier-army-joined-hands-with-arsa-against-arakan-army-advance/) as the Arakan Army makes gains in Rakhihne: "Major Hlaing Win Tun of the Myanmar military [...] prompted the military to join hands with ARSA, which eventually led to the forced conscription and training of hundreds of Rohingya youths from the region, including from refugee camps in Bangladesh."
+
+The Arakan Army (AA) was one of the perpetrators of the Rohingya genocide. Their response is also troubling: the term "hostile Rohingya" is now used to cover any Rohingya who opposes them. [Human Rights' Watch](https://www.hrw.org/news/2024/08/12/myanmar-armies-target-ethnic-rohingya-rakhine) elaborates: 
+"Myanmar junta forces and the opposition Arakan Army have committed extrajudicial killings and widespread arson against Rohingya, Rakhine, and other civilians in Myanmar’s western Rakhine State in recent months". 
+
+In light of this, support for [ARSA grows](https://thediplomat.com/2024/10/rohingya-community-is-divided-over-arakan-armys-plan-for-inclusive-administration/): “ARSA has enlisted support in Buthidaung among some sections, which could explain the participation of people from far-off villages in the rally against AA”.  
+
+This has extended to Cox's Bazar, where refugees are being recruited, where ARSA and various other militias are competing for territory and unidentified armed groups are going round targeting civilians. Furthermore, the Bangladeshi state is not able or willing to exert its control over Cox's Bazar -- from @tbl-cxbactors, we can see the relatively minor presence of police and non-involvement of the Bangladeshi military.
+
+The Rohingya continue to be one of the most marginalised and vulnerable groups in the world. No party in this conflict seems to be able or interested in treating with the Rohingya in good faith. Refugee crisis actors have always been aware of the risk of radicalisation, though counter-programming (education and livelihoods) was very limited due to governmental restrictions and the difficulties of long-term planning. However, disaffection with their leaders, Bangladeshi state, international actors, the Tatmadaw and the Arakan Army has very understandably, only increased. Actions to stem radicalisation actually require some type of resolution to the genocide and refugee crisis. There was never even an official count of the dead or missing from the genocide. 
+
+<br><br><br>
+
+## Afghanistan-Pakistan
+
+Even as violence in Kashmir lessens (though upcoming elections in the Indian-administered zone may change that), Pakistan is still facing tremendous cross-border pressure. The plots below show the past 5 years of conflict data in Afghanistan and Pakistan, with the border area between the two marked in a light grey.
+
+The first three years show ultimately successful Taliban insurgency in full swing, with quite a significant amount of spillover into Pakistan, culminating in the US withdrawal in 2021. 2022 shows markedly less conflict, though we can see the beginnings of this "migration" of conflict (we don't know how literal this is yet) from Afghanistan to Pakistan, this is more evident in 2023. This is in also line with the longstanding Taliban policy of disregard for the Durand Line. 
+
+<br>
+
+
+
 ```{r}
-rak_cxb |> 
-  ggplot() + 
-  geom_sf()
-
-acled_filtered |> 
-  filter(event_date > "2017-08-25") |> 
-  filter(latitude > 19.5 & latitude < 22 & 
-           longitude < 93.9 & longitude > 91.7) |> 
-  ggplot() + 
-  geom_sf(data = rak_cxb, aes(fill = adm0_en)) +
-  scale_fill_manual(values = c("Myanmar" = "grey90", 
-                               "Bangladesh" = "grey95")) +
-  geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .3) +
-  scale_colour_manual(values = c(
-      "Battles" = "#9b2226",
-      "Violence against civilians" = "#001219",
-      "Explosions/Remote violence" = "#ee9b00",
-      "Protests" = "#94d2bd",
-      "Strategic developments" = "#e9d8a6",
-      "Riots" = "#005f73"
-    ))
-```
-
-
-```{r}
-filter(!is.na(longitude) & !is.na(latitude) & 
+afpak_map <- function(tbl){
+  
+  tbl |> 
+    filter(!is.na(longitude) & !is.na(latitude) & 
              country %in% c("Afghanistan", "Pakistan")) |> 
     select(event_id_cnty, event_type, longitude, latitude, event_type, fatalities) |>
     ggplot() +
@@ -1490,10 +1575,304 @@ filter(!is.na(longitude) & !is.na(latitude) &
                                                    colour = "grey"))) + 
     theme_void() + 
     labs(colour = "", size = "Fatalities")
+}
+
+
 ```
 
 
+::: {#fig-afpak}
 
+```{r fig.height = 6.5, fig.width=9}
+
+
+acled_filtered |> 
+  filter(year == 2019) |> 
+  afpak_map() + 
+  scale_size_continuous(range = c(0.1, 3)) +
+  labs(title = "2019") + # max100
+  theme(legend.position = "none") + 
+
+acled_filtered |> 
+  filter(year == 2020) |> 
+  afpak_map() + 
+  scale_size_continuous(range = c(0.1, 2)) +
+  labs(title = "2020") + #75
+  theme(legend.position = "none") + 
+  
+acled_filtered |> 
+  filter(year == 2021) |> 
+  afpak_map() + 
+  scale_size_continuous(range = c(0.1, 4)) +
+  labs(title = "2021") + #150
+  theme(legend.text = element_text(size = 4),
+        legend.title = element_text(size = 5), 
+        legend.key.width = unit(.3, "cm"), 
+        legend.key.height = unit(.3, "cm"), 
+        legend.margin=margin(t = 0, unit='cm')) +
+  
+acled_filtered |> 
+  filter(year == 2022) |> 
+  afpak_map() + 
+  scale_size_continuous(range = c(0.1, 1.5)) +
+  labs(title = "2022") + #60
+  theme(legend.position = "none") + 
+  
+acled_filtered |> 
+  filter(year == 2023) |> 
+  afpak_map() + 
+  scale_size_continuous(range = c(0.1, 2.2)) +
+  labs(title = "2023") + #80
+  theme(legend.position = "none") +
+  plot_layout(guides = "collect") + 
+  plot_annotation(
+    title = "Political incidents in Afghanistan and Pakistan", 
+    subtitle = "Border areas (within 100km) marked in white; country capitals in blue")
+
+
+
+```
+
+<br>
+
+Although ACLED only began data collection in Afghanistan in 2019, ACLED data on Pakistan was extracted all the way back to 2013. This is plotted below. 
+
+Immediately apparent is how comparable the levels of conflict in and outside of Pakistan's border areas with Afghanistan are. This 100 km-thick strip of land only lags behind the rest of the country (including the capital) in the number of protests and strategic developments. 
+
+<br>
+
+
+```{r}
+acled_afpak <- acled_filtered |> 
+  filter(!is.na(longitude) & !is.na(latitude) & 
+             country %in% c("Afghanistan", "Pakistan")) |> 
+  left_join(acled_filtered |>
+              filter(!is.na(longitude) & !is.na(latitude) &
+                       country %in% c("Afghanistan", "Pakistan")) |>
+              st_as_sf(coords = c("longitude", "latitude"), crs = 4326) |>
+              st_intersection(afpak_buffer) |>
+              st_drop_geometry() |>
+              mutate(afpak_border = "Afpak border") |>
+              select(event_id_cnty, afpak_border), 
+            by = "event_id_cnty") |> 
+  mutate(afpak_border = ifelse(is.na(afpak_border), "Non-border", afpak_border))
+
+acled_afpak |>
+  filter(country == "Pakistan" & year != 2024) |> 
+  group_by(event_type, year = floor_date(event_date, "year"), afpak_border) |> 
+  summarise(events = n_distinct(event_id_cnty), 
+            .groups = "drop") |> 
+  ggplot(aes(x = year, y = events)) + 
+  geom_line(aes(colour = event_type), lwd = .8) +
+  scale_y_log10(labels = comma) +
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
+  scale_colour_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#001219",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#e9d8a6",
+      "Riots" = "#005f73"
+    )) +
+  facet_wrap(~afpak_border) + 
+  theme(strip.background = element_rect(fill = "black")) + 
+  labs(colour = "Event type", 
+       x = "", 
+       y = "Number of political incidents",
+       title = "Political incidents in Pakistan, by year and border area", 
+       subtitle = "Border area defined as 100km from Afghanistan")
+```
+
+<br>
+
+And, as observed from the maps above, we see an increase in political violence after the Taliban victory. As mentioned, this is in line with Taliban policy, but it remains to be explored how centrally-directed these efforts are. 
+
+Perhaps a more instructive view of violence in Pakistan's border areas comes from an examination of conflict fatalities over time. Explosions and remote violence, battles and violence against civilians were once much more common in Pakistan's border areas -- this was likely dependent on the cycles of stabilisation and destabilisation in Afghanistan. This situation should be monitored for further deterioration since conflict is on the upswing.  
+
+<br>
+
+```{r}
+acled_afpak |>
+  filter(country == "Pakistan" & year != 2024) |> 
+  group_by(event_type, year = floor_date(event_date, "year"), afpak_border) |> 
+  summarise(fatalities = sum(fatalities, na.rm = TRUE), 
+            .groups = "drop") |> 
+  ggplot(aes(x = year, y = fatalities)) + 
+  geom_line(aes(colour = event_type)) +
+  scale_y_continuous(labels = comma) + 
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
+  scale_colour_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#001219",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#e9d8a6",
+      "Riots" = "#005f73"
+    )) +
+  facet_wrap(~afpak_border) + 
+  theme(strip.background = element_rect(fill = "black")) + 
+  labs(colour = "", 
+       x = "", 
+       y = "Number of fatalities",
+       title = "Fatalities from political incidents in Pakistan, by year and border area", 
+       subtitle = "Border area defined as 100km from Afghanistan")
+```
+
+## India-Pakistan
+
+
+```{r fig.height=7}
+acled_filtered |> 
+  filter(year > 2015) |> 
+  filter(!is.na(longitude) & !is.na(latitude) & 
+           country %in% c("Pakistan", "India")) |> 
+  select(event_id_cnty, event_type, longitude, latitude, event_type, fatalities) |>
+  ggplot() + 
+  geom_sf(data = world_shape, size = .7, colour = "gold", fill = "grey90", alpha = .5) +
+  geom_sf(data = kash_buffer, colour = "white", fill = "white", alpha = .65) + 
+  #coord_sf(xlim = c(60.756785, 81.810392), ylim = c(18.846805, 37.550718)) +
+  coord_sf(xlim = c(55, 96.5), ylim = c(7.264010, 37)) +
+  geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
+  scale_fill_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#001219",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#e9d8a6",
+      "Riots" = "#005f73"
+    )) +
+  scale_size_continuous(range = c(.1, 5)) + 
+  theme(plot.background = element_rect(fill = NA, colour = NA),
+          panel.background = element_rect(fill = NA, colour = NA),
+          rect = element_rect(fill = NA, colour = NA),
+          legend.title = element_text(face = "bold"),
+          plot.caption = element_text(hjust = 0.2)) + 
+    guides(colour = guide_legend(override.aes = list(alpha = 1)), 
+           size = guide_legend(override.aes = list(alpha = 1, 
+                                                   colour = "grey"))) + 
+    theme_void() +
+  labs(title = "Political conflict in India and Pakistan",
+       subtitle = "Border areas (within 100km) and Kashmir marked in white", 
+       colour = "", size = "Fatalities")
+  
+  
+```
+
+<br>
+
+Apart from Jammu and Kashmir, the border region between India and Pakistan is sparsely populated. Though, with reference to the graphs below, the number of violent incidents in Kashmir has decreased since 2020, over the time period monitored by ACLED below, there were more battles in Kashmir than the rest of India. 
+
+Pakistan's recent increase in conflict will be discussed in the next section. 
+
+<br>
+
+
+```{r}
+acled_filtered |> 
+  filter(year < 2024 & year > 2015) |> 
+  filter(country %in% c("India", "Pakistan")) |> 
+  mutate(kashmir = case_when(
+    admin1 %in% c("Azad Jammu and Kashmir", "Jammu and Kashmir") ~ "Kashmir", 
+    country == "Pakistan" ~ "other Pakistan", 
+    country == "India" ~ "other India"
+  )) |> 
+  group_by(event_type, year, kashmir) |> 
+  summarise(events = n_distinct(event_id_cnty), .groups = "drop") |> 
+  ggplot(aes(x = year, y = events)) + 
+  geom_line(aes(colour = event_type), lwd = 1) +
+  scale_y_log10(labels = comma) +
+  scale_x_continuous(breaks = c(2013, 2015, 2017, 2019, 2021, 2023)) + 
+  scale_colour_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#001219",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#e9d8a6",
+      "Riots" = "#005f73"
+    )) +
+  facet_wrap(~kashmir) + 
+  theme(strip.background = element_rect(fill = "black")) + 
+  labs(colour = "Event type", 
+       x = "", 
+       y = "Number of political incidents",
+       title = "Political incidents in India and Pakistan, by year and border area (2016-2023)")
+
+```
+
+
+<br>
+
+```{r}
+acled_filtered |> 
+  filter(country %in% c("India", "Pakistan")) |> 
+  mutate(kashmir = case_when(
+    admin1 %in% c("Azad Jammu and Kashmir", "Jammu and Kashmir") ~ "Kashmir", 
+    country == "Pakistan" ~ "other Pakistan", 
+    country == "India" ~ "other India"
+  )) |> 
+  filter(country == "India") |> 
+  group_by(event_type, kashmir) |> 
+   summarise(events = n_distinct(event_id_cnty),
+             fatalities = sum(fatalities),
+             .groups = "drop") |> 
+  pivot_longer(cols = c(events, fatalities), 
+               names_to = "variable", 
+               values_to = "value") |> 
+  ggplot(aes(x = value, y = fct_rev(event_type), fill = kashmir)) +
+  geom_col(position = position_dodge(width = .9)) + 
+  geom_text(aes(label = comma(value)), 
+            position = position_dodge(width = .9), 
+            hjust = "inward") + 
+  scale_x_continuous(label = comma, trans = "sqrt") + 
+  scale_fill_viridis_d(begin = .3) + 
+  facet_wrap(~ variable, scales = "free_x") + 
+  theme(strip.background = element_rect(fill = "black"), 
+        legend.position = "top",
+        plot.title = element_text(size = 11)) + 
+  labs(x = "", y = "", fill = "", 
+       title = "Conflict events and fatalities in Indian-adminstered Kashmir vs the rest of the country, 2016-01-01 to 2024-05-30")
+
+```
+
+
+<br>
+
+Fatalities in Kashmir have also decreased since their 2018 highs. Kashmir experiences violence against civilians and riots at a lower rate than the rest of India and Pakistan. 
+
+<br>
+
+```{r}
+acled_filtered |> 
+  filter(year < 2024 & year > 2015) |> 
+  filter(country %in% c("India", "Pakistan")) |> 
+  mutate(kashmir = case_when(
+    admin1 %in% c("Azad Jammu and Kashmir", "Jammu and Kashmir") ~ "Kashmir", 
+    country == "Pakistan" ~ "other Pakistan", 
+    country == "India" ~ "other India"
+  )) |> 
+  group_by(event_type, year, kashmir) |> 
+  summarise(fatalities = sum(fatalities), .groups = "drop") |> 
+  ggplot(aes(x = year, y = fatalities)) + 
+  geom_line(aes(colour = event_type), lwd = 1) +
+  scale_colour_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#001219",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#e9d8a6",
+      "Riots" = "#005f73"
+    )) + 
+  scale_y_continuous(labels = comma) +
+  scale_x_continuous(breaks = c(2013, 2015, 2017, 2019, 2021, 2023)) + 
+  facet_wrap(~kashmir) + 
+  theme(strip.background = element_rect(fill = "black")) + 
+  labs(colour = "Event type", 
+       x = "", 
+       y = "Number of conflict fatalities per event type",
+       title = "Political conflict fatalities by year")
+```
+
+<br><br><br>
 
 ### Appendices
 

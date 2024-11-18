@@ -1045,13 +1045,7 @@ data(land, World)
 
 # Cross-border
 
-## Myanmar
-
-```{r}
-
-  ggplot() + 
-  geom_sf()
-```
+## Maungdaw-CXB
 
 
 ```{r}
@@ -1066,7 +1060,7 @@ mmr_adm2 <- st_read(here("data",
   clean_names()
 
 mmr_border <- mmr_adm2 |> 
-  filter(adm2_en %in% c("Maungdaw", "Sittwe", "Mrauk-U"))  
+  filter(adm2_en %in% c("Maungdaw"))  
 
 cxb <- bgd_adm2 |> 
   filter(adm2_en %in% c("Cox's Bazar", "Bandarban")) 
@@ -1076,10 +1070,24 @@ rak_cxb <- mmr_border |>
   rbind(
     cxb |> 
       select(-adm2_ref, -adm2alt1en, -adm2alt2en)) |> 
-  select(-date, -valid_to, -valid_on, -shape_leng, -shape_area) |> 
-      st_transform(4326)
+  select(-date, -valid_to, -valid_on, -shape_leng, -shape_area) 
+
+
+  rbind(
+    ind |>
+      filter(shapeName %in% c("Saiha", "Lawngtlai"))   |>
+      rename(adm2_en = shapeName, adm0_pcode = shapeGroup) |>
+      mutate(
+        adm1_en = "Mizoram",
+        adm0_en = "India",
+        adm2_pcode = NA_character_,
+        adm1_pcode = NA_character_
+      ) |>
+      select(-shapeISO, -shapeID, -shapeType) 
+  )
 
 st_write(rak_cxb, here("data", "mmr_border", "rak_cxb.shp"))
+
 
 bgd_adm2 |> 
   st_drop_geometry() |> 
@@ -1091,8 +1099,8 @@ cxb |> ggplot() + geom_sf() + geom_sf_text(aes(label = adm2_en))
 
 ind <- st_read(here("data", "geoBoundaries-IND-ADM2-all", "geoBoundaries-IND-ADM2.shp"))
 
-mizoram <- ind |>  
-  filter(shapeName %in% c("Saiha", "Lawngtlai"))  
+ 
+ 
   ggplot() + geom_sf() + geom_sf_text(aes(label = shapeName))
   
 mizoram |> 
@@ -1119,6 +1127,11 @@ mizoram |>
          adm1_pcode = NA_character_) |> 
   select(-shapeISO, -shapeID, -shapeType) |>
   st_transform(4326)
+
+mmr_adm2 |> 
+  ggplot() +
+  geom_sf() + 
+  geom_sf_text(aes(label = adm2_en), size = 2)
 ```
 
 

@@ -547,14 +547,6 @@ When faced with economic woes
 
 Despite all the violence in Pakistan, `load shedding` still appears in the words most likely to be associated with protests in Pakistan, perhaps indicating that their infrastructure is in a truly dire state, even when compared to countries of similar income levels.
 
-actors_conf_int <- acled_actors |>
-  group_by(country) |> 
-  add_count(actor) |> 
-  ungroup() |>
-  filter(n > 20) %>% 
-  nest(-actor) %>% 
-  mutate(model = map(data, ~ t.test(.$fatalities))) |> 
-  unnest_legacy(map(model,tidy))
 
 actors_conf_int %>% 
   left_join(acled_actors %>% 
@@ -618,6 +610,51 @@ actors_conf_int %>%
         axis.text.y = element_markdown(size = 6)) +
   guides(colour = guide_legend(nrow = 1)) 
 
-The Philippine police is more lethal than anti-drug vigilantes and the New People's Army. Similarly, in China, civilians seem to be involved in more fatalities per event than even the police, or rioters, indicating problems with violence against civilians (as fatalities from an incident where one party were civilians and the other combatants).
+"The Philippine police is more lethal than anti-drug vigilantes and the New People's Army. Similarly, in China, civilians seem to be involved in more fatalities per event than even the police, or rioters, indicating problems with violence against civilians (as fatalities from an incident where one party were civilians and the other combatants).
 
-South Korea here should be counterpoint to the Philippines, Vietnam and China, especially in terms of the lethality of state actors. In spite of how much Koreans protest, neither their protesters nor their state actors are amongst those who have suffered the most casualties.
+South Korea here should be counterpoint to the Philippines, Vietnam and China, especially in terms of the lethality of state actors. In spite of how much Koreans protest, neither their protesters nor their state actors are amongst those who have suffered the most casualties."
+
+
+filter(!is.na(longitude) & !is.na(latitude) & 
+             country %in% c("Afghanistan", "Pakistan")) |> 
+    select(event_id_cnty, event_type, longitude, latitude, event_type, fatalities) |>
+    ggplot() +
+    geom_sf(data = world_shape, size = .7, colour = "gold", fill = "grey90", alpha = .5) + 
+    geom_sf(data = afpak_buffer, colour = "white", fill = "white", alpha = .5) +
+    coord_sf(xlim = c(60.41, 75.02), 
+             ylim = c(25.04, 39.11)) +
+    geom_point(aes(x = 73.0363, y = 33.6995), colour = "cornflowerblue", pch = 15) +
+    geom_point(aes(x = 69.2075, y = 34.5553), colour = "cornflowerblue", pch = 15) +
+    geom_point(aes(x = longitude, y = latitude, colour = event_type, size = fatalities), alpha = .05) +
+    scale_colour_manual(values = c(
+      "Battles" = "#9b2226",
+      "Violence against civilians" = "#001219",
+      "Explosions/Remote violence" = "#ee9b00",
+      "Protests" = "#94d2bd",
+      "Strategic developments" = "#e9d8a6",
+      "Riots" = "#005f73"
+    )) +
+    theme(plot.background = element_rect(fill = NA, colour = NA),
+          panel.background = element_rect(fill = NA, colour = NA),
+          rect = element_rect(fill = NA, colour = NA),
+          legend.title = element_text(face = "bold"),
+          plot.caption = element_text(hjust = 0.2)) + 
+    guides(colour = guide_legend(override.aes = list(alpha = 1)), 
+           size = guide_legend(override.aes = list(alpha = 1, 
+                                                   colour = "grey"))) + 
+    theme_void() + 
+    labs(colour = "", size = "Fatalities")
+
+genocide_t_test <- bangladesh_summary |> 
+  mutate(rohingya = ifelse(quarter < "2017-08-25", 
+                           "pre_genocide", 
+                           "post_genocide")) |> 
+  filter(type == "fatalities") |> 
+  select(-type) |> 
+  group_by(admin2, rohingya) |> 
+  summarise(mean_value = mean(value, na.rm = TRUE), 
+            .groups = "drop") |> 
+  pivot_wider(values_from = mean_value, 
+              names_from = rohingya)  %>%
+  t.test(.$post_genocide, .$pre_genocide, data = .) |> 
+  broom::tidy()
