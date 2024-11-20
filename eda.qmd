@@ -1175,6 +1175,8 @@ pak_shape <- world_shape |>
 
 afpak_border <- st_intersection(afg_shape, pak_shape, model = "closed")
 
+afpakind_border <- st_intersection(afg_shape, pak_shape, ind_shape, model = "closed")
+
 afir_border <- st_intersection(afg_shape, irn_shape, model = "closed")
 
 afir_border |> st_buffer(dist = 100)
@@ -1194,6 +1196,11 @@ st_write(afir_buffer, here("data", "afir_buffer", "afir_buffer.shp"))
 
 afpakir_buffer |> glimpse()
 
+afpakind_buffer <- st_union(afpak_buffer, ind_pak_buffer)
+
+afpakind_buffer |> st_write(here("data", "afpakind_buffer", "afpakind_buffer.shp"))
+
+afpakind_buffer |> glimpse()
 ```
 
 ```{r}

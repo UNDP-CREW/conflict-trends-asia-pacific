@@ -35,6 +35,7 @@ library(ggtext)
 library(widyr)
 library(ggraph)
 library(janitor)
+library(tidymodels)
 
 `%out%` <- Negate(`%in%`)
 options(scipen = 100)
@@ -43,7 +44,7 @@ theme_set(theme_light())
 range_wna <- function(x){(x-min(x, na.rm = TRUE))/(max(x, na.rm = TRUE)-min(x, na.rm = TRUE))}
 ```
 
-```{r data, include=FALSE}
+```{r data, include=FALSE, warning=FALSE}
 country_list <- c("Australia", "Afghanistan", "Bangladesh", "Bhutan", "Cambodia", 
                   "China", "Fiji", "Hong Kong", "Japan", "India", "Indonesia", 
                   "Iran",  "Laos", "Malaysia", "Maldives", "Mongolia", "Myanmar", 
@@ -183,6 +184,29 @@ indo_adm1_pop <- read_csv(here("data", "idn_admpop_adm1_2020_v2.csv")) |>
     by = "adm1_pcode"
   )
 
+wdi_cleaning <- function(tbl) {
+  
+  tbl |> 
+    mutate(year = str_sub(year, start = -4, end = -1), 
+         year = as.double(year)) |> 
+    rename(country = country_name, 
+           indicator = series_name) |> 
+    mutate(country = 
+             case_when(str_detect(country, "Korea, Rep.") ~ "South Korea",
+                               str_detect(country, "Korea, Dem. People's Rep.") ~ "North Korea", 
+                               str_detect(country, "Hong Kong SAR, China") ~ "Hong Kong", 
+                               str_detect(country, "Iran, Islamic Rep.") ~ "Iran", 
+                               str_detect(country, "Lao PDR") ~ "Laos", 
+                               country == "Viet Nam" ~ "Vietnam", 
+                               TRUE ~ country), 
+           country_iso = countrycode::countrycode(country,
+                                     origin = "country.name", 
+                                     destination = "iso3c")) |> 
+    filter(!is.na(country) & 
+             !str_detect(country, "Data from database|Last Updated")) |> 
+    filter(country_iso %in% (country_iso3_ap |> pull(iso3)))
+    
+}
 
 wdi <- read_csv(here("data", "wdi_extract_Data.csv")) |> 
   clean_names() %>%
@@ -190,27 +214,58 @@ wdi <- read_csv(here("data", "wdi_extract_Data.csv")) |>
   pivot_longer(cols = x1994_yr1994:x2023_yr2023, 
                names_to = "year", 
                values_to = "value") |>
-  mutate(year = str_sub(year, start = -4, end = -1), 
-         year = as.double(year)) |> 
-  rename(country = country_name) |> 
-  mutate(country = 
-           case_when(str_detect(country, "Korea, Rep.") ~ "South Korea",
-                             str_detect(country, "Korea, Dem. People's Rep.") ~ "North Korea", 
-                             str_detect(country, "Hong Kong SAR, China") ~ "Hong Kong", 
-                             str_detect(country, "Iran, Islamic Rep.") ~ "Iran", 
-                             str_detect(country, "Lao PDR") ~ "Laos", 
-                             country == "Viet Nam" ~ "Vietnam", 
-                             TRUE ~ country), 
-         country_iso = countrycode::countrycode(country,
-                                   origin = "country.name", 
-                                   destination = "iso3c")) |> 
-  filter(!is.na(country) & 
-           !str_detect(country, "Data from database|Last Updated")) |> 
-  filter(country_iso %in% (country_iso3_ap |> pull(iso3)))
+  wdi_cleaning() |> 
+  mutate(indicator = case_when(
+    str_detect(indicator, "modeled ILO") ~ 
+      "Share of youth not in education, employment or training, total (% of youth population) (modeled ILO estimate)", 
+    str_detect(indicator, "completed upper secondary, population 25+, total (%)") ~ 
+      "Educational attainment, at least completed upper secondary, population 25+, total (%) (cumulative)",
+    str_detect(indicator, "% of export") ~ 
+      "Total debt service (% of exports of goods, services and primary income)", 
+    TRUE ~ indicator
+  )) |> 
+  rbind(
+    read_csv(here("data", "wdi_growth.csv")) |> 
+  clean_names() %>%
+  mutate(across(matches("_yr"), ~ as.numeric(.))) |> 
+  pivot_longer(cols = x2000_yr2000:x2023_yr2023, 
+               names_to = "year", 
+               values_to = "value") |>
+  wdi_cleaning()) |> 
+  mutate(indicator = str_replace_all(indicator, "Educational attainment, at least completed primary", 
+                                     "Completed primary"), 
+         indicator = str_replace_all(indicator, 
+                                     "Educational attainment, at least completed upper secondary", 
+                                     "Completed secondary"), 
+         indicator = str_replace_all(indicator, "Share of youth not in education, employment or training", 
+                                     "NEET")) |>
+  rbind(
+    wdi |> filter(indicator == "GDP per capita (current US$)") |>
+      filter(!is.na(value)) |>
+      group_by(country) |>
+      mutate(yoy = (lag(value, 1) - value) / value) |>
+      ungroup() |>
+      select(-value) |>
+      rename(value = yoy) |>
+      mutate(
+        series_code = str_replace(series_code, "CD", "PC"),
+        indicator = "GDP per capita growth yoy%"
+      )) |> 
+  rbind(
+    read_csv(here("data", "wdi_extract3.csv")) |> 
+      clean_names() |> 
+      mutate(across(matches("_yr"), ~ as.numeric(.))) |>
+      pivot_longer(cols = x2010_yr2010:x2023_yr2023, 
+               names_to = "year", 
+               values_to = "value") |>
+      wdi_cleaning()) 
+
 
 
 
 ```
+
+
 
 
 
@@ -1003,6 +1058,8 @@ Similarly, the number of protests met with violence in Bangladesh decreased from
 
 # Country spotlights 
 
+This section 
+
 ## Myanmar {#sec-myanmar}
 
 The current conflict is very linear and concerned with the control of the road network. The highway network was constructed to link military garrisons, important [natural resources](https://adamsmithinternational.com/projects/governance-of-myanmars-extractive-industries/) (gems, ores, oil and gas), border crossings and, now, narcotics factories important to funding the war effort. The Tatmadaw have never been in full of Myanmar's territory and their ability to project power is now deeply compromised and, consequently, so is their economy.
@@ -1374,7 +1431,7 @@ acled_filtered |>
 
 The flight of 700,000 Rohingya refugees into Bangladesh has been tremendously destabilising for Bangladesh and the rest of the region. With Myanmar as it currently is, there is currently no party to even capable of offering restitution. 
 
-Even with anti-govenrment protests embroiling the rest of the country, Cox's Bazar was still one of the most dangerous districts in the whole of Bangladesh, as can be seen from @fig-bangladeshadm2, which compares events and fatalities in the the top four districts with highest conflict fatalities.   
+Even with anti-govenrment protests embroiling the rest of the country, Cox's Bazar was still one of the most dangerous districts in the whole of Bangladesh, as can be seen from @fig-bangladeshadm2, which compares events and fatalities in the the top four districts with highest conflict fatalities. In Dhaka and Jessore, one may see the spike in fatalities in 2024 in line with the protests and riots to oust Sheikh Hasina.   
 
 <br>
 
@@ -1432,6 +1489,7 @@ bangladesh_summary |>
 :::
 
 <br>
+
 
 The number of fatalities per event seems very high in Cox's Bazar -- territories where the number of fatalities is as high or higher than the number of events are typically at war. Other examples include Afghanistan and Myanmar (see @fig-eventsfatalitiesline) for more. 
 
@@ -1530,9 +1588,9 @@ cxb_actors |>
 
 <br>
 
-The Arakan Rohingya Salvation Army (ARSA), recognised as a terrrorist group in Myanmar, is especially prominent in Cox's Baxar. However, of late, they have been [collaborating with the Tatmadaw](https://thediplomat.com/2024/08/captured-myanmar-soldier-army-joined-hands-with-arsa-against-arakan-army-advance/) as the Arakan Army makes gains in Rakhihne: "Major Hlaing Win Tun of the Myanmar military [...] prompted the military to join hands with ARSA, which eventually led to the forced conscription and training of hundreds of Rohingya youths from the region, including from refugee camps in Bangladesh."
+The Arakan Rohingya Salvation Army (ARSA), recognised as a terrrorist group in Myanmar, is especially prominent in Cox's Baxar. However, of late, they have been [collaborating with the Tatmadaw](https://thediplomat.com/2024/08/captured-myanmar-soldier-army-joined-hands-with-arsa-against-arakan-army-advance/) as the Arakan Army makes gains in Rakhihne. Major Hlaing Win Tun of the Tatmadaw said that the Arakan Army's gains in Rakhine prompted the military to join hands with ARSA, which eventually led to the forced conscription and training of hundreds of Rohingya youths from the region, including from refugee camps in Bangladesh."
 
-The Arakan Army (AA) was one of the perpetrators of the Rohingya genocide. Their response is also troubling: the term "hostile Rohingya" is now used to cover any Rohingya who opposes them. [Human Rights' Watch](https://www.hrw.org/news/2024/08/12/myanmar-armies-target-ethnic-rohingya-rakhine) elaborates: 
+The Arakan Army was one of the perpetrators of the Rohingya genocide. Their response is also troubling: the term "hostile Rohingya" is now used to cover any Rohingya who opposes them. [Human Rights' Watch](https://www.hrw.org/news/2024/08/12/myanmar-armies-target-ethnic-rohingya-rakhine) elaborates: 
 "Myanmar junta forces and the opposition Arakan Army have committed extrajudicial killings and widespread arson against Rohingya, Rakhine, and other civilians in Myanmar’s western Rakhine State in recent months". 
 
 In light of this, support for [ARSA grows](https://thediplomat.com/2024/10/rohingya-community-is-divided-over-arakan-armys-plan-for-inclusive-administration/): “ARSA has enlisted support in Buthidaung among some sections, which could explain the participation of people from far-off villages in the rally against AA”.  
@@ -1544,6 +1602,48 @@ The Rohingya continue to be one of the most marginalised and vulnerable groups i
 <br><br><br>
 
 ## Pakistan 
+
+Pakistan is party to numerous geopolitical conflicts. It also entered into a massive political crisis following the [ouster](https://www.scmp.com/news/asia/south-asia/article/3217401/pakistan-speeds-towards-full-blown-crisis-imran-khans-foot-accelerator) of Prime Minister Imran Khan, though the situation has since stabilised. However, the Pakistani state remains unstable enough for long-time allies like China to be [very publicly concerned](https://thediplomat.com/2023/05/behind-chinas-friendly-advice-for-pakistan/). Furthermore, state and non-state actors in Pakistan have a history of using [deadly force](https://acleddata.com/2024/02/01/political-repression-and-militant-targeting-set-the-stage-for-pakistans-2024-elections/) against protesters and other civilians, including militia attacks on political parties. 
+
+Even as Pakistan reels from its constitutional crisis, its relationship with the Taliban has soured since the US withdrawal. According to [Radio Free Europe](https://www.rferl.org/a/afghanistan-pakistan-taliban-ttp-terrorism/33078685.html), the Taliban has not reined in the terror group Tehrik-e Taliban (TTP), which has killed hundreds of Pakistani soldiers since 2021. Michael Semple, a former UN and EU Advisor, believes that Afghanistan would not likely give up on TTP, given that Pakistan is reaching a "tipping point given the political and economic crises", creating quite the opportunity for Afghanistan. 
+
+Pakistan's economic woes 
+
+https://acleddata.com/2024/02/14/acled-insight-election-related-violence-in-pakistan/
+
+Pakistan has been often leaning on China for assistance to keep its economy intact. Last year in July, when Islamabad’s foreign exchange reserves were depleting at a massive pace, it asked Beijing to delay extending the maturity of debt for nine power plants built by Chinese companies under the multibillion-dollar Pakistan China Economic Corridor (CPEC).
+https://www.firstpost.com/world/pakistan-seeks-additional-10-billion-yuan-loan-from-china-13829881.html
+
+https://finance.yahoo.com/news/china-pakistan-economic-ties-could-093000794.html
+
+
+Ongoing tensions between Khan and the political establishment spilled over in May 2023, when Khan was arrested on corruption charges.16 PTI supporters mobilized across the country, organizing demonstrations in hundreds of locations. Of these, 21% of demonstrations turned violent, with demonstrators attacking government and military properties, including the residences of high-ranking military officers.
+
+https://acleddata.com/2024/02/01/political-repression-and-militant-targeting-set-the-stage-for-pakistans-2024-elections/
+
+Political and economic development can be characterized as the conflict between states' efforts to increase their capabilities and existing social forces that they must accommodate and to which they must be accountable (Acemoglu and Robinson 2019). This conflict is definitional at the frontiers of the formal state. The combination of a law that clearly demarcates the end of the formal state combined with the agriculture transformation precipitated by the Green Revolution makes 20th century Pakistan an ideal setting to study these processes.
+
+We show that the trajectory of state presence within the borders of modern-day Pakistan is consistent with a theoretical framework in which states extend governance to areas where the economic benefits of investing in institutions for taxation and resource extraction outweigh the costs of doing so. Using crop-suitability data from the Food and Agriculture Organization of the United Nations, we demonstrate first that the choice by the British to apply the Frontier Crimes Regulation (FCR) to over half of Pakistan in 1901 was (conditionally) unrelated to crop suitability. We then exploit the fact that the Green Revolution created more fundamental agricultural transformation in areas of low crop suitability to understand Pakistan's selective roll-back of the FCR throughout the 1960s and 1970s. Subdistricts made suitable to agriculture by the Green Revolution were more likely to see the FCR removed.
+
+https://onlinelibrary.wiley.com/doi/10.1111/ecca.12527
+
+Kabul was also disturbed that the US also backed down on its longstanding demand that the Taliban break publicly with al-Qaeda. Instead the Taliban made vague statements about never letting ‘their country’ be used for terrorism against another. That echoes the Taliban’s statements before and after 9/11 that al-Qaeda was not engaged in attacks on American targets despite all the obvious evidence. al-Qaeda fighters are still on the battlefield in Afghanistan fighting with the Taliban.
+
+The Taliban’s Pakistani patrons, the army and the ISI were very pleased with the outcome. They control the lives of the leadership in Pakistan and the lives of the Taliban team in Doha. As the former head of Afghan intelligence, Amrullah Saleh, likes to point out that the Taliban negotiators fly home to Karachi from Doha whenever they want to see their boss or their families. They are not independent players.
+
+https://www.brookings.edu/articles/pakistan-taliban-and-the-afghan-quagmire/
+
+
+
+On August 14, Torkham, the main border crossing connecting Pakistan and Afghanistan, remained closed for a third day after a firefight that injured several Taliban fighters and at least three Pakistani soldiers on August 12. The Taliban said three Afghan civilians were killed in the cross fire.
+
+Such clashes are almost a weekly occurrence along their 2,500-kilometer border.
+
+But Michael Semple, a former EU and UN adviser to Afghanistan, told RFE/RL it would be difficult for the Taliban to give up on the TTP's nearly two-decade campaign when it sees a tipping point given the grave political and economic crises engulfing Pakistan.
+
+https://www.rferl.org/a/afghanistan-pakistan-taliban-ttp-terrorism/33078685.html
+
+
 
 Even as it is embroiled in a political conflict, Pakistan also remains involved in several regional conflicts -- namely, with India and with Afganistan.  
 
@@ -1976,6 +2076,285 @@ acled_afpak |>
        y = "Number of fatalities",
        title = "Fatalities from political incidents in Pakistan, by year and border area", 
        subtitle = "Border area defined as 100km from Afghanistan")
+```
+
+
+
+# Macroeconomics and conflict 
+
+```{r}
+wdi |> count(indicator)
+
+wdi |> filter(indicator == "Multidimensional poverty headcount ratio (World Bank) (% of population)")
+```
+
+```{r}
+wdi_wide_events |> 
+  ggplot(aes(x = `Prevalence of underweight, weight for age (% of children under 5)`, 
+             y = `Voice and Accountability: Estimate`)) +
+  
+  geom_point() + 
+  geom_smooth(method = "lm")
+
+
+```
+
+
+```{r}
+wdi_wide_events <- wdi |> 
+  filter(indicator %in% 
+           c("Total debt service (% of GNI)", 
+             "Military expenditure (% of GDP)",
+             "Prevalence of underweight, weight for age (% of children under 5)", 
+             "NEET, total (% of youth population) (modeled ILO estimate)", 
+             "People using at least basic sanitation services (% of population)", 
+             "Multidimensional poverty headcount ratio (World Bank) (% of population)")) |>
+  select(-series_code) |>
+  filter(year >= 2010 & !is.na(value)) |>
+  pivot_wider(names_from = indicator, values_from = value) |> 
+  group_by(country, year) %>% 
+  reframe(across(everything(), ~na.omit(.))) |> 
+  ungroup() |> 
+  left_join(
+    acled_filtered |> filter(year >= 2010 & year < 2024) |>
+      group_by(country, year) |>
+      summarise(events = n_distinct(event_id_cnty),
+                .groups = "drop"), 
+    by = c("country", "year")
+  ) |> 
+  mutate(events = log10(events)) |>  
+  select(-country, -country, -country_iso, -country_code, -year)
+
+set.seed(145)
+
+wdie_split <- initial_split(wdi_wide_events, prop = 0.80)
+wdie_train <- training(wdie_split)
+wdie_test <- testing(wdie_split)
+
+lm(events ~ ., data = (wdie_train)) |> 
+  summary()
+```
+
+The best performing indicators 
+
+```{r}
+wdi_wide_fatalities <- wdi |> 
+  filter(indicator %in% 
+           c("Total debt service (% of GNI)", 
+             "Control of Corruption: Estimate", 
+             "Military expenditure (% of GDP)",
+             "Prevalence of underweight, weight for age (% of children under 5)", 
+             "NEET, total (% of youth population) (modeled ILO estimate)")) |>
+  select(-series_code) |>
+  filter(year >= 2010 & !is.na(value)) |>
+  pivot_wider(names_from = indicator, values_from = value) |> 
+  group_by(country, year) %>% 
+  reframe(across(everything(), ~na.omit(.))) |> 
+  ungroup() |> 
+  left_join(
+    acled_filtered |> filter(year >= 2010 & year < 2024) |>
+      group_by(country, year) |>
+      summarise(fatalities = sum(fatalities, na.rm = TRUE),
+                .groups = "drop"), 
+    by = c("country", "year")
+  ) |> 
+  mutate(fatalities = log10(fatalities)) |> 
+  filter(!is.na(fatalities) & !is.nan(fatalities) & !is.infinite(fatalities)) |> 
+  select(-country, -country, -country_iso, -country_code, -year)
+
+set.seed(135)
+
+wdif_split <- initial_split(wdi_wide_fatalities, prop = 0.80)
+wdif_train <- training(wdif_split)
+wdif_test <- testing(wdif_split)
+
+lm(fatalities ~ ., data = (wdif_train)) |> 
+  summary()
+```
+
+
+```{r}
+set.seed(2021) 
+
+
+rf_model <- 
+  rand_forest(trees = 1000, min_n = 4) |> 
+  set_mode("regression") |> 
+  set_engine("ranger", importance = "impurity")
+
+rf_recipe <- recipe(events ~ ., data = wdi_train)
+
+rf_prep <- prep(rf_recipe)
+
+juiced <- juice(rf_prep)
+
+tune_spec <- rand_forest(
+  mtry = tune(),
+  trees = 1000,
+  min_n = tune()
+) %>%
+  set_mode("regression") %>%
+  set_engine("ranger")
+
+tune_workflow <- 
+  workflow() %>%
+  add_recipe(rf_recipe) %>%
+  add_model(tune_spec)
+
+
+rf_workflow %>%
+  fit(wdi_train) %>% 
+  extract_fit_parsnip() %>% 
+  vip::vip(num_features = 12)
+
+```
+
+```{r}
+set.seed(234)
+trees_folds <- vfold_cv(wdi_train)
+
+
+
+```
+
+```{r}
+set.seed(345)
+tune_res <- tune_grid(
+  tune_workflow,
+  resamples = trees_folds,
+  grid = 20
+)
+
+tune_res %>%
+  collect_metrics() %>%
+  filter(.metric == "rmse") %>%
+  select(mean, min_n, mtry) %>%
+  pivot_longer(min_n:mtry,
+    values_to = "value",
+    names_to = "parameter"
+  ) %>%
+  ggplot(aes(value, mean, color = parameter)) +
+  geom_point(show.legend = FALSE) +
+  facet_wrap(~parameter, scales = "free_x") +
+  labs(x = NULL, y = "RMSE")
+
+rf_grid <- grid_regular(
+  mtry(range = c(10, 30)),
+  min_n(range = c(2, 8)),
+  levels = 5
+)
+
+rf_grid
+
+tune_res %>%
+  collect_metrics() %>%
+  filter(.metric == "rmse") %>%
+  mutate(min_n = factor(min_n)) %>%
+  ggplot(aes(mtry, mean, color = min_n)) +
+  geom_line(alpha = 0.5, size = 1.5) +
+  geom_point() +
+  labs(y = "rmse")
+
+set.seed(456)
+
+regular_res <- tune_grid(
+  tune_workflow,
+  resamples = trees_folds,
+  grid = rf_grid
+)
+
+regular_res %>%
+  collect_metrics() %>%
+  filter(.metric == "rmse") %>%
+  mutate(min_n = factor(min_n)) %>%
+  ggplot(aes(mtry, mean, color = min_n)) +
+  geom_line(alpha = 0.5, size = 1.5) +
+  geom_point() +
+  labs(y = "rmse")
+```
+
+
+```{r}
+
+```
+
+
+
+```{r}
+events_wdi <- wdi |> 
+  filter(indicator %in% 
+           c("Consumer price index (2010 = 100)", 
+             "Inflation, consumer prices (annual %)", 
+             "Total debt service (% of GNI)", 
+             "GDP per capita (current US$)", 
+             "People using at least basic sanitation services (% of population)", 
+             "Voice and Accountability: Estimate")) |>
+  filter(year >= 2010) |> 
+  left_join(
+    acled_filtered |> filter(year >= 2010 & year < 2024) |>
+      group_by(country, year) |>
+      summarise(events = n_distinct(event_id_cnty)), 
+    by = c("country", "year")
+  ) |> filter(!is.na(events) & !is.na(value))
+
+ 
+  nest(-indicator) %>%
+  mutate(model = map(data, ~ lm(.$events ~ .$value))) |> 
+  unnest_legacy(map(model, tidy)) |> 
+  filter(term != "(Intercept)")
+
+
+fatalities_model <- wdi |> 
+  filter(indicator %in% 
+           c("Consumer price index (2010 = 100)", 
+             "Inflation, consumer prices (annual %)", 
+             "Total debt service (% of GNI)", 
+             "GDP per capita (current US$)", 
+             "People using at least basic sanitation services (% of population)", 
+             "Voice and Accountability: Estimate")) |>
+  filter(year >= 2010) |> 
+  left_join(
+    acled_filtered |> filter(year >= 2010 & year < 2024) |>
+      group_by(country, year) |>
+      summarise(events = n_distinct(event_id_cnty), 
+            fatalities = sum(fatalities, na.rm = TRUE)), 
+    by = c("country", "year")
+  ) |> 
+  filter(!is.na(fatalities) & !is.na(value)) |> 
+  nest(-indicator) %>%
+  mutate(model = map(data, ~ lm(.$events ~ .$value))) |> 
+  unnest_legacy(map(model, tidy)) |> 
+  filter(term != "(Intercept)")
+
+
+
+```
+
+
+```{r}
+# Initialize file path
+png(height=1800, width=1800, file=here("plots", "correlation_plot.png"), type = "cairo")
+
+# Your function to plot image goes here
+islands |> 
+  filter(index == "Demographic statistics") |> 
+  filter(indicator_full %out% c("Population density Resident Maldivian Population",
+                                "Median Age Resident Maldivians") & 
+           !str_detect(indicator_full, "International|\\%")) |>
+  select(Atoll, island, concat, indicator_full, value) |> 
+  pivot_wider(names_from = indicator_full, 
+               values_from = value) |> 
+  select(-Atoll, -island, -concat) |>
+  cor(method = c("pearson")) %>%
+  corrplot.mixed(order = "AOE", 
+                 title = "Demographic statistics",
+                 mar = c(0,0,1,0),
+                 number.cex = 5,
+                 number.digits = 2, 
+                 diag = "l", tl.pos = "lt")
+
+# Then
+dev.off()  
 ```
 
 
